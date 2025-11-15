@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dual Stopwatch</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Space+Mono:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1f2937; /* Dark background */
+        }
+        .stopwatch-display {
+            font-family: 'Space Mono', monospace; /* Monospace font for timing */
+            letter-spacing: -2px;
+            text-shadow: 0 0 10px rgba(79, 70, 229, 0.5);
+            transition: color 0.3s;
+        }
+        .btn {
+            font-weight: 600;
+            padding: 1rem 3rem; 
+            border-radius: 0.75rem;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        /* Ensure the main container is centered vertically and horizontally */
+        .container-center {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="container-center p-4">
+
+    <div class="w-full max-w-5xl">
+        
+        <header class="text-center mb-10">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white mb-2">Dual Stopwatch</h1>
+        </header>
+
+        <!-- Dual Stopwatch Container -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <!-- Instance 1 -->
+            <div class="bg-gray-800 p-8 sm:p-10 rounded-3xl shadow-2xl border border-gray-700">
+                <h2 class="text-2xl font-bold text-white mb-6 text-center">Timer 1</h2>
+                
+                <!-- Stopwatch Display 1 -->
+                <div class="text-center mb-8">
+                    <div id="display1" class="stopwatch-display text-6xl font-bold text-gray-400">
+                        00:00:00
+                    </div>
+                </div>
+
+                <!-- Control Buttons 1 -->
+                <div class="flex justify-center flex-col items-center space-y-4">
+                    <button id="mainBtn1" onclick="startOrReset('1')" class="btn text-white w-full max-w-sm">
+                        Start
+                    </button>
+                    <button id="secondaryBtn1" onclick="freezeLiveDisplay('1')" class="btn text-white w-full max-w-sm" disabled>
+                        Freeze Display
+                    </button>
+                </div>
+            </div>
+
+            <!-- Instance 2 -->
+            <div class="bg-gray-800 p-8 sm:p-10 rounded-3xl shadow-2xl border border-gray-700">
+                <h2 class="text-2xl font-bold text-white mb-6 text-center">Timer 2</h2>
+                
+                <!-- Stopwatch Display 2 -->
+                <div class="text-center mb-8">
+                    <div id="display2" class="stopwatch-display text-6xl font-bold text-gray-400">
+                        00:00:00
+                    </div>
+                </div>
+
+                <!-- Control Buttons 2 -->
+                <div class="flex justify-center flex-col items-center space-y-4">
+                    <button id="mainBtn2" onclick="startOrReset('2')" class="btn text-white w-full max-w-sm">
+                        Start
+                    </button>
+                    <button id="secondaryBtn2" onclick="freezeLiveDisplay('2')" class="btn text-white w-full max-w-sm" disabled>
+                        Freeze Display
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State object to manage two separate stopwatch instances by ID suffix
+        const stopwatches = {
+            '1': {
+                timerInterval: null,
+                startTime: 0,
+                elapsedTime: 0,
+                isRunning: false,
+                isDisplayFrozen: false,
+                frozenTime: 0,
+            },
+            '2': {
+                timerInterval: null,
+                startTime: 0,
+                elapsedTime: 0,
+                isRunning: false,
+                isDisplayFrozen: false,
+                frozenTime: 0,
+            }
+        };
+
+        const runningColorClass = 'text-indigo-400';
+        const stoppedColorClass = 'text-gray-400';
+
+        /**
+         * Helper function to update a specific button's appearance
+         */
+        function setButtonAppearance(btn, text, color, isDisabled = false) {
+            btn.textContent = text;
+            btn.disabled = isDisabled;
+            
+            // Remove previous color classes
+            btn.classList.remove('bg-green-600', 'hover:bg-green-700', 'focus:ring-green-500');
+            btn.classList.remove('bg-red-600', 'hover:bg-red-700', 'focus:ring-red-500');
+            btn.classList.remove('bg-amber-600', 'hover:bg-amber-700', 'focus:ring-amber-500');
+            btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700', 'focus:ring-indigo-500');
+            btn.classList.remove('bg-gray-600', 'hover:bg-gray-700', 'focus:ring-gray-500');
+
+            // Apply new color classes
+            if (color === 'green') {
+                btn.classList.add('bg-green-600', 'hover:bg-green-700', 'focus:ring-green-500');
+            } else if (color === 'red') {
+                btn.classList.add('bg-red-600', 'hover:bg-red-700', 'focus:ring-red-500');
+            } else if (color === 'amber') { // Used for Live View
+                btn.classList.add('bg-amber-600', 'hover:bg-amber-700', 'focus:ring-amber-500');
+            } else if (color === 'indigo') { // Used for Freeze Display
+                 btn.classList.add('bg-indigo-600', 'hover:bg-indigo-700', 'focus:ring-indigo-500');
+            } else if (color === 'gray') { // Used for Disabled/Reset
+                 btn.classList.add('bg-gray-600', 'hover:bg-gray-700', 'focus:ring-gray-500');
+            }
+        }
+
+        /**
+         * Formats time from milliseconds into HH:MM:SS format (No milliseconds).
+         */
+        function formatTime(time) {
+            // We round to the nearest second
+            const totalSeconds = Math.round(time / 1000); 
+
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            return String(hours).padStart(2, '0') + ':' +
+                String(minutes).padStart(2, '0') + ':' +
+                String(seconds).padStart(2, '0');
+        }
+
+        /**
+         * Calculates elapsed time and updates the display element for a given stopwatch instance.
+         */
+        function updateDisplay(idSuffix) {
+            const state = stopwatches[idSuffix];
+            const displayElement = document.getElementById('display' + idSuffix);
+
+            if (state.isRunning) {
+                // Always update the real elapsed time in the background
+                state.elapsedTime = Date.now() - state.startTime;
+            } 
+            
+            // Determine which time to display: frozen or live
+            const displayTimeMs = state.isDisplayFrozen ? state.frozenTime : state.elapsedTime;
+
+            displayElement.textContent = formatTime(displayTimeMs);
+        }
+
+        /**
+         * Handles the main button press: Start (when stopped) or Reset (when running).
+         */
+        function startOrReset(idSuffix) {
+            const state = stopwatches[idSuffix];
+            const displayElement = document.getElementById('display' + idSuffix);
+            const mainBtn = document.getElementById('mainBtn' + idSuffix);
+            const secondaryBtn = document.getElementById('secondaryBtn' + idSuffix);
+
+            if (state.isRunning) {
+                // RESET logic 
+                clearInterval(state.timerInterval);
+                state.elapsedTime = 0;
+                state.startTime = 0;
+                state.isRunning = false;
+                state.isDisplayFrozen = false; // Reset the display state too
+                state.frozenTime = 0;
+                
+                updateDisplay(idSuffix); 
+                
+                // UI updates for INITIAL state
+                setButtonAppearance(mainBtn, 'Start', 'green', false);
+                setButtonAppearance(secondaryBtn, 'Freeze Display', 'gray', true); // Disabled
+                
+                displayElement.classList.replace(runningColorClass, stoppedColorClass);
+
+            } else {
+                // START logic
+                state.startTime = Date.now() - state.elapsedTime;
+                // Use a wrapper function in the interval to pass the ID suffix
+                state.timerInterval = setInterval(() => updateDisplay(idSuffix), 100); 
+                state.isRunning = true;
+                
+                // UI updates for RUNNING state
+                setButtonAppearance(mainBtn, 'Reset', 'red', false);
+                
+                // If it was previously frozen, unfreeze it when starting a new session
+                state.isDisplayFrozen = false; 
+                setButtonAppearance(secondaryBtn, 'Freeze Display', 'indigo', false); // Enabled
+
+                displayElement.classList.replace(stoppedColorClass, runningColorClass);
+            }
+        }
+
+        /**
+         * Handles the secondary button press: Freeze Display or Show Live View.
+         * The actual timer interval remains untouched.
+         */
+        function freezeLiveDisplay(idSuffix) {
+            const state = stopwatches[idSuffix];
+            const secondaryBtn = document.getElementById('secondaryBtn' + idSuffix);
+
+            if (!state.isRunning) return; // Should be disabled if not running
+
+            if (state.isDisplayFrozen) {
+                // Unfreeze display (show live time)
+                state.isDisplayFrozen = false;
+                setButtonAppearance(secondaryBtn, 'Freeze Display', 'indigo', false);
+            } else {
+                // Freeze display (capture current time)
+                state.frozenTime = state.elapsedTime; // Capture the real running time before freezing
+                state.isDisplayFrozen = true;
+                setButtonAppearance(secondaryBtn, 'Live View', 'amber', false); 
+            }
+            // Update display immediately to reflect the change
+            updateDisplay(idSuffix);
+        }
+
+        // Initialize both stopwatches on load
+        document.addEventListener('DOMContentLoaded', () => {
+             // Set the initial appearance for Timer 1
+             const mainBtn1 = document.getElementById('mainBtn1');
+             const secondaryBtn1 = document.getElementById('secondaryBtn1');
+             setButtonAppearance(mainBtn1, 'Start', 'green', false);
+             setButtonAppearance(secondaryBtn1, 'Freeze Display', 'gray', true);
+             document.getElementById('display1').textContent = formatTime(0);
+
+             // Set the initial appearance for Timer 2
+             const mainBtn2 = document.getElementById('mainBtn2');
+             const secondaryBtn2 = document.getElementById('secondaryBtn2');
+             setButtonAppearance(mainBtn2, 'Start', 'green', false);
+             setButtonAppearance(secondaryBtn2, 'Freeze Display', 'gray', true);
+             document.getElementById('display2').textContent = formatTime(0);
+        });
+    </script>
+</body>
+</html>
