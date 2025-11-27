@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dual Stopwatch</title>
+    <title>Dual Precision Stopwatch</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Space+Mono:wght@400;700&display=swap');
@@ -13,7 +13,8 @@
         }
         .stopwatch-display {
             font-family: 'Space Mono', monospace; /* Monospace font for timing */
-            letter-spacing: -2px;
+            /* Adjusted letter spacing for the longer string (HH:MM:SS.ss) */
+            letter-spacing: -1px; 
             text-shadow: 0 0 10px rgba(79, 70, 229, 0.5);
             transition: color 0.3s;
         }
@@ -23,6 +24,8 @@
             border-radius: 0.75rem;
             transition: all 0.2s ease-in-out;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            /* Add focus ring style */
+            @apply focus:outline-none focus:ring-4;
         }
         .btn:hover {
             transform: translateY(-2px);
@@ -48,7 +51,8 @@
     <div class="w-full max-w-5xl">
         
         <header class="text-center mb-10">
-            <h1 class="text-3xl sm:text-4xl font-extrabold text-white mb-2">Dual Stopwatch</h1>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white mb-2">Dual Precision Stopwatch</h1>
+            <p class="text-gray-400">Time measured in HH:MM:SS.ss</p>
         </header>
 
         <!-- Dual Stopwatch Container -->
@@ -56,21 +60,22 @@
             
             <!-- Instance 1 -->
             <div class="bg-gray-800 p-8 sm:p-10 rounded-3xl shadow-2xl border border-gray-700">
-                <h2 class="text-2xl font-bold text-white mb-6 text-center">Workout</h2>
+                <h2 class="text-2xl font-bold text-white mb-6 text-center">Timer 1</h2>
                 
-                <!-- Stopwatch Display 1 -->
+                <!-- Stopwatch Display 1 (Adjusted size for mobile/desktop to fit milliseconds) -->
                 <div class="text-center mb-8">
-                    <div id="display1" class="stopwatch-display text-6xl font-bold text-gray-400">
-                        00:00:00
+                    <div id="display1" class="stopwatch-display text-5xl sm:text-6xl font-bold text-gray-400">
+                        00:00:00.00
                     </div>
                 </div>
 
                 <!-- Control Buttons 1 -->
                 <div class="flex justify-center flex-col items-center space-y-4">
-                    <button id="mainBtn1" onclick="startOrReset('1')" class="btn text-white w-full max-w-sm">
+                    <!-- Added bg color classes directly here for initial state styling -->
+                    <button id="mainBtn1" onclick="startOrReset('1')" class="btn text-white w-full max-w-sm bg-green-600 hover:bg-green-700 focus:ring-green-500">
                         Start
                     </button>
-                    <button id="secondaryBtn1" onclick="freezeLiveDisplay('1')" class="btn text-white w-full max-w-sm" disabled>
+                    <button id="secondaryBtn1" onclick="freezeLiveDisplay('1')" class="btn text-white w-full max-w-sm bg-gray-600 focus:ring-gray-500" disabled>
                         Freeze Display
                     </button>
                 </div>
@@ -78,21 +83,21 @@
 
             <!-- Instance 2 -->
             <div class="bg-gray-800 p-8 sm:p-10 rounded-3xl shadow-2xl border border-gray-700">
-                <h2 class="text-2xl font-bold text-white mb-6 text-center">Resting time</h2>
+                <h2 class="text-2xl font-bold text-white mb-6 text-center">Timer 2 </h2>
                 
                 <!-- Stopwatch Display 2 -->
                 <div class="text-center mb-8">
-                    <div id="display2" class="stopwatch-display text-6xl font-bold text-gray-400">
-                        00:00:00
+                    <div id="display2" class="stopwatch-display text-5xl sm:text-6xl font-bold text-gray-400">
+                        00:00:00.00
                     </div>
                 </div>
 
                 <!-- Control Buttons 2 -->
                 <div class="flex justify-center flex-col items-center space-y-4">
-                    <button id="mainBtn2" onclick="startOrReset('2')" class="btn text-white w-full max-w-sm">
+                    <button id="mainBtn2" onclick="startOrReset('2')" class="btn text-white w-full max-w-sm bg-green-600 hover:bg-green-700 focus:ring-green-500">
                         Start
                     </button>
-                    <button id="secondaryBtn2" onclick="freezeLiveDisplay('2')" class="btn text-white w-full max-w-sm" disabled>
+                    <button id="secondaryBtn2" onclick="freezeLiveDisplay('2')" class="btn text-white w-full max-w-sm bg-gray-600 focus:ring-gray-500" disabled>
                         Freeze Display
                     </button>
                 </div>
@@ -131,33 +136,37 @@
             btn.textContent = text;
             btn.disabled = isDisabled;
             
-            // Remove previous color classes
-            btn.classList.remove('bg-green-600', 'hover:bg-green-700', 'focus:ring-green-500');
-            btn.classList.remove('bg-red-600', 'hover:bg-red-700', 'focus:ring-red-500');
-            btn.classList.remove('bg-amber-600', 'hover:bg-amber-700', 'focus:ring-amber-500');
-            btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700', 'focus:ring-indigo-500');
-            btn.classList.remove('bg-gray-600', 'hover:bg-gray-700', 'focus:ring-gray-500');
+            // Define color classes for easy replacement
+            const colorMap = {
+                'green': ['bg-green-600', 'hover:bg-green-700', 'focus:ring-green-500'],
+                'red': ['bg-red-600', 'hover:bg-red-700', 'focus:ring-red-500'],
+                'amber': ['bg-amber-600', 'hover:bg-amber-700', 'focus:ring-amber-500'],
+                'indigo': ['bg-indigo-600', 'hover:bg-indigo-700', 'focus:ring-indigo-500'],
+                'gray': ['bg-gray-600', 'hover:bg-gray-700', 'focus:ring-gray-500']
+            };
+
+            // Remove all previous color classes efficiently
+            Object.values(colorMap).forEach(classes => {
+                classes.forEach(cls => btn.classList.remove(cls));
+            });
 
             // Apply new color classes
-            if (color === 'green') {
-                btn.classList.add('bg-green-600', 'hover:bg-green-700', 'focus:ring-green-500');
-            } else if (color === 'red') {
-                btn.classList.add('bg-red-600', 'hover:bg-red-700', 'focus:ring-red-500');
-            } else if (color === 'amber') { // Used for Live View
-                btn.classList.add('bg-amber-600', 'hover:bg-amber-700', 'focus:ring-amber-500');
-            } else if (color === 'indigo') { // Used for Freeze Display
-                 btn.classList.add('bg-indigo-600', 'hover:bg-indigo-700', 'focus:ring-indigo-500');
-            } else if (color === 'gray') { // Used for Disabled/Reset
-                 btn.classList.add('bg-gray-600', 'hover:bg-gray-700', 'focus:ring-gray-500');
+            if (colorMap[color]) {
+                btn.classList.add(...colorMap[color]);
             }
         }
 
         /**
-         * Formats time from milliseconds into HH:MM:SS format (No milliseconds).
+         * Formats time from milliseconds into HH:MM:SS.ss format (including hundredths of a second).
          */
         function formatTime(time) {
-            // We round to the nearest second
-            const totalSeconds = Math.round(time / 1000); 
+            const totalMilliseconds = time;
+            
+            // Calculate hundredths of a second
+            const centiseconds = Math.floor((totalMilliseconds % 1000) / 10);
+            
+            // Calculate total seconds (floor to avoid partial seconds affecting H/M/S calculation)
+            const totalSeconds = Math.floor(totalMilliseconds / 1000); 
 
             const hours = Math.floor(totalSeconds / 3600);
             const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -165,7 +174,8 @@
 
             return String(hours).padStart(2, '0') + ':' +
                 String(minutes).padStart(2, '0') + ':' +
-                String(seconds).padStart(2, '0');
+                String(seconds).padStart(2, '0') + '.' +
+                String(centiseconds).padStart(2, '0');
         }
 
         /**
@@ -178,7 +188,7 @@
             if (state.isRunning) {
                 // Always update the real elapsed time in the background
                 state.elapsedTime = Date.now() - state.startTime;
-            } 
+            }
             
             // Determine which time to display: frozen or live
             const displayTimeMs = state.isDisplayFrozen ? state.frozenTime : state.elapsedTime;
@@ -215,8 +225,8 @@
             } else {
                 // START logic
                 state.startTime = Date.now() - state.elapsedTime;
-                // Use a wrapper function in the interval to pass the ID suffix
-                state.timerInterval = setInterval(() => updateDisplay(idSuffix), 100); 
+                // Changed interval to 10ms for millisecond precision and smoother display
+                state.timerInterval = setInterval(() => updateDisplay(idSuffix), 10); 
                 state.isRunning = true;
                 
                 // UI updates for RUNNING state
@@ -254,21 +264,12 @@
             updateDisplay(idSuffix);
         }
 
-        // Initialize both stopwatches on load
+        // Initialize both stopwatches on load with the correct display format
         document.addEventListener('DOMContentLoaded', () => {
-             // Set the initial appearance for Timer 1
-             const mainBtn1 = document.getElementById('mainBtn1');
-             const secondaryBtn1 = document.getElementById('secondaryBtn1');
-             setButtonAppearance(mainBtn1, 'Start', 'green', false);
-             setButtonAppearance(secondaryBtn1, 'Freeze Display', 'gray', true);
-             document.getElementById('display1').textContent = formatTime(0);
-
-             // Set the initial appearance for Timer 2
-             const mainBtn2 = document.getElementById('mainBtn2');
-             const secondaryBtn2 = document.getElementById('secondaryBtn2');
-             setButtonAppearance(mainBtn2, 'Start', 'green', false);
-             setButtonAppearance(secondaryBtn2, 'Freeze Display', 'gray', true);
-             document.getElementById('display2').textContent = formatTime(0);
+             // Since we added the initial styling directly in HTML, only need to ensure the time is displayed correctly
+             const initialTime = formatTime(0);
+             document.getElementById('display1').textContent = initialTime;
+             document.getElementById('display2').textContent = initialTime;
         });
     </script>
 </body>
