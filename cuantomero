@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proportional Debt Split Calculator</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 450px;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e0e0e0;
+        }
+        h2 {
+            color: #1a202c;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.95rem;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 25px;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        input[type="number"]:focus {
+            border-color: #4c51bf;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(76, 81, 191, 0.2);
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4c51bf;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s;
+        }
+        button:hover {
+            background-color: #5a62c6;
+        }
+        button:active {
+            transform: translateY(1px);
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #e9eefd;
+            border-left: 4px solid #4c51bf;
+        }
+        .result p {
+            margin: 10px 0;
+            font-size: 1.05rem;
+            color: #2d3748;
+            display: flex;
+            justify-content: space-between;
+        }
+        .result hr {
+            border: 0;
+            height: 1px;
+            background: #cbd5e0;
+            margin: 15px 0;
+        }
+        .result strong {
+            color: #4c51bf;
+            font-weight: 700;
+        }
+        .result .total {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: #2a4365;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>💳 Proportional Debt Split</h2>
+    
+    <label for="debt">Total Credit Card Debt ($):</label>
+    <!-- Set default to the last calculated value -->
+    <input type="number" id="debt" value="27000" min="0">
+
+    <label for="wife-income">Flaquita Income ($):</label>
+    <!-- Set default to the last calculated value -->
+    <input type="number" id="wife-income" value="20000" min="0">
+
+    <label for="user-income">Yo mero Income ($):</label>
+    <!-- Set default to the last calculated value -->
+    <input type="number" id="user-income" value="15000" min="0">
+
+    <button onclick="calculateSplit()">Calculate Payments</button>
+
+    <div id="results" class="result" style="display:none;">
+        <p class="total">Total Income: <strong id="total-income-output"></strong></p>
+        <hr>
+        <p>Flaquita (<span id="wife-percent-output"></span>): <strong id="wife-payment-output"></strong></p>
+        <p>Yo mero (<span id="user-percent-output"></span>): <strong id="user-payment-output"></strong></p>
+    </div>
+</div>
+
+<script>
+    /**
+     * Calculates the proportional debt split based on income and displays the results.
+     */
+    function calculateSplit() {
+        // 1. Get the values from the input fields
+        const debt = parseFloat(document.getElementById('debt').value);
+        const wifeIncome = parseFloat(document.getElementById('wife-income').value);
+        const userIncome = parseFloat(document.getElementById('user-income').value);
+        const resultsDiv = document.getElementById('results');
+
+        // Input validation and error handling
+        if (isNaN(debt) || isNaN(wifeIncome) || isNaN(userIncome) || debt < 0 || wifeIncome < 0 || userIncome < 0) {
+            console.error("Please enter valid positive numbers for all fields.");
+            // Instead of alert(), we hide the results and could display a message within the UI if needed.
+            resultsDiv.style.display = 'none';
+            return;
+        }
+
+        // 2. Calculate total income
+        const totalIncome = wifeIncome + userIncome;
+
+        // Handle case where total income is zero (to prevent division by zero)
+        if (totalIncome === 0) {
+            console.error("Total income must be greater than zero to calculate proportional split.");
+            resultsDiv.style.display = 'none';
+            return;
+        }
+
+        // 3. Calculate proportions
+        const wifeProportion = wifeIncome / totalIncome;
+        const userProportion = userIncome / totalIncome;
+        
+        // 4. Calculate payments
+        const wifePayment = debt * wifeProportion;
+        const userPayment = debt * userProportion;
+
+        // 5. Format results for display (currency and percentage)
+        // Uses toLocaleString for better currency formatting
+        const formatCurrency = (amount) => {
+            return amount.toLocaleString('en-US', {
+                style: 'currency',
+                currency: 'USD',
+            });
+        };
+        const formatPercent = (proportion) => `${(proportion * 100).toFixed(2)}%`;
+
+        // 6. Display results
+        document.getElementById('total-income-output').textContent = formatCurrency(totalIncome);
+        
+        document.getElementById('wife-percent-output').textContent = formatPercent(wifeProportion);
+        document.getElementById('wife-payment-output').textContent = formatCurrency(wifePayment);
+
+        document.getElementById('user-percent-output').textContent = formatPercent(userProportion);
+        document.getElementById('user-payment-output').textContent = formatCurrency(userPayment);
+        
+        resultsDiv.style.display = 'block'; // Show the results div
+    }
+
+    // Run calculation once on load with default values
+    document.addEventListener('DOMContentLoaded', calculateSplit);
+</script>
+
+</body>
+</html>
