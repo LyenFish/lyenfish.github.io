@@ -13,85 +13,147 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            padding: 20px;
         }
 
         .hub-container {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            background: transparent;
             text-align: center;
             width: 100%;
-            max-width: 400px;
+            max-width: 600px;
         }
 
         h1 {
             color: #1a202c;
-            margin-bottom: 30px;
-            font-size: 1.5rem;
+            margin-bottom: 40px;
+            font-size: 2rem;
             letter-spacing: -0.5px;
+            font-weight: 800;
         }
 
         .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 480px) {
+            .button-group {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .nav-card {
             display: flex;
             flex-direction: column;
-            gap: 15px;
-        }
-
-        .nav-button {
-            display: block;
             text-decoration: none;
-            background-color: #4c51bf;
-            color: white;
-            padding: 16px 24px;
-            border-radius: 12px;
-            font-weight: 600;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .thumbnail-preview {
+            width: 100%;
+            height: 140px;
+            background-color: #edf2f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .thumbnail-preview svg {
+            width: 60px;
+            height: 60px;
+            color: #4c51bf;
+            opacity: 0.8;
+        }
+
+        .card-content {
+            padding: 16px;
+            background: white;
+        }
+
+        .card-title {
+            display: block;
+            color: #2d3748;
+            font-weight: 700;
             font-size: 1.1rem;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 6px rgba(76, 81, 191, 0.2);
+            margin-bottom: 4px;
         }
 
-        .nav-button:hover {
-            background-color: #434190;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(76, 81, 191, 0.3);
-        }
-
-        .nav-button:active {
-            transform: translateY(0);
-        }
-
-        .nav-button.secondary {
-            background-color: #2d3748;
-        }
-
-        .nav-button.secondary:hover {
-            background-color: #1a202c;
-        }
-
-        .footer-text {
-            margin-top: 30px;
-            font-size: 0.85rem;
+        .card-url {
+            display: block;
             color: #718096;
+            font-size: 0.75rem;
+            text-transform: lowercase;
         }
+
+        /* Hover Effects */
+        .nav-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-color: #4c51bf;
+        }
+
+        .nav-card:hover .thumbnail-preview {
+            background-color: #ebf4ff;
+        }
+
+        .nav-card:hover .card-title {
+            color: #4c51bf;
+        }
+
+        .nav-card.stopwatch:hover {
+            border-color: #2d3748;
+        }
+        
+        .nav-card.stopwatch:hover .card-title {
+            color: #2d3748;
+        }
+
     </style>
 </head>
 <body>
 
 <div class="hub-container">
-    <h1>Tool Hub</h1>
+    <h1>Mega Boss Hub</h1>
     
     <div class="button-group">
-        <a href="https://lyenfish.github.io/cuantomero.html" class="nav-button">
-            📊 Cuanto Mero
+        <!-- Cuanto Mero Card -->
+        <a href="https://lyenfish.github.io/cuantomero.html" class="nav-card">
+            <div class="thumbnail-preview">
+                <!-- Proportional/Math Icon -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+            </div>
+            <div class="card-content">
+                <span class="card-title">📊 Cuanto Mero</span>
+                <span class="card-url">lyenfish.github.io</span>
+            </div>
         </a>
         
-        <a href="https://lyenfish.github.io/Stopwatch.html" class="nav-button secondary">
-            ⏱️ Stopwatch
+        <!-- Stopwatch Card -->
+        <a href="https://lyenfish.github.io/Stopwatch.html" class="nav-card stopwatch">
+            <div class="thumbnail-preview">
+                <!-- Stopwatch Icon -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+            </div>
+            <div class="card-content">
+                <span class="card-title">⏱️ Stopwatch</span>
+                <span class="card-url">lyenfish.github.io</span>
+            </div>
         </a>
     </div>
-
-    
 </div>
 
 </body>
