@@ -100,6 +100,13 @@
             font-size: 1.1rem;
             color: #2a4365;
         }
+        .error-msg {
+            color: #e53e3e;
+            font-size: 0.85rem;
+            margin-top: -20px;
+            margin-bottom: 20px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -108,16 +115,15 @@
     <h2>💳 Proportional Debt Split</h2>
     
     <label for="debt">Total Credit Card Debt ($):</label>
-    <!-- Set default to the last calculated value -->
-    <input type="number" id="debt" value="27000" min="0">
+    <input type="number" id="debt" placeholder="e.g. 27000" min="0">
 
     <label for="wife-income">Flaquita Income ($):</label>
-    <!-- Set default to the last calculated value -->
-    <input type="number" id="wife-income" value="20000" min="0">
+    <input type="number" id="wife-income" placeholder="e.g. 20000" min="0">
 
     <label for="user-income">Yo mero Income ($):</label>
-    <!-- Set default to the last calculated value -->
-    <input type="number" id="user-income" value="15000" min="0">
+    <input type="number" id="user-income" placeholder="e.g. 15000" min="0">
+
+    <div id="error-message" class="error-msg">Please enter valid numbers for all fields.</div>
 
     <button onclick="calculateSplit()">Calculate Payments</button>
 
@@ -134,40 +140,36 @@
      * Calculates the proportional debt split based on income and displays the results.
      */
     function calculateSplit() {
-        // 1. Get the values from the input fields
         const debt = parseFloat(document.getElementById('debt').value);
         const wifeIncome = parseFloat(document.getElementById('wife-income').value);
         const userIncome = parseFloat(document.getElementById('user-income').value);
         const resultsDiv = document.getElementById('results');
+        const errorDiv = document.getElementById('error-message');
 
-        // Input validation and error handling
+        // Input validation
         if (isNaN(debt) || isNaN(wifeIncome) || isNaN(userIncome) || debt < 0 || wifeIncome < 0 || userIncome < 0) {
-            console.error("Please enter valid positive numbers for all fields.");
-            // Instead of alert(), we hide the results and could display a message within the UI if needed.
+            errorDiv.style.display = 'block';
             resultsDiv.style.display = 'none';
             return;
         }
+        
+        errorDiv.style.display = 'none';
 
-        // 2. Calculate total income
         const totalIncome = wifeIncome + userIncome;
 
-        // Handle case where total income is zero (to prevent division by zero)
         if (totalIncome === 0) {
-            console.error("Total income must be greater than zero to calculate proportional split.");
+            errorDiv.textContent = "Total income must be greater than zero.";
+            errorDiv.style.display = 'block';
             resultsDiv.style.display = 'none';
             return;
         }
 
-        // 3. Calculate proportions
         const wifeProportion = wifeIncome / totalIncome;
         const userProportion = userIncome / totalIncome;
         
-        // 4. Calculate payments
         const wifePayment = debt * wifeProportion;
         const userPayment = debt * userProportion;
 
-        // 5. Format results for display (currency and percentage)
-        // Uses toLocaleString for better currency formatting
         const formatCurrency = (amount) => {
             return amount.toLocaleString('en-US', {
                 style: 'currency',
@@ -176,20 +178,14 @@
         };
         const formatPercent = (proportion) => `${(proportion * 100).toFixed(2)}%`;
 
-        // 6. Display results
         document.getElementById('total-income-output').textContent = formatCurrency(totalIncome);
-        
         document.getElementById('wife-percent-output').textContent = formatPercent(wifeProportion);
         document.getElementById('wife-payment-output').textContent = formatCurrency(wifePayment);
-
         document.getElementById('user-percent-output').textContent = formatPercent(userProportion);
         document.getElementById('user-payment-output').textContent = formatCurrency(userPayment);
         
-        resultsDiv.style.display = 'block'; // Show the results div
+        resultsDiv.style.display = 'block';
     }
-
-    // Run calculation once on load with default values
-    document.addEventListener('DOMContentLoaded', calculateSplit);
 </script>
 
 </body>
