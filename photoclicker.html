@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Photo Clicker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0f172a;
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            width: 100vw;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #displayContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .photo-card {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: fadeIn 0.3s ease-out;
+            background: #0f172a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: scale(0.98); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .upload-overlay {
+            position: fixed;
+            z-index: 100;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 3rem;
+            border-radius: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            transition: opacity 0.5s ease;
+        }
+
+        .photo-name {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            /* Massive font size for visibility from afar */
+            font-size: 4rem; 
+            font-weight: 900;
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+            /* Deeper gradient for high contrast */
+            background: linear-gradient(transparent, rgba(0,0,0,0.9) 80%);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            /* Text shadow/glow for extra legibility */
+            text-shadow: 0 4px 12px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.4);
+        }
+
+        .hint {
+            position: fixed;
+            bottom: 120px; /* Moved up to not overlap with giant text */
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.9rem;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        img.full-display {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="uploadOverlay" class="upload-overlay">
+        <h1 class="text-4xl font-bold mb-4">Photo Clicker</h1>
+        <p class="mb-8 opacity-80 text-lg">Upload your photos to get started, Mega boss!</p>
+        <label class="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-full font-bold text-xl transition-all inline-block">
+            Choose Photos
+            <input type="file" id="fileInput" class="hidden" multiple accept="image/*">
+        </label>
+    </div>
+
+    <div id="displayContainer"></div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const overlay = document.getElementById('uploadOverlay');
+        const container = document.getElementById('displayContainer');
+        const hint = document.getElementById('hint');
+        
+        let imagePool = []; // Stores { src, name }
+        let history = []; // Stores indices of shown images
+        let currentIndex = -1;
+
+        // Handle file selection
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            let loadedCount = 0;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    // Remove extension from name
+                    const cleanName = file.name.replace(/\.[^/.]+$/, "");
+                    
+                    imagePool.push({
+                        src: event.target.result,
+                        name: cleanName
+                    });
+
+                    loadedCount++;
+                    if (loadedCount === files.length) {
+                        finishUpload();
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        function finishUpload() {
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                hint.classList.remove('hidden');
+                showNextPhoto();
+            }, 500);
+        }
+
+        function displayPhoto(photoObj) {
+            container.innerHTML = '';
+            
+            const card = document.createElement('div');
+            card.className = 'photo-card';
+            
+            const img = document.createElement('img');
+            img.src = photoObj.src;
+            img.className = 'full-display';
+
+            const nameTag = document.createElement('div');
+            nameTag.className = 'photo-name';
+            nameTag.innerText = photoObj.name;
+
+            card.appendChild(img);
+            card.appendChild(nameTag);
+            container.appendChild(card);
+        }
+
+        function showNextPhoto() {
+            if (imagePool.length === 0) return;
+            const randomIndex = Math.floor(Math.random() * imagePool.length);
+            history.push(randomIndex);
+            currentIndex = history.length - 1;
+            displayPhoto(imagePool[randomIndex]);
+        }
+
+        function showPreviousPhoto() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                const prevIndex = history[currentIndex];
+                displayPhoto(imagePool[prevIndex]);
+            }
+        }
+
+        // Left Click anywhere to go forward
+        document.addEventListener('click', (e) => {
+            if (imagePool.length === 0 || e.target.closest('label')) return;
+            showNextPhoto();
+        });
+
+        // Right Click to go back
+        document.addEventListener('contextmenu', (e) => {
+            if (imagePool.length === 0) return;
+            e.preventDefault(); // Prevent default browser menu
+            showPreviousPhoto();
+        });
+
+        // Keyboard Controls
+        document.addEventListener('keydown', (e) => {
+            if (imagePool.length === 0) return;
+            
+            if (e.key === 'ArrowRight') {
+                showNextPhoto();
+            } else if (e.key === 'ArrowLeft') {
+                showPreviousPhoto();
+            }
+        });
+    </script>
+</body>
+</html>
