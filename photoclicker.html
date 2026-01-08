@@ -109,8 +109,7 @@
 
     <div id="displayContainer"></div>
 
-    
-
+   
     <script>
         const fileInput = document.getElementById('fileInput');
         const overlay = document.getElementById('uploadOverlay');
@@ -244,7 +243,7 @@
                 showPreviousPhoto();
             } else if (key === 'r') {
                 resetSequence();
-                showNextPhoto();
+                // Screen is now blank, waiting for the next click/arrow to start
             }
         });
     </script>
