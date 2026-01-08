@@ -86,6 +86,7 @@
             font-size: 0.9rem;
             pointer-events: none;
             z-index: 50;
+            text-align: center;
         }
 
         img.full-display {
@@ -108,14 +109,17 @@
 
     <div id="displayContainer"></div>
 
+    
+
     <script>
         const fileInput = document.getElementById('fileInput');
         const overlay = document.getElementById('uploadOverlay');
         const container = document.getElementById('displayContainer');
         const hint = document.getElementById('hint');
         
-        let imagePool = []; // Stores { src, name }
-        let history = []; // Stores indices of shown images
+        let imagePool = []; // Stores all { src, name }
+        let availableIndices = []; // Indices of photos not yet shown in current sequence
+        let history = []; // Stores indices of shown images in current sequence
         let currentIndex = -1;
 
         // Handle file selection
@@ -127,9 +131,7 @@
             files.forEach(file => {
                 const reader = new FileReader();
                 reader.onload = (event) => {
-                    // Remove extension from name
                     const cleanName = file.name.replace(/\.[^/.]+$/, "");
-                    
                     imagePool.push({
                         src: event.target.result,
                         name: cleanName
@@ -137,12 +139,21 @@
 
                     loadedCount++;
                     if (loadedCount === files.length) {
+                        resetSequence();
                         finishUpload();
                     }
                 };
                 reader.readAsDataURL(file);
             });
         });
+
+        function resetSequence() {
+            availableIndices = imagePool.map((_, index) => index);
+            history = [];
+            currentIndex = -1;
+            container.innerHTML = '';
+            console.log("Sequence reset, Mega boss!");
+        }
 
         function finishUpload() {
             overlay.style.opacity = '0';
@@ -174,10 +185,31 @@
 
         function showNextPhoto() {
             if (imagePool.length === 0) return;
-            const randomIndex = Math.floor(Math.random() * imagePool.length);
-            history.push(randomIndex);
+
+            // If we are navigating back through history, just move forward in history
+            if (currentIndex < history.length - 1) {
+                currentIndex++;
+                displayPhoto(imagePool[history[currentIndex]]);
+                return;
+            }
+
+            // If no more unique photos left
+            if (availableIndices.length === 0) {
+                container.innerHTML = `
+                    <div class="text-white text-3xl font-bold text-center px-10">
+                        All photos displayed!<br>
+                        <span class="text-blue-400 text-xl">Press "R" to Reset</span>
+                    </div>`;
+                return;
+            }
+
+            // Pick a random index from what's left
+            const randomPickerIndex = Math.floor(Math.random() * availableIndices.length);
+            const chosenImageIndex = availableIndices.splice(randomPickerIndex, 1)[0];
+            
+            history.push(chosenImageIndex);
             currentIndex = history.length - 1;
-            displayPhoto(imagePool[randomIndex]);
+            displayPhoto(imagePool[chosenImageIndex]);
         }
 
         function showPreviousPhoto() {
@@ -197,7 +229,7 @@
         // Right Click to go back
         document.addEventListener('contextmenu', (e) => {
             if (imagePool.length === 0) return;
-            e.preventDefault(); // Prevent default browser menu
+            e.preventDefault(); 
             showPreviousPhoto();
         });
 
@@ -205,10 +237,14 @@
         document.addEventListener('keydown', (e) => {
             if (imagePool.length === 0) return;
             
+            const key = e.key.toLowerCase();
             if (e.key === 'ArrowRight') {
                 showNextPhoto();
             } else if (e.key === 'ArrowLeft') {
                 showPreviousPhoto();
+            } else if (key === 'r') {
+                resetSequence();
+                showNextPhoto();
             }
         });
     </script>
