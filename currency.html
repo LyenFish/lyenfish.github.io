@@ -36,17 +36,17 @@
 </head>
 <body class="p-8">
 
-    <!-- Increased max-width to 6xl and padding to p-16 for a larger desktop presence -->
     <div class="glass-card w-full max-w-6xl p-16">
+        <!-- Moved Heading here to span across both columns -->
+        <div class="text-center mb-16">
+            <h1 class="text-6xl font-extrabold text-gray-800 mb-3 tracking-tight">Currency Converter</h1>
+            <p class="text-blue-600 text-xl font-medium">Desktop Optimized Edition</p>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
             
             <!-- Left Column: Converter -->
             <div class="flex flex-col justify-center">
-                <div class="text-center lg:text-left mb-12">
-                    <h1 class="text-6xl font-extrabold text-gray-800 mb-3 tracking-tight">Currency Converter</h1>
-                  
-                </div>
-
                 <div class="space-y-10">
                     <!-- Top Input -->
                     <div class="relative">
@@ -106,7 +106,6 @@
                     </div>
                 </div>
                 
-                <!-- Fixed height increased slightly to 220px to match larger scale -->
                 <div class="relative flex-grow-0 h-[260px] bg-gray-50 rounded-3xl p-6 border-2 border-gray-100">
                     <canvas id="historyChart"></canvas>
                 </div>
@@ -130,7 +129,6 @@
         let historyChart = null;
         const API_URL = "https://open.er-api.com/v6/latest/USD";
 
-        // UI Elements
         const inputFrom = document.getElementById('input-from');
         const inputTo = document.getElementById('input-to');
         const labelFrom = document.getElementById('label-from');
@@ -149,7 +147,7 @@
                     currentRate = data.rates.MXN;
                     updateUIWithRate();
                     lastUpdate.innerText = `Last update: ${new Date().toLocaleTimeString()}`;
-                    initChart(); // Refresh chart on rate update
+                    initChart();
                 }
             } catch (error) {
                 rateDisplay.innerText = "Offline Mode";
@@ -180,10 +178,9 @@
             updateUIWithRate();
             if (inputTo.value) inputFrom.value = inputTo.value;
             calculate();
-            initChart(); // Redraw chart for swapped direction
+            initChart();
         }
 
-        // Chart Logic
         function generateHistoricalData(points, volatility, interval) {
             let data = [];
             let labels = [];
@@ -195,7 +192,6 @@
                 const historicalValue = tempRate + (i * noise / 20);
                 data.push(historicalValue.toFixed(4));
                 
-                // Generate date labels
                 let d = new Date(now);
                 if (interval === '1D') d.setHours(now.getHours() - i);
                 else if (interval === '5D') d.setDate(now.getDate() - i);
@@ -217,7 +213,6 @@
 
         function initChart(interval = '1M') {
             const ctx = document.getElementById('historyChart').getContext('2d');
-            
             let points, volatility;
             switch(interval) {
                 case '1D': points = 24; volatility = 0.05; break;
@@ -230,7 +225,6 @@
             }
 
             const history = generateHistoricalData(points, volatility, interval);
-
             if (historyChart) historyChart.destroy();
 
             historyChart = new Chart(ctx, {
