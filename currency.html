@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Currency Converter: MXN & USD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 32px;
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="p-8">
+
+    <!-- Increased max-width from max-w-md to max-w-2xl and added more padding -->
+    <div class="glass-card w-full max-w-2xl p-12">
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-extrabold text-gray-800 mb-2">Currency Converter</h1>
+           
+        </div>
+
+        <div class="space-y-10">
+            <!-- Top Input -->
+            <div class="relative">
+                <label id="label-from" class="block text-sm font-bold text-gray-500 uppercase tracking-widest mb-3">From USD</label>
+                <div class="flex items-center border-4 border-gray-100 rounded-2xl p-6 focus-within:border-blue-500 transition-all">
+                    <span id="symbol-from" class="text-3xl font-semibold text-gray-400 mr-4">$</span>
+                    <input type="number" id="input-from" placeholder="0.00" step="0.01"
+                        onfocus="this.value=''"
+                        class="w-full text-4xl font-bold outline-none bg-transparent text-gray-800">
+                </div>
+            </div>
+
+            <!-- Swap Button - Made larger for desktop -->
+            <div class="flex justify-center -my-6 relative z-10">
+                <button id="swap-btn" title="Swap Currencies" class="bg-blue-600 hover:bg-blue-700 text-white p-5 rounded-full shadow-2xl transform hover:rotate-180 transition-all duration-500 active:scale-90 border-4 border-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Bottom Input -->
+            <div class="relative">
+                <label id="label-to" class="block text-sm font-bold text-gray-500 uppercase tracking-widest mb-3">To MXN</label>
+                <div class="flex items-center border-4 border-gray-100 rounded-2xl p-6 bg-gray-50/50">
+                    <span id="symbol-to" class="text-3xl font-semibold text-gray-400 mr-4">$</span>
+                    <input type="number" id="input-to" placeholder="0.00" readonly
+                        class="w-full text-4xl font-bold outline-none bg-transparent text-gray-800 cursor-default">
+                </div>
+            </div>
+
+            <!-- Live Exchange Rate Info - Made larger and more prominent -->
+            <div id="rate-container" class="bg-blue-50 rounded-2xl p-6 border-2 border-blue-100 transition-all">
+                <div class="flex justify-between items-center text-xl">
+                    <span class="text-blue-700 font-semibold uppercase tracking-tight">Market Rate</span>
+                    <span id="rate-display" class="text-blue-900 font-black text-2xl">Fetching...</span>
+                </div>
+                <div class="flex justify-between items-center mt-4">
+                    <p id="last-update" class="text-xs text-blue-400 italic">Updating data...</p>
+                    <button id="refresh-btn" class="text-xs font-black text-blue-600 uppercase hover:underline tracking-widest">Refresh Now</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-12 text-center border-t border-gray-100 pt-8">
+            <p class="text-gray-400 text-xs uppercase tracking-widest">
+                Rates provided by ExchangeRate-API • Desktop View Enabled
+            </p>
+        </div>
+    </div>
+
+    <script>
+        let currentRate = 17.23; // Fallback rate
+        let isUsdToMxn = true;
+        const API_URL = "https://open.er-api.com/v6/latest/USD";
+
+        // Elements
+        const inputFrom = document.getElementById('input-from');
+        const inputTo = document.getElementById('input-to');
+        const labelFrom = document.getElementById('label-from');
+        const labelTo = document.getElementById('label-to');
+        const swapBtn = document.getElementById('swap-btn');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const rateDisplay = document.getElementById('rate-display');
+        const lastUpdate = document.getElementById('last-update');
+        const rateContainer = document.getElementById('rate-container');
+
+        async function fetchRates() {
+            rateDisplay.innerText = "Updating...";
+            rateContainer.classList.add('opacity-50');
+            
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                if (data && data.rates && data.rates.MXN) {
+                    currentRate = data.rates.MXN;
+                    updateUIWithRate();
+                    
+                    const date = new Date();
+                    lastUpdate.innerText = `Last update: ${date.toLocaleTimeString()}`;
+                }
+            } catch (error) {
+                console.error("Failed to fetch rates:", error);
+                rateDisplay.innerText = "Offline Mode";
+                lastUpdate.innerText = "Using last known fallback rate";
+            } finally {
+                rateContainer.classList.remove('opacity-50');
+                calculate();
+            }
+        }
+
+        function updateUIWithRate() {
+            if (isUsdToMxn) {
+                rateDisplay.innerText = `1 USD = ${currentRate.toFixed(4)} MXN`;
+            } else {
+                rateDisplay.innerText = `1 MXN = ${(1 / currentRate).toFixed(4)} USD`;
+            }
+        }
+
+        function calculate() {
+            const val = parseFloat(inputFrom.value);
+            if (isNaN(val)) {
+                inputTo.value = '';
+                return;
+            }
+
+            if (isUsdToMxn) {
+                inputTo.value = (val * currentRate).toFixed(2);
+            } else {
+                inputTo.value = (val / currentRate).toFixed(2);
+            }
+        }
+
+        function swap() {
+            isUsdToMxn = !isUsdToMxn;
+            
+            labelFrom.innerText = isUsdToMxn ? 'From USD' : 'From MXN';
+            labelTo.innerText = isUsdToMxn ? 'To MXN' : 'To USD';
+            
+            updateUIWithRate();
+
+            // Swap values for a seamless feel
+            if (inputTo.value) {
+                const prevToValue = inputTo.value;
+                inputFrom.value = prevToValue;
+            }
+            calculate();
+        }
+
+        // Listeners
+        inputFrom.addEventListener('input', calculate);
+        swapBtn.addEventListener('click', swap);
+        refreshBtn.addEventListener('click', fetchRates);
+
+        // Initial Load
+        window.onload = () => {
+            fetchRates();
+            inputFrom.focus();
+        };
+    </script>
+</body>
+</html>
