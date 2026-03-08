@@ -10,48 +10,40 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #1e293b; /* Deep Slate Blue-Gray */
+            background-color: #1e293b; 
             color: #f1f5f9;
         }
         .card {
-            background-color: #334155; /* Lighter Slate for cards */
+            background-color: #334155; 
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
             transition: transform 0.2s, box-shadow 0.2s;
-            border-radius: 1.25rem;
+            border-radius: 1rem;
             position: relative;
             overflow: hidden;
             border: 1px solid rgba(255, 255, 255, 0.05);
-            min-height: 420px; /* Slightly taller for bigger feel */
+            min-height: 280px; 
         }
         .card:hover {
             box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
             transform: translateY(-2px);
         }
-        /* Top margin accent effect */
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 8px; /* Slightly thicker accent */
-            border-radius: 1.25rem 1.25rem 0 0;
-        }
-        .card-indigo::before { background-color: #818cf8; }
-        .card-teal::before { background-color: #2dd4bf; }
-        .card-rose::before { background-color: #fb7185; }
-        .card-emerald::before { background-color: #34d399; }
-        .card-purple::before { background-color: #c084fc; }
-        .card-amber::before { background-color: #fbbf24; }
+        
+        .border-t-accent { border-top-width: 6px; border-top-style: solid; }
+        .card-indigo { border-top-color: #6366f1; }
+        .card-teal { border-top-color: #14b8a6; }
+        .card-rose { border-top-color: #f43f5e; }
+        .card-emerald { border-top-color: #10b981; }
+        .card-purple { border-top-color: #a855f7; }
+        .card-amber { border-top-color: #f59e0b; }
 
         input[type="text"] {
             background-color: #1e293b;
             color: #f8fafc;
-            font-size: 1.5rem; /* Increased font size */
+            font-size: 1.5rem;
             text-align: center;
             border: 2px solid #475569;
-            padding: 0.75rem 0.5rem; /* Increased padding */
-            border-radius: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
             transition: all 0.2s;
         }
         input[type="text"]:focus {
@@ -61,196 +53,73 @@
             box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
         }
         input::placeholder {
-            color: #64748b;
-            font-weight: 400;
+            color: #475569;
         }
-        /* Style for the fixed 'x' input */
         input[readonly] {
             background-color: #0f172a;
             cursor: not-allowed;
             border-color: #334155;
-            color: #94a3b8;
+            color: #64748b;
         }
-        /* Ensure editable H2 maintains height even when empty */
         h2[contenteditable="true"]:focus {
             background-color: rgba(255, 255, 255, 0.05);
             outline: none;
         }
         hr.divider {
             border: 0;
-            height: 3px; /* Slightly thicker divider */
+            height: 2px;
             background: #475569;
-            margin: 6px 0;
+            margin: 4px 0;
         }
     </style>
 </head>
-<body class="p-4 sm:p-10 flex items-center justify-center min-h-screen">
+<body class="p-4 sm:p-6 flex items-center justify-center min-h-screen">
 
-    <div class="w-full max-w-7xl">
-        <header class="mb-12 text-center">
-            <h1 class="text-5xl font-extrabold text-white mb-2 tracking-tight">Simply Three</h1>
+    <div class="w-full max-w-[1440px]">
+        <header class="mb-8 text-center">
+            <h1 onclick="clearAllCalculators()" class="text-4xl font-extrabold text-white tracking-tight cursor-pointer select-none">Simply Three</h1>
         </header>
 
-        <!-- Main Container for Six Calculators -->
-        <div id="main-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            
-            <!-- Calculator 1: Indigo -->
-            <div id="calc1" class="card card-indigo p-8">
-                <h2 contenteditable="true" class="text-2xl font-bold text-indigo-300 mb-6 px-2 py-1 rounded-md transition duration-150 focus:ring-2 focus:ring-indigo-500"></h2>
-                <div class="space-y-6">
-                    <div class="flex items-center justify-center space-x-6 text-4xl font-bold">
-                        <div class="flex flex-col items-center">
-                            <input type="text" id="A1" placeholder="A" class="w-24">
-                            <hr class="divider w-24">
-                            <input type="text" id="B1" placeholder="B" class="w-24">
+        <div id="main-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Calcs 1-6 -->
+            <script>
+                const colors = ['indigo', 'teal', 'rose', 'emerald', 'purple', 'amber'];
+                for (let i = 1; i <= 6; i++) {
+                    const color = colors[i-1];
+                    document.write(`
+                        <div id="calc${i}" class="card card-${color} border-t-accent p-6 flex flex-col justify-between">
+                            <h2 contenteditable="true" class="text-xl font-bold text-${color}-300 mb-2 px-2 py-1 rounded-md"></h2>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-center space-x-6 text-3xl font-bold">
+                                    <div class="flex flex-col items-center">
+                                        <input type="text" id="A${i}" placeholder="A" class="w-24 auto-select">
+                                        <hr class="divider w-24">
+                                        <input type="text" id="B${i}" placeholder="B" class="w-24 auto-select">
+                                    </div>
+                                    <span class="text-slate-500">=</span>
+                                    <div class="flex flex-col items-center">
+                                        <input type="text" id="C${i}" value="1" class="w-24 auto-select">
+                                        <hr class="divider w-24">
+                                        <input type="text" id="D${i}" value="x" readonly class="w-24">
+                                    </div>
+                                </div>
+                                <button onclick="solveCrossMultiplication('${i}')"
+                                    class="w-full bg-${color}-500 hover:bg-${color}-600 text-white font-bold py-2.5 rounded-xl transition shadow-lg">
+                                    Solve
+                                </button>
+                                <div id="result${i}" class="text-center min-h-[40px]"></div>
+                            </div>
                         </div>
-                        <span class="text-slate-500">=</span>
-                        <div class="flex flex-col items-center">
-                            <input type="text" id="C1" value="1" class="w-24">
-                            <hr class="divider w-24">
-                            <input type="text" id="D1" value="x" readonly class="w-24">
-                        </div>
-                    </div>
-                    <button onclick="solveCrossMultiplication('1')"
-                        class="w-full bg-indigo-500 hover:bg-indigo-600 text-white text-xl font-bold py-3 rounded-2xl transition duration-150 ease-in-out shadow-lg shadow-indigo-500/20">
-                        Solve
-                    </button>
-                    <div id="result1" class="text-center pt-4 min-h-[60px]"></div>
-                </div>
-            </div>
-
-            <!-- Calculator 2: Teal -->
-            <div id="calc2" class="card card-teal p-8">
-                <h2 contenteditable="true" class="text-2xl font-bold text-teal-300 mb-6 px-2 py-1 rounded-md transition duration-150 focus:ring-2 focus:ring-teal-500"></h2>
-                <div class="space-y-6">
-                    <div class="flex items-center justify-center space-x-6 text-4xl font-bold">
-                        <div class="flex flex-col items-center">
-                            <input type="text" id="A2" placeholder="A" class="w-24">
-                            <hr class="divider w-24">
-                            <input type="text" id="B2" placeholder="B" class="w-24">
-                        </div>
-                        <span class="text-slate-500">=</span>
-                        <div class="flex flex-col items-center">
-                            <input type="text" id="C2" value="1" class="w-24">
-                            <hr class="divider w-24">
-                            <input type="text" id="D2" value="x" readonly class="w-24">
-                        </div>
-                    </div>
-                    <button onclick="solveCrossMultiplication('2')"
-                        class="w-full bg-teal-500 hover:bg-teal-600 text-white text-xl font-bold py-3 rounded-2xl transition duration-150 ease-in-out shadow-lg shadow-teal-500/20">
-                        Solve
-                    </button>
-                    <div id="result2" class="text-center pt-4 min-h-[60px]"></div>
-                </div>
-            </div>
-
-            <!-- Calculator 3: Rose -->
-            <div id="calc3" class="card card-rose p-8">
-                <h2 contenteditable="true" class="text-2xl font-bold text-rose-300 mb-6 px-2 py-1 rounded-md transition duration-150 focus:ring-2 focus:ring-rose-500"></h2>
-                <div class="space-y-6">
-                    <div class="flex items-center justify-center space-x-6 text-4xl font-bold">
-                        <div class="flex flex-col items-center">
-                            <input type="text" id="A3" placeholder="A" class="w-24">
-                            <hr class="divider w-24">
-                            <input type="text" id="B3" placeholder="B" class="w-24">
-                        </div>
-                        <span class="text-slate-500">=</span>
-                        <div class="flex flex-col items-center">
-                            <input type="text" id="C3" value="1" class="w-24">
-                            <hr class="divider w-24">
-                            <input type="text" id="D3" value="x" readonly class="w-24">
-                        </div>
-                    </div>
-                    <button onclick="solveCrossMultiplication('3')"
-                        class="w-full bg-rose-500 hover:bg-rose-600 text-white text-xl font-bold py-3 rounded-2xl transition duration-150 ease-in-out shadow-lg shadow-rose-500/20">
-                        Solve
-                    </button>
-                    <div id="result3" class="text-center pt-4 min-h-[60px]"></div>
-                </div>
-            </div>
-
-            <!-- Calculator 4: Emerald -->
-            <div id="calc4" class="card card-emerald p-8">
-                <h2 contenteditable="true" class="text-2xl font-bold text-emerald-300 mb-6 px-2 py-1 rounded-md transition duration-150 focus:ring-2 focus:ring-emerald-500"></h2>
-                <div class="space-y-6">
-                    <div class="flex items-center justify-center space-x-6 text-4xl font-bold">
-                        <div class="flex flex-col items-center">
-                            <input type="text" id="A4" placeholder="A" class="w-24">
-                            <hr class="divider w-24">
-                            <input type="text" id="B4" placeholder="B" class="w-24">
-                        </div>
-                        <span class="text-slate-500">=</span>
-                        <div class="flex flex-col items-center">
-                            <input type="text" id="C4" value="1" class="w-24">
-                            <hr class="divider w-24">
-                            <input type="text" id="D4" value="x" readonly class="w-24">
-                        </div>
-                    </div>
-                    <button onclick="solveCrossMultiplication('4')"
-                        class="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xl font-bold py-3 rounded-2xl transition duration-150 ease-in-out shadow-lg shadow-emerald-500/20">
-                        Solve
-                    </button>
-                    <div id="result4" class="text-center pt-4 min-h-[60px]"></div>
-                </div>
-            </div>
-
-            <!-- Calculator 5: Purple -->
-            <div id="calc5" class="card card-purple p-8">
-                <h2 contenteditable="true" class="text-2xl font-bold text-purple-300 mb-6 px-2 py-1 rounded-md transition duration-150 focus:ring-2 focus:ring-purple-500"></h2>
-                <div class="space-y-6">
-                    <div class="flex items-center justify-center space-x-6 text-4xl font-bold">
-                        <div class="flex flex-col items-center">
-                            <input type="text" id="A5" placeholder="A" class="w-24">
-                            <hr class="divider w-24">
-                            <input type="text" id="B5" placeholder="B" class="w-24">
-                        </div>
-                        <span class="text-slate-500">=</span>
-                        <div class="flex flex-col items-center">
-                            <input type="text" id="C5" value="1" class="w-24">
-                            <hr class="divider w-24">
-                            <input type="text" id="D5" value="x" readonly class="w-24">
-                        </div>
-                    </div>
-                    <button onclick="solveCrossMultiplication('5')"
-                        class="w-full bg-purple-500 hover:bg-purple-600 text-white text-xl font-bold py-3 rounded-2xl transition duration-150 ease-in-out shadow-lg shadow-purple-500/20">
-                        Solve
-                    </button>
-                    <div id="result5" class="text-center pt-4 min-h-[60px]"></div>
-                </div>
-            </div>
-
-            <!-- Calculator 6: Amber -->
-            <div id="calc6" class="card card-amber p-8">
-                <h2 contenteditable="true" class="text-2xl font-bold text-amber-300 mb-6 px-2 py-1 rounded-md transition duration-150 focus:ring-2 focus:ring-amber-500"></h2>
-                <div class="space-y-6">
-                    <div class="flex items-center justify-center space-x-6 text-4xl font-bold">
-                        <div class="flex flex-col items-center">
-                            <input type="text" id="A6" placeholder="A" class="w-24">
-                            <hr class="divider w-24">
-                            <input type="text" id="B6" placeholder="B" class="w-24">
-                        </div>
-                        <span class="text-slate-500">=</span>
-                        <div class="flex flex-col items-center">
-                            <input type="text" id="C6" value="1" class="w-24">
-                            <hr class="divider w-24">
-                            <input type="text" id="D6" value="x" readonly class="w-24">
-                        </div>
-                    </div>
-                    <button onclick="solveCrossMultiplication('6')"
-                        class="w-full bg-amber-500 hover:bg-amber-600 text-white text-xl font-bold py-3 rounded-2xl transition duration-150 ease-in-out shadow-lg shadow-amber-500/20">
-                        Solve
-                    </button>
-                    <div id="result6" class="text-center pt-4 min-h-[60px]"></div>
-                </div>
-            </div>
+                    `);
+                }
+            </script>
         </div>
 
-        <!-- Custom Modal for Errors/Messages (Global) -->
-        <div id="modal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-80 overflow-y-auto h-full w-full flex items-center justify-center z-50">
-            <div class="bg-slate-800 border border-slate-700 rounded-lg p-6 shadow-2xl max-w-sm w-full">
+        <div id="modal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-80 flex items-center justify-center z-50">
+            <div class="bg-slate-800 border border-slate-700 rounded-lg p-6 max-w-sm w-full shadow-2xl">
                 <h3 id="modalTitle" class="text-xl font-bold mb-4">Error</h3>
                 <p id="modalMessage" class="text-slate-300 mb-6"></p>
-                <button onclick="closeModal()" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 rounded-lg transition shadow-lg shadow-indigo-500/20">
+                <button onclick="closeModal()" class="w-full bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 rounded-lg transition">
                     Got it
                 </button>
             </div>
@@ -261,115 +130,135 @@
         document.addEventListener('DOMContentLoaded', () => {
             setupEnterKeyListeners();
             setupKeyboardListeners();
+            setupAutoSelect();
+            setupArrowKeyNavigation();
         });
 
-        function setupKeyboardListeners() {
-            window.addEventListener('keydown', (event) => {
-                // Shift + Space: Cycle to next calculator (A field)
-                if (event.shiftKey && event.code === 'Space') {
-                    event.preventDefault();
-                    const activeElement = document.activeElement;
-                    let currentId = 0;
-                    if (activeElement && activeElement.id) {
-                        const match = activeElement.id.match(/\d+$/);
-                        if (match) currentId = parseInt(match[0]);
-                    }
-                    let nextId = (currentId % 6) + 1;
-                    const nextField = document.getElementById('A' + nextId);
-                    if (nextField) {
-                        nextField.focus();
-                        nextField.select();
-                    }
-                }
+        function clearAllCalculators() {
+            for (let i = 1; i <= 6; i++) {
+                document.getElementById('A' + i).value = '';
+                document.getElementById('B' + i).value = '';
+                document.getElementById('C' + i).value = '1';
+                document.getElementById('result' + i).innerHTML = '';
+            }
+        }
 
-                // Batch C-Field Updates
-                if (event.shiftKey) {
-                    let newValue = null;
-                    if (event.key === '1' || event.code === 'Numpad1' || event.key === '!') newValue = "1";
-                    else if (event.key === '2' || event.code === 'Numpad2' || event.key === '@') newValue = "10";
-                    else if (event.key === '0' || event.code === 'Numpad0' || event.key === ')') newValue = "100";
-
-                    if (newValue !== null) {
-                        event.preventDefault();
-                        for (let i = 1; i <= 6; i++) {
-                            const fieldC = document.getElementById('C' + i);
-                            if (fieldC) fieldC.value = newValue;
-                        }
+        function setupArrowKeyNavigation() {
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') {
+                    const active = document.activeElement;
+                    if (active && active.tagName === 'INPUT' && active.id) {
+                        const type = active.id.charAt(0);
+                        const num = parseInt(active.id.substring(1));
+                        let nextId = "";
+                        if (type === 'A') nextId = 'B' + num;
+                        else if (type === 'B') nextId = 'C' + num;
+                        else if (type === 'C') nextId = 'A' + ((num % 6) + 1);
+                        const nextEl = document.getElementById(nextId);
+                        if (nextEl) { e.preventDefault(); nextEl.focus(); }
                     }
                 }
             });
         }
 
+        function setupAutoSelect() {
+            document.querySelectorAll('.auto-select').forEach(input => {
+                input.addEventListener('focus', function() { setTimeout(() => this.select(), 0); });
+                input.addEventListener('click', function() { this.select(); });
+            });
+        }
+
+        function updateAllCFields(val) {
+            for (let i = 1; i <= 6; i++) {
+                const field = document.getElementById('C' + i);
+                if (field) field.value = val;
+            }
+        }
+
+        function setupKeyboardListeners() {
+            window.addEventListener('keydown', (event) => {
+                // Shift + Space: Jump to next calculator A field
+                if (event.shiftKey && event.code === 'Space') {
+                    event.preventDefault();
+                    const active = document.activeElement;
+                    let currentId = 0;
+                    if (active && active.id) {
+                        const match = active.id.match(/\d+/);
+                        if (match) currentId = parseInt(match[0]);
+                    }
+                    const nextId = (currentId % 6) + 1;
+                    const nextField = document.getElementById('A' + nextId);
+                    if (nextField) {
+                        nextField.focus();
+                        nextField.select();
+                    }
+                    return;
+                }
+
+                // Shift + 1, 2, 3 logic using both key and code for reliability
+                if (event.shiftKey) {
+                    let newValue = null;
+                    
+                    if (event.key === '1' || event.code === 'Digit1' || event.code === 'Numpad1' || event.key === '!') {
+                        newValue = "1";
+                    } else if (event.key === '2' || event.code === 'Digit2' || event.code === 'Numpad2' || event.key === '@') {
+                        newValue = "10";
+                    } else if (event.key === '3' || event.code === 'Digit3' || event.code === 'Numpad3' || event.key === '#') {
+                        newValue = "100";
+                    }
+
+                    if (newValue !== null) {
+                        event.preventDefault();
+                        updateAllCFields(newValue);
+                    }
+                }
+            }, true); // Use capture phase
+        }
+
         function setupEnterKeyListeners() {
             for (let i = 1; i <= 6; i++) {
-                const idSuffix = i.toString();
-                const inputs = ['A', 'B', 'C'].map(prefix => document.getElementById(prefix + idSuffix));
-                inputs.forEach(input => {
-                    input.addEventListener('keydown', function(event) {
-                        if (event.key === 'Enter') {
-                            event.preventDefault();
-                            solveCrossMultiplication(idSuffix);
-                            this.blur(); 
+                ['A', 'B', 'C'].forEach(p => {
+                    document.getElementById(p + i).addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            solveCrossMultiplication(i.toString());
+                            e.target.blur();
                         }
                     });
                 });
-                const titleElement = document.querySelector(`#calc${idSuffix} h2[contenteditable="true"]`);
-                if (titleElement) {
-                    titleElement.addEventListener('keydown', function(event) {
-                        if (event.key === 'Enter') {
-                            event.preventDefault();
-                            this.blur();
-                        }
-                    });
-                }
             }
         }
 
         function showModal(title, message, isError = true) {
+            const m = document.getElementById('modal');
             document.getElementById('modalTitle').textContent = title;
             document.getElementById('modalMessage').textContent = message;
-            const titleEl = document.getElementById('modalTitle');
-            titleEl.className = `text-xl font-bold mb-4 ${isError ? 'text-rose-400' : 'text-emerald-400'}`;
-            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('modalTitle').className = `text-xl font-bold mb-4 ${isError ? 'text-rose-400' : 'text-emerald-400'}`;
+            m.classList.remove('hidden');
         }
 
-        function closeModal() {
-            document.getElementById('modal').classList.add('hidden');
-        }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
 
-        function solveCrossMultiplication(idSuffix) {
-            const resultDiv = document.getElementById('result' + idSuffix);
-            const valA = document.getElementById('A' + idSuffix).value.trim();
-            const valB = document.getElementById('B' + idSuffix).value.trim();
-            const valC = document.getElementById('C' + idSuffix).value.trim();
+        function solveCrossMultiplication(id) {
+            const res = document.getElementById('result' + id);
+            const a = parseFloat(document.getElementById('A' + id).value);
+            const b = parseFloat(document.getElementById('B' + id).value);
+            const c = parseFloat(document.getElementById('C' + id).value);
 
-            const numA = parseFloat(valA);
-            const numB = parseFloat(valB);
-            const numC = parseFloat(valC);
-
-            if (isNaN(numA) || isNaN(numB) || isNaN(numC)) {
-                showModal('Input Error', 'Please ensure all three values (A, B, and C) are valid numbers.', true);
+            if (isNaN(a) || isNaN(b) || isNaN(c)) {
+                showModal('Input Error', 'Please enter valid numbers.');
+                return;
+            }
+            if (a === 0) {
+                showModal('Math Error', 'Value A cannot be zero.');
                 return;
             }
 
-            if (numA === 0) {
-                showModal('Calculation Error', 'A (top left) cannot be zero.', true);
-                return;
-            }
-
-            const solution = (numB * numC) / numA;
-            const displaySolution = solution.toFixed(4).replace(/\.?0+$/, ''); 
-
-            const colors = {
-                '1': 'text-indigo-300',
-                '2': 'text-teal-300',
-                '3': 'text-rose-300',
-                '4': 'text-emerald-300',
-                '5': 'text-purple-300',
-                '6': 'text-amber-300'
-            };
-            
-            resultDiv.innerHTML = `<p class="text-4xl font-extrabold ${colors[idSuffix]}">x = ${displaySolution}</p>`;
+            const sol = (b * c) / a;
+            const text = sol.toLocaleString(undefined, { maximumFractionDigits: 4 });
+            const colorMap = ['indigo', 'teal', 'rose', 'emerald', 'purple', 'amber'];
+            const color = colorMap[parseInt(id)-1];
+            res.innerHTML = `<p class="text-3xl font-extrabold text-${color}-400">x = ${text}</p>`;
         }
     </script>
 </body>
