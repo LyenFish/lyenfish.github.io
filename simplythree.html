@@ -92,13 +92,13 @@
                             <div class="space-y-4">
                                 <div class="flex items-center justify-center space-x-6 text-3xl font-bold">
                                     <div class="flex flex-col items-center">
-                                        <input type="text" id="A${i}" placeholder="A" class="w-24 auto-select">
+                                        <input type="text" id="A${i}" placeholder="A" class="w-24 auto-select" data-calc="${i}">
                                         <hr class="divider w-24">
-                                        <input type="text" id="B${i}" placeholder="B" class="w-24 auto-select">
+                                        <input type="text" id="B${i}" placeholder="B" class="w-24 auto-select" data-calc="${i}">
                                     </div>
                                     <span class="text-slate-500">=</span>
                                     <div class="flex flex-col items-center">
-                                        <input type="text" id="C${i}" value="1" class="w-24 auto-select">
+                                        <input type="text" id="C${i}" value="1" class="w-24 auto-select" data-calc="${i}">
                                         <hr class="divider w-24">
                                         <input type="text" id="D${i}" value="x" readonly class="w-24">
                                     </div>
@@ -132,6 +132,13 @@
             setupKeyboardListeners();
             setupAutoSelect();
             setupArrowKeyNavigation();
+            setupAutoSolveOnBlur();
+            
+            // Focus on the first 'A' input field automatically
+            const firstA = document.getElementById('A1');
+            if (firstA) {
+                firstA.focus();
+            }
         });
 
         function clearAllCalculators() {
@@ -145,17 +152,32 @@
 
         function setupArrowKeyNavigation() {
             window.addEventListener('keydown', (e) => {
+                const active = document.activeElement;
+                if (!active || active.tagName !== 'INPUT' || !active.id) return;
+
+                const type = active.id.charAt(0);
+                const num = parseInt(active.id.substring(1));
+                let nextId = "";
+
                 if (e.key === 'ArrowRight') {
-                    const active = document.activeElement;
-                    if (active && active.tagName === 'INPUT' && active.id) {
-                        const type = active.id.charAt(0);
-                        const num = parseInt(active.id.substring(1));
-                        let nextId = "";
-                        if (type === 'A') nextId = 'B' + num;
-                        else if (type === 'B') nextId = 'C' + num;
-                        else if (type === 'C') nextId = 'A' + ((num % 6) + 1);
-                        const nextEl = document.getElementById(nextId);
-                        if (nextEl) { e.preventDefault(); nextEl.focus(); }
+                    if (type === 'A') nextId = 'B' + num;
+                    else if (type === 'B') nextId = 'C' + num;
+                    else if (type === 'C') nextId = 'A' + ((num % 6) + 1);
+                } else if (e.key === 'ArrowLeft') {
+                    if (type === 'C') nextId = 'B' + num;
+                    else if (type === 'B') nextId = 'A' + num;
+                    else if (type === 'A') {
+                        let prevNum = num - 1;
+                        if (prevNum < 1) prevNum = 6;
+                        nextId = 'C' + prevNum;
+                    }
+                }
+
+                if (nextId) {
+                    const nextEl = document.getElementById(nextId);
+                    if (nextEl) { 
+                        e.preventDefault(); 
+                        nextEl.focus(); 
                     }
                 }
             });
@@ -165,6 +187,20 @@
             document.querySelectorAll('.auto-select').forEach(input => {
                 input.addEventListener('focus', function() { setTimeout(() => this.select(), 0); });
                 input.addEventListener('click', function() { this.select(); });
+            });
+        }
+
+        function setupAutoSolveOnBlur() {
+            document.querySelectorAll('input.auto-select').forEach(input => {
+                input.addEventListener('blur', (e) => {
+                    const currentCalcId = input.getAttribute('data-calc');
+                    const relatedTarget = e.relatedTarget;
+                    
+                    // If moving focus to an element that isn't an input or belongs to a different calculator
+                    if (!relatedTarget || relatedTarget.getAttribute('data-calc') !== currentCalcId) {
+                        solveCrossMultiplication(currentCalcId, true); // true = silent solve (no modals)
+                    }
+                });
             });
         }
 
@@ -239,18 +275,25 @@
 
         function closeModal() { document.getElementById('modal').classList.add('hidden'); }
 
-        function solveCrossMultiplication(id) {
+        function solveCrossMultiplication(id, silent = false) {
             const res = document.getElementById('result' + id);
-            const a = parseFloat(document.getElementById('A' + id).value);
-            const b = parseFloat(document.getElementById('B' + id).value);
-            const c = parseFloat(document.getElementById('C' + id).value);
+            const aRaw = document.getElementById('A' + id).value;
+            const bRaw = document.getElementById('B' + id).value;
+            const cRaw = document.getElementById('C' + id).value;
+            
+            // For silent auto-solve, if any field is empty, don't show error modals
+            if (silent && (!aRaw || !bRaw || !cRaw)) return;
+
+            const a = parseFloat(aRaw);
+            const b = parseFloat(bRaw);
+            const c = parseFloat(cRaw);
 
             if (isNaN(a) || isNaN(b) || isNaN(c)) {
-                showModal('Input Error', 'Please enter valid numbers.');
+                if (!silent) showModal('Input Error', 'Please enter valid numbers.');
                 return;
             }
             if (a === 0) {
-                showModal('Math Error', 'Value A cannot be zero.');
+                if (!silent) showModal('Math Error', 'Value A cannot be zero.');
                 return;
             }
 
