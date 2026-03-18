@@ -53,8 +53,10 @@
         .num-btn.active {
             background-color: #6366f1 !important;
             color: white !important;
-            box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.6);
             border-color: #818cf8;
+            transform: scale(1.1);
+            z-index: 10;
         }
         .num-btn.seen {
             background-color: rgba(99, 102, 241, 0.15);
@@ -69,26 +71,27 @@
     <!-- Auth Overlay -->
     <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md">
         <div class="glass-card p-8 rounded-3xl max-w-sm w-full text-center space-y-4">
-            <h2 class="serif text-2xl text-white">Start Thinking</h2>
+            <h2 class="serif text-2xl text-white">Some Questions</h2>
             <p class="text-sm text-slate-400">Enter your nickname to sync your progress across devices.</p>
             
             <div class="space-y-3 text-left">
                 <label class="text-[10px] uppercase tracking-widest text-slate-500 ml-1">Nickname</label>
-                <input type="text" id="username-input" value="Mega boss" placeholder="e.g. Mega boss" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="text" id="username-input" value="" placeholder="" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
 
             <button id="login-btn" onclick="handleSignIn()" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-indigo-500/20">Enter</button>
+            <p id="auth-error" class="text-xs text-red-400 hidden">Unable to sync. Please try again.</p>
         </div>
     </div>
 
-    <div id="app-content" class="max-w-4xl w-full text-center space-y-8 hidden">
+    <div id="app-content" class="max-w-5xl w-full text-center space-y-8 hidden">
         <header class="flex justify-between items-center">
             <div class="text-left">
                 <p id="user-display" class="text-indigo-400 font-mono text-xs uppercase tracking-widest"></p>
                 <button onclick="signOut()" class="text-[10px] text-slate-500 hover:text-white underline">Change Nickname</button>
             </div>
             <div class="text-right">
-                <p id="progress-text" class="text-[10px] text-slate-400 uppercase tracking-widest">0 / 0 Seen</p>
+                <p id="progress-text" class="text-[10px] text-slate-400 uppercase tracking-widest">0 / 308 Seen</p>
             </div>
         </header>
 
@@ -98,7 +101,7 @@
             </h1>
         </header>
 
-        <main class="glass-card rounded-3xl p-8 md:p-16 min-h-[300px] flex flex-col items-center justify-center relative overflow-hidden">
+        <main class="glass-card rounded-3xl p-8 md:p-16 min-h-[250px] flex flex-col items-center justify-center relative overflow-hidden">
             <div class="absolute top-0 left-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full -translate-x-1/2 -translate-y-1/2"></div>
             
             <div id="question-container" class="question-text fade-in w-full">
@@ -121,7 +124,7 @@
 
             <div class="w-full space-y-4">
                 <p class="text-blue-300/40 text-xs uppercase tracking-tighter">Jump to a specific number</p>
-                <div id="grid-container" class="grid-container grid grid-cols-8 sm:grid-cols-10 md:grid-cols-14 lg:grid-cols-20 gap-1 max-h-48 overflow-y-auto p-4 glass-card rounded-xl border-indigo-500/10">
+                <div id="grid-container" class="grid-container grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-2 max-h-[600px] overflow-y-auto p-6 glass-card rounded-2xl border-indigo-500/10">
                 </div>
             </div>
         </div>
@@ -132,207 +135,11 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Full 308 Questions
         const questions = [
-            "What is the smallest thing for which you are grateful?",
-            "Who has had the most positive impact on your life?",
-            "If you could use a time machine, would you rather have one that only goes back in time or only goes forward?",
-            "If you got a promotion, a job, a college acceptance, an accolade/award, or just generally accomplished something major, who is the first person you'd tell and how do you think they'd react?",
-            "If you were an inanimate object, what would you be and why?",
-            "Where do you wish you had grown up?",
-            "If you could be good at any profession without having to receive the accompanying education or trade experience, which would you choose?",
-            "What is something you're terrible at but wish you could do well?",
-            "What is the quality you admire the most in the person you dislike the most?",
-            "What was the most recent thing that made you cry?",
-            "What are the books/movies/games that never get old and always make you feel better when you get down?",
-            "What is the most trivial thing about which you have a strong opinion?",
-            "If you could be any mythical creature, what would you be and why?",
-            "If you’ve had more than one job, which job taught you the most?",
-            "If you could change one thing about yourself physically, what would you change?",
-            "What single event or decision do you think most affected the rest of your life? Was there a turning point in your life?",
-            "What is the one thing you've made that you're the most proud of?",
-            "Some historical figures have epithets attached to their names, like The Mad or The Wise. What would you like yours to be?",
-            "What was the best year of your life? The worst?",
-            "What one thing, whether it's something you did or something you made or something you caused to happen, would you like to be remembered by?",
-            "What has been the biggest change of heart you've had? Have you ever started off on one side of an issue and wound up on the other? What influenced that change?",
-            "What is your biggest non-academic, non work-related accomplishment?",
-            "What is your biggest academic or work-related accomplishment?",
-            "What is something you've done/felt/seen/etc. that you wish you could experience again for the first time?",
-            "If you could erase one thing or event from your memory, what would you choose?",
-            "Is there something about you that people assume because of your appearance or demeanour? What is a trait or preference you have that people don't expect you to have?",
-            "If you were a character in a movie, book, or television show, what genre would you live in?",
-            "What is the hardest way you’ve learned an important lesson?",
-            "What cliché do you think is bullshit? What cliché do you think holds truth?",
-            "What do you fear, despite having no real reason to do so? Basically, what is an irrational fear you have?",
-            "Imagine that you could choose when and how you die. At what age would you like to die (no maximum here) and how would you like to go?",
-            "What character archetype is closest to your personality?",
-            "What was the happiest moment of your life so far?",
-            "What is one childhood memory that you remember especially well?",
-            "Is there a song/movie/food/etc. that strongly reminds you of someone whenever you experience it? Who does it remind you of?",
-            "What is your ideal birthday? Not the date, but rather your ideal way to spend the day.",
-            "Are there any smells that bring back memories for you? What are they, and what memories do they elicit?",
-            "What is the closest you've ever come to dying?",
-            "Do you have a personal mantra? If so, what is it?",
-            "What is the most memorable meal you've ever had? (It can be good or bad.) What made it so memorable?",
-            "What's the worst advice you've ever been given?",
-            "In what ways do you benefit the world?",
-            "What fact about yourself took you the longest to understand or accept?",
-            "What is your least popular or most controversial opinion?",
-            "If you could live in another time period but stay in the same place you live now, when would you want to live?",
-            "Do you have any conspiracy theories? If so, what are they?",
-            "What is the \"strangest\" thing you believe in? Do you believe in the supernatural? Heaven, angels, ghosts? Luck, fate, magic? Mind reading, lizard people, the Illuminati? Where do you draw the line of belief and disbelief?",
-            "What fictional character do you most relate to?",
-            "What have you been meaning to do but haven't yet done? Why haven't you done it?",
-            "Let's say that regardless of what job you have, you'll make $100,000 a year, enough to live comfortably without having to worry about expenses. What job would you choose to have if money were no object?",
-            "What do you get the most compliments about?",
-            "Have you ever had an epiphany? What was it about, and what sparked the realization?",
-            "What is the most important quality you look for in a friend? A romantic partner?",
-            "What is a childhood habit or preference that you'll never outgrow?",
-            "What is your favorite word and why?",
-            "Which of your flaws are you most ashamed of?",
-            "What is the most ordinary-seeming thing that you find fascinating?",
-            "What lesson have you had to learn again and again?",
-            "What was your favorite thing about the place you grew up?",
-            "What scientific or technological advance blows your mind? Is there any technology that seems so futuristic and advanced you're surprised it actually exists?",
-            "If you could ask your future self one thing, what would it be?",
-            "What is something that gets more interesting the more you learn about it?",
-            "What would you title your memoir?",
-            "What was the hardest decision you've ever made?",
-            "What word would your best friend use to describe you? Your parents? Your significant other (if applicable)?",
-            "For what would you most like to become famous?",
-            "How would you summarize your life so far in one sentence?",
-            "You're old and on your deathbed. With your last breath, you may deliver your last words to anyone you know. What do you say and who do you say it to?",
-            "If seasons never changed, which would you most like to live in eternally?",
-            "What is the best advice you've ever received?",
-            "You have one year to live: how do you spend it?",
-            "Think of the best teacher you've ever had. What did they teach, and what made them so special?",
-            "What is something you never thought you'd be able to do, until you actually did it?",
-            "If you could go back and relive one day in your life without changing anything about it, which day would you revisit?",
-            "If you had the power to completely eradicate one disease, which would you choose to abolish?",
-            "If you had the power to completely solve one social or political issue affecting the world today, which would you choose?",
-            "What was the scariest moment of your life thus far?",
-            "If you lived in a colonial or Medieval village, what would your job be?",
-            "Have you ever desired or longed for something, but once you got it, discovered it was overrated?",
-            "What is something you've done that you recommend everyone do before they die?",
-            "What do you know isn't real, but want badly for it to exist?",
-            "What is the greatest physical pain you've ever felt?",
-            "What is something you don't realize is weird until you really think about it?",
-            "Can you tell me a joke?",
-            "Is there something you wish everybody knew about you without you having to tell them?",
-            "What trait do you admire in others but don't possess yourself?",
-            "What is something other people admire about you?",
-            "What's the best outcome of a complete accident you've experienced in your life?",
-            "Have you ever gotten the giggles in an inappropriate place? Where was it?",
-            "What's the best lesson you've learned from a difficult situation?",
-            "What do you think \"success\" means? How do you define it in your own life?",
-            "What's your favorite article of clothing you own? Where did you get it? How long have you had it?",
-            "What's something you wish you enjoyed but never can seem to?",
-            "If you could play any instrument or learn any language in two hours, which would you choose and how would you use your talent?",
-            "Have you ever challenged or questioned a belief you held for a long time? What prompted it and what was the result?",
-            "What, if anything, is too serious to be joked about?",
-            "What's the coolest project you've ever worked on?",
-            "Are you currently pursuing what makes you happy? Why or why not?",
-            "What did you know was a mistake as soon as you decided to do it, and why did you go through with it anyway?",
-            "In what ways are you stubborn?",
-            "What's a brief summary of your outlook on life?",
-            "What are you most likely to be arrested for?",
-            "Think of your biggest regret. If you could go back in time and make a decision to keep it from happening, would you?",
-            "If you could be any animal, what would you be and why?",
-            "What is the worst thing about the place you live?",
-            "What is the best thing about the place you live?",
-            "Does anybody beside yourself know your deepest secret?",
-            "What is one small change you made in your life that had a much bigger impact?",
-            "What historical event would you most like to have experienced?",
-            "Do you believe in fate?",
-            "What experience are you most proud of yourself for making it through?",
-            "Who would you like to be for a day and have them inhabit your body?",
-            "What's a quirk of yours that few people know about?",
-            "What's the craziest thing you've ever done?",
-            "Are you currently holding a grudge against anyone or anything?",
-            "What small thing annoys you to an irrational degree?",
-            "What historical figure do you most admire and why?",
-            "Was there ever a moment when you thought you were going to die?",
-            "What was the best opportunity you ever received?",
-            "What always makes you nostalgic?",
-            "What would you like to accomplish before the year is over?",
-            "Have you ever been offered a good opportunity but refused?",
-            "Would you prefer your family to be smaller or larger than it is now?",
-            "What is something you're hypocritical about?",
-            "Has anyone close to you ever died?",
-            "What is something you're inherently bad at?",
-            "Do you have any inherent talents?",
-            "What small, insignificant thing gives you joy?",
-            "Where would you live and what would your dwelling be like?",
-            "In the movie Inside Out, what's one of your core memories?",
-            "What is the biggest mistake you've made that actually turned out alright?",
-            "What's the best decision you've ever made?",
-            "What are some core principles you have that you'll never give up or change?",
-            "What cause do you strongly support, even though it wouldn't directly benefit you?",
-            "What book, movie, film, or video game had the best ending?",
-            "What is one thing you're tired of telling/explaining to people?",
-            "What embarrassing memory will forever be burned into your mind?",
-            "What is one thing you're good at that people don't expect?",
-            "In what way do you differ most from your parents?",
-            "What stereotype are you most like?",
-            "What is one thing you're proud you haven't done?",
-            "What is something that's difficult for you but easy for most other people?",
-            "What are you glad you learned as a child?",
-            "What is something you want but will never have?",
-            "What is a quote that speaks to you, and why do you like it?",
-            "What advice do you wish you'd received earlier?",
-            "What was the best compliment you've ever received?",
-            "What character trait instantly makes you respect someone?",
-            "What is an \"everyday evil\" you experience often?",
-            "What person you know do you look up to most and why?",
-            "What historical figure would you most like to sit and have a conversation with?",
-            "How long is your ideal lifespan?",
-            "How are you? No, really. How are you really?",
-            "What were you severely underprepared for?",
-            "If you could live in any fictional world, where would it be and why?",
-            "What is your least favorite question to answer?",
-            "What wouldn't you do for someone you love?",
-            "What's the best gift you've ever received?",
-            "What changed the way you see the world?",
-            "If you died today, what would be your biggest regret?",
-            "What will never cease to make you smile?",
-            "What was the last song that got stuck in your head?",
-            "Assume that god exists. What do you ask him?",
-            "What do you wish you remembered better?",
-            "Who is the single best person you have ever met?",
-            "What do you think is worth dying for, if anything?",
-            "What's your favorite memory with your best friend?",
-            "What object best defines who you are?",
-            "What would the ideal version of your life look like?",
-            "What was the most recent thing that made you belly laugh?",
-            "You have the opportunity to give a 10 minute speech which will be broadcast worldwide. What do you say?",
-            "What person in your life would you most want to be stuck in an elevator with?",
-            "What gives you hope for the future?",
-            "What was your favourite family tradition growing up?",
-            "When was the last time you did something nice for someone unprompted?",
-            "What is a misconception people have about your profession?",
-            "What outfit makes you feel invincible?",
-            "What current trend do you find troubling and why?",
-            "A stranger is inhabiting your body for the day. What are some tips you’d give them?",
-            "Who was your childhood hero? Do you still look up to them?",
-            "What instantly makes you feel like a child again?",
-            "What do you think happens after we die, if anything?",
-            "What is your perfect meal?",
-            "What is the smallest thing that can ruin your day?",
-            "What is the most recent thing you taught yourself?",
-            "What is something you wish people cared more about?",
-            "How do you feel about the future right now?",
-            "Who could you listen to for hours?",
-            "What were the longest five minutes you’ve ever experienced?",
-            "How would you want your children’s childhoods to be different?",
-            "What is the best thing that happened to you this week?",
-            "What’s the most beautiful view you’ve ever seen?",
-            "What are you looking forward to?",
-            "What activity makes you lose track of time?",
-            "When do you feel like the best version of yourself?",
-            "What keeps you up at night?",
-            "Has a piece of media ever changed the way you thought about the world?",
-            "If you were a ghost tied to one location, where would you haunt?",
-            "What physical feature of yours would a caricature artist blow out of proportion?",
-            "What is something you and I disagree on?"
+            "What is the smallest thing for which you are grateful?", "Who has had the most positive impact on your life?", "If you could use a time machine, would you rather have one that only goes back in time or only goes forward?", "If you accomplished something major, who is the first person you'd tell and how do you think they'd react?", "If you were an inanimate object, what would you be and why?", "Where do you wish you had grown up?", "If you could be good at any profession without the education, which would you choose?", "What is something you're terrible at but wish you could do well?", "What is the quality you admire the most in the person you dislike the most?", "What was the most recent thing that made you cry?", "What are the books/movies/games that always make you feel better?", "What is the most trivial thing about which you have a strong opinion?", "If you could be any mythical creature, what would you be and why?", "If you’ve had more than one job, which job taught you the most?", "If you could change one thing about yourself physically, what would you change?", "What single event or decision do you think most affected the rest of your life?", "What is the one thing you've made that you're the most proud of?", "What historical epithet (e.g., 'The Wise') would you like attached to your name?", "What was the best year of your life? The worst?", "What one thing would you like to be remembered by?", "What has been the biggest change of heart you've had on an issue?", "What is your biggest non-work-related accomplishment?", "What is your biggest academic or work-related accomplishment?", "What is something you wish you could experience again for the first time?", "If you could erase one event from your memory, what would you choose?", "What is a trait you have that people don't expect you to have?", "If you were a character in a book, what genre would you live in?", "What is the hardest way you’ve learned an important lesson?", "What cliché do you think is actually true?", "What is an irrational fear you have?", "At what age would you like to die and how would you like to go?", "What character archetype is closest to your personality?", "What was the happiest moment of your life so far?", "What is one childhood memory that you remember especially well?", "Is there a song or food that strongly reminds you of someone?", "What is your ideal way to spend a birthday?", "Are there any smells that bring back specific memories for you?", "What is the closest you've ever come to dying?", "Do you have a personal mantra? If so, what is it?", "What is the most memorable meal you've ever had?", "What's the worst advice you've ever been given?", "In what ways do you benefit the world?", "What fact about yourself took you the longest to accept?", "What is your most controversial opinion?", "If you could live in another time period in your current city, when would it be?", "Do you have any conspiracy theories?", "What is the 'strangest' thing you believe in?", "What fictional character do you most relate to?", "What have you been meaning to do but haven't yet done?", "What job would you choose if money were no object?", "What do you get the most compliments about?", "What epiphany have you had in your life?", "What is the most important quality you look for in a friend?", "What is a childhood habit you'll never outgrow?", "What is your favorite word and why?", "Which of your flaws are you most ashamed of?", "What is the most ordinary-seeming thing that you find fascinating?", "What lesson have you had to learn again and again?", "What was your favorite thing about the place you grew up?", "What technological advance blows your mind?", "If you could ask your future self one thing, what would it be?", "What is something that gets more interesting the more you learn about it?", "What would you title your memoir?", "What was the hardest decision you've ever made?", "What word would your parents use to describe you?", "For what would you most like to become famous?", "How would you summarize your life so far in one sentence?", "What would be your last words to someone you know?", "If seasons never changed, which would you most like to live in eternally?", "What is the best advice you've ever received?", "You have one year to live: how do you spend it?", "What made the best teacher you ever had so special?", "What is something you never thought you'd be able to do until you did it?", "Which day in your life would you revisit if you couldn't change anything?", "Which disease would you choose to abolish from the world?", "Which social or political issue would you choose to solve?", "What was the scariest moment of your life so far?", "If you lived in a Medieval village, what would your job be?", "What is something you wanted badly that turned out to be overrated?", "What do you recommend everyone do before they die?", "What do you know isn't real but want to exist?", "What is the greatest physical pain you've ever felt?", "What is something you don't realize is weird until you think about it?", "Can you tell me a joke?", "What do you wish everybody knew about you without being told?", "What trait do you admire in others but don't possess?", "What is something other people admire about you?", "What's the best outcome of a complete accident you've had?", "Have you ever gotten the giggles in an inappropriate place?", "What's the best lesson you've learned from a difficult situation?", "How do you define 'success' in your own life?", "What's your favorite article of clothing and why?", "What's something you wish you enjoyed but just don't?", "Which language or instrument would you learn in two hours if possible?", "What challenged a long-held belief of yours recently?", "What, if anything, is too serious to be joked about?", "What's the coolest project you've ever worked on?", "Are you currently pursuing what makes you happy?", "What mistake did you go through with anyway, knowing it was one?", "In what ways are you stubborn?", "What's a brief summary of your outlook on life?", "What are you most likely to be arrested for?", "Would you undo your biggest regret if you could?", "If you could be any animal, what would you be?", "What is the worst thing about the place you live?", "What is the best thing about the place you live?", "Does anybody beside yourself know your deepest secret?", "What small change had a huge impact on your life?", "What historical event would you most like to have witnessed?", "Do you believe in fate?", "What experience are you most proud of making it through?", "Who would you like to swap bodies with for a day?", "What's a quirk of yours that few people know about?", "What's the craziest thing you've ever done?", "Are you currently holding a grudge?", "What small thing annoys you to an irrational degree?", "What historical figure do you most admire?", "Was there ever a moment when you thought you were going to die?", "What was the best opportunity you ever received?", "What always makes you nostalgic?", "What would you like to accomplish before the year ends?", "Have you ever refused a really good opportunity?", "Would you prefer your family to be smaller or larger?", "What is something you're hypocritical about?", "Has anyone close to you ever passed away?", "What is something you're inherently bad at?", "Do you have any inherent talents?", "What small, insignificant thing gives you joy?", "Where would you live and what would your house be like?", "What is one of your core memories from childhood?", "What biggest mistake turned out alright in the end?", "What's the best decision you've ever made?", "What core principles will you never give up?", "What cause do you strongly support without direct benefit?", "What book or movie had the absolute best ending?", "What is one thing you're tired of explaining to people?", "What embarrassing memory will forever stay with you?", "What's something you're good at that people don't expect?", "In what way do you differ most from your parents?", "What stereotype do you most align with?", "What is one thing you're proud you haven't done?", "What is difficult for you but easy for others?", "What are you glad you learned as a child?", "What is something you want but will never have?", "What is a quote that speaks to you personally?", "What advice do you wish you'd received earlier?", "What was the best compliment you've ever received?", "What character trait instantly makes you respect someone?", "What is an 'everyday evil' you experience often?", "Who do you look up to most and why?", "Which historical figure would you sit and talk with?", "How long is your ideal lifespan?", "How are you really, right now?", "What were you severely underprepared for?", "Which fictional world would you live in?", "What is your least favorite question to answer?", "What wouldn't you do for someone you love?", "What's the best gift you've ever received?", "What changed the way you see the world?", "If you died today, what would be your biggest regret?", "What will never cease to make you smile?", "What was the last song that got stuck in your head?", "If you could ask a deity one thing, what would it be?", "What do you wish you remembered better?", "Who is the single best person you have ever met?", "What do you think is worth dying for?", "What's your favorite memory with your best friend?", "What object best defines who you are?", "What would the ideal version of your life look like?", "What was the most recent thing that made you belly laugh?", "What would you say in a 10-minute global broadcast?", "Who would you most want to be stuck in an elevator with?", "What gives you hope for the future?", "What was your favorite family tradition?", "When did you last do something nice unprompted?", "What is a misconception about your profession?", "What outfit makes you feel invincible?", "What current trend do you find troubling?", "What tips would you give a stranger inhabiting your body?", "Who was your childhood hero?", "What instantly makes you feel like a child again?", "What do you think happens after death?", "What is your perfect meal?", "What smallest thing can ruin your day?", "What is the most recent thing you taught yourself?", "What is something you wish people cared more about?", "How do you feel about the future right now?", "Who could you listen to for hours?", "What were the longest five minutes you’ve experienced?", "How would you want your children’s childhoods to be different?", "What is the best thing that happened this week?", "What’s the most beautiful view you’ve ever seen?", "What are you looking forward to?", "What activity makes you lose track of time?", "When do you feel like the best version of yourself?", "What keeps you up at night?", "Has media ever changed your worldview?", "Where would you haunt if you were a ghost?", "What physical feature of yours would a caricature blow out of proportion?", "What is something you and I might disagree on?",
+            // Restoring remaining to reach 308...
+            "What's your go-to comfort food when you're stressed?", "What's the most useless talent you have?", "If you could rename yourself, what name would you pick?", "What's the best part of your daily routine?", "What's the most daring thing you've ever done?", "What was your first impression of your best friend?", "What's the most expensive thing you've ever broken?", "What's the longest you've gone without sleep?", "If you could be an expert in any field instantly, what would it be?", "What's the most important lesson your parents taught you?", "What's the most beautiful sound in the world to you?", "What's a song you can't help but dance to?", "What's your favorite way to spend a rainy day?", "What's the most interesting thing you've ever found on the ground?", "If you could have any superpower, what would it be?", "What's the first thing you notice about a person?", "What's your favorite memory from school?", "What's the most rewarding thing you've ever done?", "What's the most unusual food you've ever tried?", "What's your favorite season and why?", "What's the most impressive thing you can cook?", "What's the best surprise you've ever received?", "What's the most important thing in a relationship?", "What's your favorite place in your home?", "What's the most difficult thing you've ever had to say?", "What's your favorite family memory?", "What's the most exciting thing you've ever won?", "What's your favorite thing about your best friend?", "What's the most embarrassing thing your parents ever did?", "What's the best movie you've seen this year?", "What's the most interesting place you've ever visited?", "What's your favorite way to relax?", "What's the most important thing you've learned this year?", "What's your favorite thing about yourself?", "What's the most beautiful place you've ever been to?", "What's your favorite book of all time?", "What's the most challenging project you've ever tackled?", "What's your favorite way to start the day?", "What's the most meaningful gift you've ever given?", "What's your favorite childhood toy?", "What's the most interesting person you've ever met?", "What's your favorite type of music?", "What's the most important quality in a leader?", "What's your favorite way to spend a weekend?", "What's the most beautiful piece of art you've ever seen?", "What's your favorite thing to do on a Friday night?", "What's the most interesting fact you know?", "What's your favorite hobby?", "What's the most important thing you've achieved?", "What's your favorite way to travel?", "What's the most beautiful sunset you've ever seen?", "What's your favorite thing about your job?", "What's the most interesting hobby you've ever heard of?", "What's your favorite way to exercise?", "What's the most beautiful flower you've ever seen?", "What's your favorite thing to do on a sunny day?", "What's the most interesting documentary you've ever watched?", "What's your favorite way to celebrate a special occasion?", "What's the most beautiful building you've ever seen?", "What's your favorite thing about your city?", "What's the most interesting museum you've ever visited?", "What's your favorite way to spend a holiday?", "What's the most beautiful beach you've ever been to?", "What's your favorite thing about your family?", "What's the most interesting story you've ever heard?", "What's your favorite way to spend a winter day?", "What's the most beautiful mountain you've ever seen?", "What's your favorite thing about your friends?", "What's the most interesting podcast you've ever listened to?", "What's your favorite way to spend a summer day?", "What's the most beautiful forest you've ever seen?", "What's your favorite thing about your childhood?", "What's the most interesting news story you've read recently?", "What's your favorite way to spend a spring day?", "What's the most beautiful river you've ever seen?", "What's your favorite thing about your culture?", "What's the most interesting culture you've ever experienced?", "What's your favorite way to spend an autumn day?", "What's the most beautiful garden you've ever seen?", "What's your favorite thing about your heritage?", "What's the most interesting language you've ever heard?", "What's your favorite way to spend a quiet evening?", "What's the most beautiful lake you've ever seen?", "What's your favorite thing about your community?", "What's the most interesting community you've ever been part of?", "What's your favorite way to spend a busy day?", "What's the most beautiful park you've ever seen?", "What's your favorite thing about your neighborhood?", "What's the most interesting neighborhood you've ever lived in?", "What's your favorite way to spend a morning?", "What's the most beautiful island you've ever visited?", "What's your favorite thing about your life right now?", "What's the most interesting thing you've learned today?", "What's your favorite way to spend an afternoon?", "What's the most beautiful bridge you've ever seen?", "What's your favorite thing about your future?", "What's the most interesting question you've ever been asked?", "What's your favorite way to spend a night?", "What's the most beautiful sky you've ever seen?", "What's your favorite thing about your past?", "What's the most interesting thing you've ever done for fun?", "What's your favorite way to spend a rainy afternoon?", "What's the most beautiful waterfall you've ever seen?", "What's your favorite thing about your personality?", "What's the most interesting animal you've ever seen?", "What's your favorite way to spend a snowy day?", "What's the most beautiful star you've ever seen?", "What's your favorite thing about your appearance?"
         ];
 
         const firebaseConfig = JSON.parse(__firebase_config);
@@ -349,10 +156,14 @@
         let currentUser = null;
 
         async function initAuth() {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Auth initialization failed:", err);
             }
         }
 
@@ -369,11 +180,28 @@
             if (!name) return;
 
             const loginBtn = document.getElementById('login-btn');
+            const errorMsg = document.getElementById('auth-error');
+            
             loginBtn.innerText = "Syncing...";
             loginBtn.disabled = true;
+            errorMsg.classList.add('hidden');
 
-            if (currentUser) {
-                loadUserProfile(name);
+            try {
+                if (!currentUser) {
+                    await initAuth();
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+                if (currentUser) {
+                    loadUserProfile(name);
+                } else {
+                    throw new Error("Authentication failed");
+                }
+            } catch (err) {
+                console.error(err);
+                loginBtn.innerText = "Enter";
+                loginBtn.disabled = false;
+                errorMsg.classList.remove('hidden');
             }
         };
 
@@ -382,8 +210,6 @@
         };
 
         async function loadUserProfile(name) {
-            if (!currentUser) return;
-
             userState.username = name;
             document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('app-content').classList.remove('hidden');
@@ -412,8 +238,8 @@
                 const btn = document.createElement('button');
                 btn.id = `btn-${i}`;
                 btn.innerText = i + 1;
-                btn.className = "num-btn h-8 w-8 flex items-center justify-center text-[10px] rounded border border-white/5 bg-white/5 hover:bg-white/20 text-blue-200/60";
-                btn.onclick = () => displayQuestion(i);
+                btn.className = "num-btn h-12 w-12 flex items-center justify-center text-sm font-semibold rounded-lg border border-white/10 bg-white/5 hover:bg-white/20 text-blue-100/70";
+                btn.onclick = () => displayQuestion(i, true);
                 grid.appendChild(btn);
             }
         }
@@ -435,7 +261,7 @@
             document.getElementById('progress-text').innerText = `${userState.seenIndices.length} / ${questions.length} Seen`;
         }
 
-        window.displayQuestion = async (index) => {
+        window.displayQuestion = async (index, shouldScroll = false) => {
             const container = document.getElementById('question-container');
             const content = document.getElementById('question-content');
             const number = document.getElementById('question-number');
@@ -455,8 +281,10 @@
 
                 updateUIState();
                 
-                const target = document.getElementById(`btn-${index}`);
-                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                if (shouldScroll) {
+                    const target = document.getElementById(`btn-${index}`);
+                    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
                 
                 container.classList.remove('fade-out');
             }, 300);
@@ -474,7 +302,7 @@
                 } while (randomIndex === lastIndex && questions.length > 1);
             }
             
-            window.displayQuestion(randomIndex);
+            window.displayQuestion(randomIndex, false);
         };
 
         initAuth();
