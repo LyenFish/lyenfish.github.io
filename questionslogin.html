@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>308 Questions - Global Nickname Sync</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary: #3e6db8;
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            scroll-behavior: smooth;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .question-card {
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--card-bg);
+        }
+        .grid-btn {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+            background-color: #1e293b;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            cursor: pointer;
+        }
+        .grid-btn.visited {
+            background-color: #2e4a85;
+            color: #cbd5e1;
+            border-color: #3e6db8;
+        }
+        .grid-btn.active {
+            background-color: var(--primary) !important;
+            color: white !important;
+            transform: scale(1.1);
+            z-index: 10;
+            box-shadow: 0 0 15px rgba(62, 109, 184, 0.6);
+            border-color: #fff !important;
+        }
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #334155;
+        }
+        .auth-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-dark);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        input {
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: white;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="p-0">
+
+    <!-- Sync Screen -->
+    <div id="auth-screen" class="auth-overlay">
+        <div class="max-w-md w-full bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700">
+            <h2 class="text-2xl font-bold mb-2 text-center text-blue-400">Sync Progress</h2>
+            <p class="text-slate-400 text-sm text-center mb-6">Enter your nickname to load your data on any device.</p>
+            
+            <div id="auth-error" class="text-red-400 text-sm mb-4 hidden text-center"></div>
+            
+            <input type="text" id="nickname-input" placeholder="e.g. Mega boss" maxlength="30">
+            
+            <button id="btn-sync" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg mb-3 transition-colors">Load My Progress</button>
+            
+            <p class="text-slate-500 text-[10px] text-center uppercase tracking-widest mt-4">The nickname is your unique sync key.</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="hidden">
+        <div class="max-w-4xl mx-auto px-4 md:px-8">
+            <div id="top" class="sticky-header py-4 mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <span id="user-display" class="text-xs font-bold text-blue-400 uppercase tracking-tighter"></span>
+                    <button onclick="logout()" class="text-xs text-slate-500 hover:text-white transition-colors">Switch User / Logout</button>
+                </div>
+
+                <div class="flex flex-col items-center">
+                    <button onclick="pickRandom()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-10 rounded-full shadow-lg transition-transform active:scale-95 mb-6">
+                        Random Question
+                    </button>
+
+                    <div class="question-card w-full rounded-2xl shadow-2xl border border-slate-700 p-8 text-center">
+                        <div>
+                            <span id="question-number" class="block text-blue-400 font-bold text-sm uppercase tracking-widest mb-4">Ready?</span>
+                            <h2 id="question-text" class="text-xl md:text-2xl font-medium leading-relaxed">Select a question to begin.</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6 flex justify-between items-end">
+                <h3 class="text-slate-400 font-medium">Question Directory</h3>
+                <div class="text-right">
+                    <span id="progress-text" class="text-sm font-bold text-blue-400">0 / 308 Answered</span>
+                    <div class="w-32 h-1 bg-slate-800 rounded-full mt-1">
+                        <div id="progress-bar" class="h-full bg-blue-500 rounded-full transition-all duration-700" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="grid-container" class="grid grid-cols-7 sm:grid-cols-10 md:grid-cols-14 lg:grid-cols-20 gap-2 pb-20"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        const questions = [
+            "What is the smallest thing for which you are grateful?", "Who has had the most positive impact on your life?", "If you could use a time machine, would you rather have one that only goes back in time or only goes forward?", "If you got a promotion, a job, a college acceptance, an accolade/award, or just generally accomplished something major, who is the first person you'd tell and how do you think they'd react?", "If you were an inanimate object, what would you be and why?", "Where do you wish you had grown up?", "If you could be good at any profession without having to receive the accompanying education or trade experience, which would you choose?", "What is something you're terrible at but wish you could do well?", "What is the quality you admire the most in the person you dislike the most?", "What was the most recent thing that made you cry?", "What are the books/movies/games that never get old and always make you feel better when you get down?", "What is the most trivial thing about which you have a strong opinion?", "If you could be any mythical creature, what would you be and why?", "If you’ve had more than one job, which job taught you the most?", "If you could change one thing about yourself physically, what would you change?", "What single event or decision do you think most affected the rest of your life? Was there a turning point in your life?", "What is the one thing you've made that you're the most proud of?", "Some historical figures have epithets attached to their names, like The Mad or The Wise. What would you like yours to be?", "What was the best year of your life? The worst?", "What one thing, whether it's something you did or something you made or something you caused to happen, would you like to be remembered by?", "What has been the biggest change of heart you've had? Have you ever started off on one side of an issue and wound up on the other? What influenced that change?", "What is your biggest non-academic, non work-related accomplishment?", "What is your biggest academic or work-related accomplishment?", "What is something you've done/felt/seen/etc. that you wish you could experience again for the first time?", "If you could erase one thing or event from your memory, what would you choose?", "Is there something about you that people assume because of your appearance or demeanour? What is a trait or preference you have that people don't expect you to have?", "If you were a character in a movie, book, or television show, what genre would you live in?", "What is the hardest way you’ve learned an important lesson?", "What cliché do you think is bullshit? What cliché do you think holds truth?", "What do you fear, despite having no real reason to do so? Basically, what is an irrational fear you have?", "Imagine that you could choose when and how you die. At what age would you like to die (no maximum here) and how would you like to go?", "What character archetype is closest to your personality?", "What was the happiest moment of your life so far?", "What is one childhood memory that you remember especially well?", "Is there a song/movie/food/etc. that strongly reminds you of someone whenever you experience it? Who does it remind you of?", "What is your ideal birthday? Not the date, but rather your ideal way to spend the day.", "Are there any smells that bring back memories for you? What are they, and what memories do they elicit?", "What is the closest you've ever come to dying?", "Do you have a personal mantra? If so, what is it?", "What is the most memorable meal you've ever had? (It can be user or bad.) What made it so memorable?", "What's the worst advice you've ever been given?", "In what ways do you benefit the world?", "What fact about yourself took you the longest to understand or accept?", "What is your least popular or most controversial opinion?", "If you could live in another time period but stay in the same place you live now, when would you want to live?", "Do you have any conspiracy theories? If so, what are they?", "What is the \"strangest\" thing you believe in? Do you believe in the supernatural? Heaven, angels, ghosts? Luck, fate, magic? Mind reading, lizard people, the Illuminati? Where do you draw the line of belief and disbelief?", "What fictional character do you most relate to?", "What have you been meaning to do but haven't yet done? Why haven't you done it?", "Let's say that regardless of what job you have, you'll make $100,000 a year. What job would you choose to have if money were no object?", "What do you get the most compliments about?", "Have you ever had an epiphany? What was it about, and what sparked the realization?", "What is the most important quality you look for in a friend? A romantic partner?", "What is a childhood habit or preference that you'll never outgrow?", "What is your favorite word and why?", "Which of your flaws are you most ashamed of?", "What is the most ordinary-seeming thing that you find fascinating?", "What lesson have you had to learn again and again?", "What was your favorite thing about the place you grew up?", "What scientific or technological advance blows your mind?", "If you could ask your future self one thing, what would it be?", "What is something that gets more interesting the more you learn about it?", "What would you title your memoir?", "What was the hardest decision you've ever made?", "What word would your best friend use to describe you?", "For what would you most like to become famous?", "How would you summarize your life so far in one sentence?", "You're old and on your deathbed. With your last breath, you deliver your last words to someone. What do you say?", "If seasons never changed, which would you most like to live in eternally?", "What is the best advice you've ever received?", "You have one year to live: how do you spend it?", "Think of the best teacher you've ever had. What made them so special?", "What is something you never thought you'd be able to do, until you actually did it?", "If you could go back and relive one day without changing anything, which would you revisit?", "If you had the power to eradicate one disease, which would you choose?", "If you had the power to solve one social or political issue, which would you choose?", "What was the scariest moment of your life thus far?", "If you lived in a colonial village, what would your job be?", "Have you ever desired something, but once you got it, discovered it was overrated?", "What is something you've done that you recommend everyone do before they die?", "What do you know isn't real, but want badly for it to exist?", "What is the greatest physical pain you've ever felt?", "What is something you don't realize is weird until you really think about it?", "Can you tell me a joke?", "Is there something you wish everybody knew about you?", "What trait do you admire in others but don't possess yourself?", "What question do you most hate being asked?", "What is something other people admire about you?", "What's the best outcome of a complete accident you've experienced?", "Have you ever gotten the giggles in an inappropriate place?", "What's the best lesson you've learned from a difficult situation?", "What do you think \"success\" means? How do you define it?", "What's your favorite article of clothing you own?", "What's something you wish you enjoyed but never can seem to?", "If you could learn any instrument or language in two hours, which would you choose?", "Have you ever challenged a belief you held for a long time?", "What, if anything, is too serious to be joked about?", "What's the coolest project you've ever worked on?", "Are you currently pursuing what makes you happy?", "What did you know was a mistake as soon as you decided to do it?", "In what ways are you stubborn?", "What's a brief summary of your outlook on life?", "What are you most likely to be arrested for?", "Think of your biggest regret. If you could go back and change it, would you?", "If you could be any animal, what would you be?", "What is the worst thing about the place you live?", "What is the best thing about the place you live?", "Does anybody beside yourself know your deepest secret?", "What is one small change you made that had a much bigger impact than anticipated?", "What historical event would you most like to have experienced?", "Do you believe in fate or chaos?", "What experience are you most proud of making it through?", "In a Freaky Friday situation, who would you like to swap bodies with for a day?", "What's a quirk of yours that few people know about?", "What's the craziest thing you've ever done?", "Are you currently holding a grudge against anyone?", "What small thing annoys you to an irrational degree?", "What is the most notable phase you've gone through in your life?", "What historical figure do you most admire?", "Was there ever a moment when you thought you were going to die?", "What was the best opportunity you ever received?", "What always makes you nostalgic?", "What would you like to accomplish before the year is over?", "Have you ever been offered a good opportunity but refused?", "Would you prefer your family to be smaller or larger?", "What is something you're hypocritical about?", "Has anyone close to you ever died? What helped you move past it?", "What is something you're inherently bad at, no matter how hard you try?", "Do you have any inherent talents?", "What small, insignificant thing gives you joy?", "If money was no object, where would you live and what would your dwelling be like?", "What is one thing that turned out to be really good, even though you initially didn't expect it?", "What is one of your 'core memories'?", "What is the biggest mistake you've made that actually turned out alright?", "What's the best decision you've ever made?", "When you're sick, what are your comfort foods or movies?", "What are some core principles you have that you'll never change?", "Have you ever invented something?", "What cause do you strongly support, even though it wouldn't directly benefit you?", "What book or movie had the best ending?", "To which charity would you make a sizeable donation?", "What is something weird you do that you wonder if other people do too?", "You're in a horror film with the last person you texted. Do you survive?", "What is one thing you're tired of explaining to people?", "What embarrassing memory will forever be burned into your mind?", "What was the busiest day of your life thus far?", "What was the greatest day of your life thus far?", "What was the worst day of your life thus far?", "What is one thing you're good at that people don't expect?", "In what way do you differ most from your parents?", "In what way do you differ most from your best friend?", "What stereotype are you most like?", "What is one thing you're proud you haven't done?", "What is something that's difficult for you but easy for others?", "What is something that's easy for you but difficult for others?", "What are you glad you learned as a child?", "If you could know either when or how you die, which would you choose?", "What is something you had to learn the hard way?", "What is something you want but will never have?", "If you could know the answer to any question, what would it be?", "What is a quote that speaks to you?", "What advice do you wish you'd received earlier?", "What was the hardest time of your life, and how did you make it through?", "What is the best compliment you've ever received?", "What character trait instantly makes you respect someone?", "What is the best compliment you've ever given someone?", "What is a fear you've faced and how did you face it?", "What is an 'everyday evil' you experience often?", "What person you know do you look up to most and why?", "Has anyone ever saved your life?", "What expensive thing is absolutely worth the money?", "If you could change your name, what would it be?", "What historical figure would you most like to have tea with?", "Who do you wish was still alive?", "Is there anything you can recite from memory?", "How has your year been going?", "How long is your ideal lifespan?", "How are you, really, at this moment?", "What were you severely underprepared for?", "What's the most selfish thing you've done?", "What's the most selfless thing you've done?", "If you could live in any fictional world, where would it be?", "What is your least favorite question to answer?", "What is the biggest punishment you've ever received?", "What about yourself is completely different from 10 years ago?", "What about yourself hasn't changed in the last 10 years?", "If you could erase one memory, what would it be?", "What wouldn't you do for someone you love?", "If you could enhance one of your senses twofold, which would you choose?", "What's the best gift you've ever received?", "What's the best gift you've ever given?", "What changed the way you see the world?", "If you died today, what would be your biggest regret?", "What is a completely rational, justified fear that you have?", "What is something you love that most people hate?", "What is something you hate that most people love?", "What do you wish was possible?", "Who was the last person you called, and what did you talk about?", "What will never cease to make you smile?", "What will always be funny to you?", "What is something that happened to you despite the odds?", "If you were a superhero, what would be your name and catchphrase?", "What was the last song that got stuck in your head?", "What is the worst thing you’ve ever smelled?", "If God answered one question for you with absolute truth, what would you ask?", "If you had a superpower for one day, what and when would it be?", "How have you experienced 'you don't know what you have until you lose it'?", "How would you spend your last day with someone you love?", "What do you wish you remembered better?", "Who is the single best person you have ever met?", "What is something you know is going to happen, but hasn't yet?", "Have you ever gotten a hunch that turned out to be true?", "What is the most dangerous thing you've ever done?", "What do you think is worth dying for?", "Is there anything you have vowed never to do?", "Under what circumstances could you kill someone?", "What's your favorite memory with your best friend?", "What is a profession you admire but could never be part of?", "What is something you enjoyed doing but would never do again?", "What object best defines who you are?", "What is the strongest emotional connection you've ever felt?", "Do you have or have you ever had a nemesis?", "What’s the biggest fight you’ve gotten into?", "What would the ideal version of your life look like?", "What was the most recent thing that made you belly laugh?", "What is the dumbest purchase you’ve ever made?", "What would your eulogy say in brief?", "What would you say in a 10-minute speech broadcast worldwide?", "How long could you survive in a forest with no tools?", "Who would you most want to be stuck in an elevator with?", "What is the most obscure fact you know?", "Is there something you want to tell someone, but haven’t?", "What’s a rant you’ve been holding in?", "What subject could you teach a college course on?", "Have you ever had a recurring dream or nightmare?", "What gives you hope for the future?", "What is something you fantasize about often?", "What do you think about just before falling asleep?", "What was your favourite family tradition growing up?", "What is something you’re embarrassed to admit you enjoy?", "What is the first thing you hope people notice about you?", "When was the last time you did something nice unprompted?", "What is a misconception people have about your profession?", "What do you want written on your headstone?", "What situation made you feel like a complete idiot?", "What outfit makes you feel invincible?", "Have you ever hit rock bottom?", "What current trend do you find troubling?", "What's the worst result of a misunderstanding in your life?", "What are you currently worrying about?", "Do you think humanity will go extinct?", "Is there a problem you could use some advice on?", "Has your gut feeling ever been wrong?", "What is your catchphrase?", "What role do you play at a party?", "What tips would you give a stranger inhabiting your body for a day?", "What are you currently waiting for?", "Is there someone you once knew but lost touch with?", "What is something you love but can't recommend to others?", "Who was your childhood hero?", "What's something you could do with your eyes closed?", "What instantly makes you feel like a child again?", "What happens after we die?", "Who would you write a thank-you note to for something you enjoy?", "What is your perfect meal?", "What are people not grateful enough for?", "What is the smallest thing that can ruin your day?", "Is there anyone you envy?", "What is the most recent thing you taught yourself?", "What is something you wish people cared less about?", "What is something you wish people cared more about?", "How do you feel about the future right now?", "Have you ever cried in public?", "What's an inside joke you have with someone?", "What immediately makes you think less of someone?", "What immediately makes you think more highly of someone?", "Who could listen to for hours?", "What social custom do you wish would end?", "What parts of your life would you leave out of a biopic?", "What were the longest five minutes you’ve ever experienced?", "Have you discovered anything about yourself in the past year?", "How should your children’s childhood differ from your own?", "What’s the quickest way to get you angry?", "Have you ever hidden something from friends or family?", "How do children today differ from your generation?", "How would your life change if if you inherited $100,000?", "What’s the strangest situation you’ve ever been in?", "What is the best thing that happened this week?", "What's your nickname and its origin?", "What’s the most beautiful view you’ve ever seen?", "How did you and your best friend meet?", "What are you looking forward to?", "What activity makes you lose track of time?", "What is the most useless talent you possess?", "What restaurant would you open and what's the name?", "Were you excited to be a grownup when you were a kid?", "If you started a band, what would be the genre and name?", "When was the last time you tried something new?", "What wouldn't you wish on your worst enemy?", "When do you feel like the best version of yourself?", "What keeps you up at night?", "What media has changed the way you thought about the world?", "Where would you haunt as a ghost?", "What are the stories behind your scars or tattoos?", "What is something you are confident you will never do?", "What’s your million dollar business idea?", "What feature would a caricature artist exaggerate?", "What is something you and I disagree on?"
+        ];
+
+        let visitedQuestions = new Set();
+        let currentActiveId = null;
+        let activeNickname = localStorage.getItem('active_nickname') || null;
+        let unsubscribe = null;
+
+        // AUTH & DATABASE
+        onAuthStateChanged(auth, async (user) => {
+            if (user && activeNickname) {
+                startDataSync(activeNickname);
+            } else {
+                showAuthScreen();
+            }
+        });
+
+        async function initAuthAndSync() {
+            if (!auth.currentUser) {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            }
+        }
+
+        document.getElementById('btn-sync').onclick = async () => {
+            const nick = document.getElementById('nickname-input').value.trim().toLowerCase();
+            if (!nick) {
+                showError("Please enter a nickname.");
+                return;
+            }
+            activeNickname = nick;
+            localStorage.setItem('active_nickname', nick);
+            await initAuthAndSync();
+            startDataSync(nick);
+        };
+
+        function startDataSync(nickname) {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+            document.getElementById('user-display').innerText = nickname;
+
+            if (unsubscribe) unsubscribe();
+
+            const syncDoc = doc(db, 'artifacts', appId, 'public', 'data', 'user_progress', nickname);
+            
+            unsubscribe = onSnapshot(syncDoc, (snap) => {
+                if (snap.exists()) {
+                    visitedQuestions = new Set(snap.data().answered || []);
+                    updateProgressUI();
+                } else {
+                    visitedQuestions = new Set();
+                    updateProgressUI();
+                }
+            }, (err) => {
+                console.error("Sync error:", err);
+                showError("Database sync failed. Check connection.");
+            });
+        }
+
+        function showAuthScreen() {
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('main-content').classList.add('hidden');
+        }
+
+        window.logout = () => {
+            if (unsubscribe) unsubscribe();
+            localStorage.removeItem('active_nickname');
+            activeNickname = null;
+            showAuthScreen();
+        };
+
+        async function saveProgress() {
+            if (!activeNickname || !auth.currentUser) return;
+            const syncDoc = doc(db, 'artifacts', appId, 'public', 'data', 'user_progress', activeNickname);
+            try {
+                await setDoc(syncDoc, {
+                    answered: Array.from(visitedQuestions),
+                    lastUpdated: Date.now()
+                }, { merge: true });
+            } catch (err) {
+                console.error("Save error:", err);
+            }
+        }
+
+        const showError = (msg) => {
+            const errDiv = document.getElementById('auth-error');
+            errDiv.innerText = msg;
+            errDiv.classList.remove('hidden');
+        };
+
+        // UI HELPERS
+        function createGrid() {
+            const container = document.getElementById('grid-container');
+            container.innerHTML = '';
+            for (let i = 1; i <= questions.length; i++) {
+                const btn = document.createElement('button');
+                btn.innerText = i;
+                btn.id = `btn-${i}`;
+                btn.className = 'grid-btn';
+                btn.onclick = () => displayQuestion(i, false);
+                container.appendChild(btn);
+            }
+        }
+
+        function updateProgressUI() {
+            const count = visitedQuestions.size;
+            document.getElementById('progress-text').innerText = `${count} / 308 Answered`;
+            document.getElementById('progress-bar').style.width = `${(count/308)*100}%`;
+            
+            for (let i = 1; i <= questions.length; i++) {
+                const btn = document.getElementById(`btn-${i}`);
+                if (btn) {
+                    if (visitedQuestions.has(i)) btn.classList.add('visited');
+                    else btn.classList.remove('visited');
+                }
+            }
+        }
+
+        function displayQuestion(id, shouldScroll) {
+            const qNum = document.getElementById('question-number');
+            const qText = document.getElementById('question-text');
+            
+            qNum.innerText = `Question #${id}`;
+            qText.innerText = questions[id - 1];
+
+            if (currentActiveId) {
+                document.getElementById(`btn-${currentActiveId}`)?.classList.remove('active');
+            }
+
+            const newBtn = document.getElementById(`btn-${id}`);
+            if (newBtn) {
+                newBtn.classList.add('active');
+                currentActiveId = id;
+                if (!visitedQuestions.has(id)) {
+                    visitedQuestions.add(id);
+                    updateProgressUI();
+                    saveProgress();
+                }
+                if (shouldScroll) newBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        window.pickRandom = () => {
+            const id = Math.floor(Math.random() * 308) + 1;
+            displayQuestion(id, true);
+        };
+
+        createGrid();
+        initAuthAndSync();
+    </script>
+</body>
+</html>
