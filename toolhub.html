@@ -60,7 +60,7 @@
             <button id="login-btn" onclick="handleSignIn()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
                 Start Exploring
             </button>
-            <p id="auth-error" class="text-xs text-red-400 hidden italic">Connection error. Please try again.</p>
+            <p id="auth-status" class="text-[10px] text-slate-500 italic uppercase tracking-widest">Checking connection...</p>
         </div>
     </div>
 
@@ -69,7 +69,10 @@
         <header class="flex justify-between items-end border-b border-white/5 pb-4">
             <div class="text-left">
                 <p id="user-display" class="text-indigo-400 font-mono text-[10px] uppercase tracking-widest"></p>
-                <button onclick="location.reload()" class="text-[9px] text-slate-500 hover:text-white uppercase tracking-tighter">Switch User</button>
+                <div class="flex items-center space-x-2">
+                    <button onclick="location.reload()" class="text-[9px] text-slate-500 hover:text-white uppercase tracking-tighter">Switch User</button>
+                    <span id="mode-badge" class="text-[8px] px-1 bg-white/10 rounded text-slate-400 border border-white/5 uppercase">Cloud Sync</span>
+                </div>
             </div>
             <div class="text-right">
                 <p id="progress-text" class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">0 / 308 DISCOVERED</p>
@@ -110,8 +113,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const questions = [
             "What is the smallest thing for which you are grateful?", "Who has had the most positive impact on your life?", "If you could use a time machine, would you rather have one that only goes back in time or only goes forward?", "If you accomplished something major, who is the first person you'd tell and how do you think they'd react?", "If you were an inanimate object, what would you be and why?", "Where do you wish you had grown up?", "If you could be good at any profession without the education, which would you choose?", "What is something you're terrible at but wish you could do well?", "What is the quality you admire the most in the person you dislike the most?", "What was the most recent thing that made you cry?", "What are the books/movies/games that always make you feel better?", "What is the most trivial thing about which you have a strong opinion?", "If you could be any mythical creature, what would you be and why?", "If you’ve had more than one job, which job taught you the most?", "If you could change one thing about yourself physically, what would you change?", "What single event or decision do you think most affected the rest of your life?", "What is the one thing you've made that you're the most proud of?", "What historical epithet (e.g., 'The Wise') would you like attached to your name?", "What was the best year of your life? The worst?", "What one thing would you like to be remembered by?", "What has been the biggest change of heart you've had on an issue?", "What is your biggest non-work-related accomplishment?", "What is your biggest academic or work-related accomplishment?", "What is something you wish you could experience again for the first time?", "If you could erase one event from your memory, what would you choose?", "What is a trait you have that people don't expect you to have?", "If you were a character in a book, what genre would you live in?", "What is the hardest way you’ve learned an important lesson?", "What cliché do you think is actually true?", "What is an irrational fear you have?", "At what age would you like to die and how would you like to go?", "What character archetype is closest to your personality?", "What was the happiest moment of your life so far?", "What is one childhood memory that you remember especially well?", "Is there a song or food that strongly reminds you of someone?", "What is your ideal way to spend a birthday?", "Are there any smells that bring back specific memories for you?", "What is the closest you've ever come to dying?", "Do you have a personal mantra? If so, what is it?", "What is the most memorable meal you've ever had?", "What's the worst advice you've ever been given?", "In what ways do you benefit the world?", "What fact about yourself took you the longest to accept?", "What is your most controversial opinion?", "If you could live in another time period in your current city, when would it be?", "Do you have any conspiracy theories?", "What is the 'strangest' thing you believe in?", "What fictional character do you most relate to?", "What have you been meaning to do but haven't yet done?", "What job would you choose if money were no object?", "What do you get the most compliments about?", "What epiphany have you had in your life?", "What is the most important quality you look for in a friend?", "What is a childhood habit you'll never outgrow?", "What is your favorite word and why?", "Which of your flaws are you most ashamed of?", "What is the most ordinary-seeming thing that you find fascinating?", "What lesson have you had to learn again and again?", "What was your favorite thing about the place you grew up?", "What technological advance blows your mind?", "If you could ask your future self one thing, what would it be?", "What is something that gets more interesting the more you learn about it?", "What would you title your memoir?", "What was the hardest decision you've ever made?", "What word would your parents use to describe you?", "For what would you most like to become famous?", "How would you summarize your life so far in one sentence?", "What would be your last words to someone you know?", "If seasons never changed, which would you most like to live in eternally?", "What is the best advice you've ever received?", "You have one year to live: how do you spend it?", "What made the best teacher you ever had so special?", "What is something you never thought you'd be able to do until you did it?", "Which day in your life would you revisit if you couldn't change anything?", "Which disease would you choose to abolish from the world?", "Which social or political issue would you choose to solve?", "What was the scariest moment of your life so far?", "If you lived in a Medieval village, what would your job be?", "What is something you wanted badly that turned out to be overrated?", "What do you recommend everyone do before they die?", "What do you know isn't real but want to exist?", "What is the greatest physical pain you've ever felt?", "What is something you don't realize is weird until you think about it?", "Can you tell me a joke?", "What do you wish everybody knew about you without being told?", "What trait do you admire in others but don't possess?", "What is something other people admire about you?", "What's the best outcome of a complete accident you've had?", "Have you ever gotten the giggles in an inappropriate place?", "What's the best lesson you've learned from a difficult situation?", "How do you define 'success' in your own life?", "What's your favorite article of clothing and why?", "What's something you wish you enjoyed but just don't?", "Which language or instrument would you learn in two hours if possible?", "What challenged a long-held belief of yours recently?", "What, if anything, is too serious to be joked about?", "What's the coolest project you've ever worked on?", "Are you currently pursuing what makes you happy?", "What mistake did you go through with anyway, knowing it was one?", "In what ways are you stubborn?", "What's a brief summary of your outlook on life?", "What are you most likely to be arrested for?", "Would you undo your biggest regret if you could?", "If you could be any animal, what would you be?", "What is the worst thing about the place you live?", "What is the best thing about the place you live?", "Does anybody beside yourself know your deepest secret?", "What small change had a huge impact on your life?", "What historical event would you most like to have witnessed?", "Do you believe in fate?", "What experience are you most proud of making it through?", "Who would you like to swap bodies with for a day?", "What's a quirk of yours that few people know about?", "What's the craziest thing you've ever done?", "Are you currently holding a grudge?", "What small thing annoys you to an irrational degree?", "What historical figure do you most admire?", "Was there ever a moment when you thought you were going to die?", "What was the best opportunity you ever received?", "What always makes you nostalgic?", "What would you like to accomplish before the year ends?", "Have you ever refused a really good opportunity?", "Would you prefer your family to be smaller or larger?", "What is something you're hypocritical about?", "Has anyone close to you ever passed away?", "What is something you're inherently bad at?", "Do you have any inherent talents?", "What small, insignificant thing gives you joy?", "Where would you live and what would your house be like?", "What is one of your core memories from childhood?", "What biggest mistake turned out alright in the end?", "What's the best decision you've ever made?", "What core principles will you never give up?", "What cause do you strongly support without direct benefit?", "What book or movie had the absolute best ending?", "What is one thing you're tired of explaining to people?", "What embarrassing memory will forever stay with you?", "What's something you're good at that people don't expect?", "In what way do you differ most from your parents?", "What stereotype do you most align with?", "What is one thing you're proud you haven't done?", "What is difficult for you but easy for others?", "What are you glad you learned as a child?", "What is something you want but will never have?", "What is a quote that speaks to you personally?", "What advice do you wish you'd received earlier?", "What was the best compliment you've ever received?", "What character trait instantly makes you respect someone?", "What is an 'everyday evil' you experience often?", "Who do you look up to most and why?", "Which historical figure would you sit and talk with?", "How long is your ideal lifespan?", "How are you really, right now?", "What were you severely underprepared for?", "Which fictional world would you live in?", "What is your least favorite question to answer?", "What wouldn't you do for someone you love?", "What's the best gift you've ever received?", "What changed the way you see the world?", "If you died today, what would be your biggest regret?", "What will never cease to make you smile?", "What was the last song that got stuck in your head?", "If you could ask a deity one thing, what would it be?", "What do you wish you remembered better?", "Who is the single best person you have ever met?", "What do you think is worth dying for?", "What's your favorite memory with your best friend?", "What object best defines who you are?", "What would the ideal version of your life look like?", "What was the most recent thing that made you belly laugh?", "What would you say in a 10-minute global broadcast?", "Who would you most want to be stuck in an elevator with?", "What gives you hope for the future?", "What was your favorite family tradition?", "When did you last do something nice unprompted?", "What is a misconception about your profession?", "What outfit makes you feel invincible?", "What current trend do you find troubling?", "What tips would you give a stranger inhabiting your body?", "Who was your childhood hero?", "What instantly makes you feel like a child again?", "What do you think happens after death?", "What is your perfect meal?", "What smallest thing can ruin your day?", "What is the most recent thing you taught yourself?", "What is something you wish people cared more about?", "How do you feel about the future right now?", "Who could you listen to for hours?", "What were the longest five minutes you’ve experienced?", "How would you want your children’s childhoods to be different?", "What is the best thing that happened this week?", "What’s the most beautiful view you’ve ever seen?", "What are you looking forward to?", "What activity makes you lose track of time?", "When do you feel like the best version of yourself?", "What keeps you up at night?", "Has media ever changed your worldview?", "Where would you haunt if you were a ghost?", "What physical feature of yours would a caricature blow out of proportion?", "What is something you and I might disagree on?",
@@ -128,33 +131,72 @@
         let userState = { username: '', seenIndices: [] };
         let lastIndex = -1;
         let authReady = false;
+        let isLocalMode = false;
 
         async function initAuth() {
             try {
+                // If we are on file:// protocol, Firebase Auth often blocks requests.
+                if (window.location.protocol === 'file:') {
+                    throw new Error("Local file protocol detected.");
+                }
+
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
                 }
                 authReady = true;
-            } catch (err) { console.error("Auth init failed", err); }
+                document.getElementById('auth-status').innerText = "Connected to Cloud";
+            } catch (err) { 
+                console.warn("Auth failed, switching to local mode:", err.message);
+                isLocalMode = true;
+                document.getElementById('auth-status').innerText = "Running in Offline Mode";
+            }
         }
 
         window.handleSignIn = async () => {
             const name = document.getElementById('username-input').value.trim();
             if (!name) return;
             
-            const btn = document.getElementById('login-btn');
-            btn.disabled = true;
-            btn.innerText = "Connecting...";
-
-            if (!authReady) await initAuth();
-            
             userState.username = name;
-            loadApp();
+            
+            // Bypass waiting for auth if we already determined we are local
+            if (isLocalMode) {
+                loadAppLocal();
+            } else {
+                const btn = document.getElementById('login-btn');
+                btn.disabled = true;
+                btn.innerText = "Connecting...";
+                
+                // Final check for auth if not ready
+                if (!authReady) {
+                    await initAuth();
+                }
+
+                if (isLocalMode) {
+                    loadAppLocal();
+                } else {
+                    loadAppCloud();
+                }
+            }
         };
 
-        async function loadApp() {
+        function loadAppLocal() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('app-content').classList.remove('hidden');
+            document.getElementById('user-display').innerText = `LOCAL: ${userState.username}`;
+            document.getElementById('mode-badge').innerText = "Offline Mode";
+            
+            initGrid();
+            // Load from localStorage
+            const saved = localStorage.getItem(`seen_${userState.username}`);
+            if (saved) {
+                userState.seenIndices = JSON.parse(saved);
+            }
+            updateUI();
+        }
+
+        async function loadAppCloud() {
             document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('app-content').classList.remove('hidden');
             document.getElementById('user-display').innerText = `ID: ${userState.username}`;
@@ -170,8 +212,9 @@
                     setDoc(userDocRef, { seenIndices: [] });
                 }
             }, (err) => {
-                document.getElementById('auth-error').classList.remove('hidden');
-                console.error("Firestore error", err);
+                console.error("Firestore error, switching to local", err);
+                isLocalMode = true;
+                loadAppLocal();
             });
         }
 
@@ -209,8 +252,13 @@
                 
                 if (!userState.seenIndices.includes(index)) {
                     userState.seenIndices.push(index);
-                    const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_progress', userState.username);
-                    await setDoc(userDocRef, { seenIndices: userState.seenIndices }, { merge: true });
+                    
+                    if (isLocalMode) {
+                        localStorage.setItem(`seen_${userState.username}`, JSON.stringify(userState.seenIndices));
+                    } else {
+                        const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_progress', userState.username);
+                        await setDoc(userDocRef, { seenIndices: userState.seenIndices }, { merge: true });
+                    }
                 }
                 
                 updateUI();
