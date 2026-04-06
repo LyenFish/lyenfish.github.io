@@ -36,7 +36,7 @@
             border: 2px solid #444;
             position: relative;
             box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
-            margin-bottom: 20px;
+            margin-bottom: 8px;
         }
 
         /* Vertical vial */
@@ -138,6 +138,20 @@
             transform: scale(0.95);
             filter: brightness(1.2);
         }
+
+        .reading-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #666;
+            margin-bottom: -4px;
+        }
+
+        /* Easter Egg Timer Styling */
+        #timer-container {
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center p-6 h-screen">
@@ -145,19 +159,31 @@
     <!-- Main Displays -->
     <div id="main-display" class="flex flex-col items-center gap-4">
         
-        <!-- Horizontal Vial -->
-        <div id="vial-ui-h" class="vial-h">
-            <div class="vial-mark-h"></div>
-            <div class="vial-mark-h right"></div>
-            <div id="vial-bubble-h" class="vial-bubble"></div>
+        <!-- Horizontal Vial & Reading -->
+        <div class="flex flex-col items-center">
+            <div id="vial-ui-h" class="vial-h">
+                <div class="vial-mark-h"></div>
+                <div class="vial-mark-h right"></div>
+                <div id="vial-bubble-h" class="vial-bubble"></div>
+            </div>
+            <div class="flex flex-col items-center mb-4">
+                <span class="reading-label">Horizontal</span>
+                <div class="text-2xl font-mono font-bold" id="read-h">0.0°</div>
+            </div>
         </div>
 
-        <div class="flex items-center gap-4">
-            <!-- Vertical Vial -->
-            <div id="vial-ui-v" class="vial-v">
-                <div class="vial-mark-v"></div>
-                <div class="vial-mark-v bottom"></div>
-                <div id="vial-bubble-v" class="vial-bubble"></div>
+        <div class="flex items-center gap-6">
+            <!-- Vertical Vial & Reading -->
+            <div class="flex flex-col items-center">
+                <div id="vial-ui-v" class="vial-v">
+                    <div class="vial-mark-v"></div>
+                    <div class="vial-mark-v bottom"></div>
+                    <div id="vial-bubble-v" class="vial-bubble"></div>
+                </div>
+                <div class="flex flex-col items-center mt-2">
+                    <span class="reading-label">Vertical</span>
+                    <div class="text-xl font-mono font-bold" id="read-v">0.0°</div>
+                </div>
             </div>
 
             <!-- Bullseye Level -->
@@ -170,19 +196,17 @@
                 <div id="bubble" class="bubble" style="top: 50%; left: 50%; margin-top: -20px; margin-left: -20px;"></div>
             </div>
         </div>
+    </div>
 
-        <!-- Digital Data -->
-        <div class="flex flex-col items-center mt-4">
-            <div class="text-5xl font-mono font-bold tracking-tighter" id="angle-display">0.0°</div>
-            <div class="flex gap-4 text-gray-400 font-mono text-sm mt-2">
-                <span>X: <span id="val-x">0.0</span>°</span>
-                <span>Y: <span id="val-y">0.0</span>°</span>
-            </div>
-        </div>
+    <!-- Easter Egg Timer Display -->
+    <div id="timer-container" class="mt-8 text-center opacity-0">
+        <div class="text-success text-xs font-bold uppercase tracking-widest mb-1">Perfect Level Maintained</div>
+        <div id="current-timer" class="text-4xl font-mono font-black text-white">0.00s</div>
+        <div id="best-record" class="text-[10px] text-gray-500 mt-1 uppercase">Best: 0.00s</div>
     </div>
 
     <!-- Controls -->
-    <div class="w-full max-w-xs space-y-4 mt-8">
+    <div class="w-full max-w-xs space-y-4 mt-4">
         <div id="request-panel" class="glass-panel p-6 rounded-2xl text-center space-y-4">
             <p class="text-sm text-gray-300">Sensors needed for high-precision leveling.</p>
             <button id="start-btn" class="w-full py-3 rounded-xl btn-primary font-bold shadow-lg">START SENSORS</button>
@@ -205,9 +229,8 @@
         const vialUIV = document.getElementById('vial-ui-v');
         const vialBubbleH = document.getElementById('vial-bubble-h');
         const vialBubbleV = document.getElementById('vial-bubble-v');
-        const angleDisplay = document.getElementById('angle-display');
-        const valX = document.getElementById('val-x');
-        const valY = document.getElementById('val-y');
+        const readH = document.getElementById('read-h');
+        const readV = document.getElementById('read-v');
         const startBtn = document.getElementById('start-btn');
         const requestPanel = document.getElementById('request-panel');
         const controlsPanel = document.getElementById('controls-panel');
@@ -215,41 +238,57 @@
         const resetBtn = document.getElementById('reset-btn');
         const toast = document.getElementById('toast');
 
+        // Timer Elements
+        const timerContainer = document.getElementById('timer-container');
+        const currentTimerDisplay = document.getElementById('current-timer');
+        const bestRecordDisplay = document.getElementById('best-record');
+
         let offset = { x: 0, y: 0 };
         let currentRotation = { x: 0, y: 0 };
+
+        // State for Timer Easter Egg
+        let startTime = null;
+        let bestTime = 0;
+        let isPerfectlyLevel = false;
 
         function updateUI(beta, gamma) {
             const x = gamma - offset.x;
             const y = beta - offset.y;
             
             const totalTilt = Math.sqrt(x*x + y*y);
-            angleDisplay.innerText = `${totalTilt.toFixed(1)}°`;
-            valX.innerText = x.toFixed(1);
-            valY.innerText = y.toFixed(1);
+            
+            // Precision threshold
+            const threshold = 0.5;
+            const bullseyeLevel = totalTilt < threshold;
+            const horizontalLevel = Math.abs(x) < threshold;
+            const verticalLevel = Math.abs(y) < threshold;
+
+            // Update digital readings
+            readH.innerText = `${Math.abs(x).toFixed(1)}°`;
+            readV.innerText = `${Math.abs(y).toFixed(1)}°`;
 
             // Bullseye Logic
-            if (totalTilt < 0.5) {
+            if (bullseyeLevel) {
                 levelUI.classList.add('is-level');
-                if (totalTilt < 0.2 && window.navigator.vibrate) window.navigator.vibrate(5);
             } else {
                 levelUI.classList.remove('is-level');
             }
 
-            // Horizontal Vial Logic (X axis)
-            if (Math.abs(x) < 0.5) {
+            // Horizontal Vial Logic
+            if (horizontalLevel) {
                 vialUIH.classList.add('is-level-vial-h');
             } else {
                 vialUIH.classList.remove('is-level-vial-h');
             }
 
-            // Vertical Vial Logic (Y axis)
-            if (Math.abs(y) < 0.5) {
+            // Vertical Vial Logic
+            if (verticalLevel) {
                 vialUIV.classList.add('is-level-vial-v');
             } else {
                 vialUIV.classList.remove('is-level-vial-v');
             }
 
-            // Move Bullseye Bubble
+            // Move Bubbles
             const sensitivity = 8;
             const maxMove = 110;
             let moveX = x * sensitivity;
@@ -262,13 +301,11 @@
             }
             bubble.style.transform = `translate(${moveX}px, ${moveY}px)`;
 
-            // Move Horizontal Bubble
             const hVialMax = 110;
             let moveVialX = x * sensitivity;
             moveVialX = Math.max(-hVialMax, Math.min(hVialMax, moveVialX));
             vialBubbleH.style.transform = `translateX(${moveVialX}px)`;
 
-            // Move Vertical Bubble
             const vVialMax = 100;
             let moveVialY = y * sensitivity;
             moveVialY = Math.max(-vVialMax, Math.min(vVialMax, moveVialY));
@@ -276,6 +313,38 @@
             
             currentRotation.x = gamma;
             currentRotation.y = beta;
+
+            // Timer Logic (Easter Egg)
+            checkPerfectLevel(bullseyeLevel, horizontalLevel, verticalLevel);
+        }
+
+        function checkPerfectLevel(b, h, v) {
+            const nowLevel = b && h && v;
+
+            if (nowLevel) {
+                if (!isPerfectlyLevel) {
+                    // Just entered perfect level
+                    isPerfectlyLevel = true;
+                    startTime = Date.now();
+                    timerContainer.style.opacity = '1';
+                    if (window.navigator.vibrate) window.navigator.vibrate([10, 30, 10]);
+                }
+                
+                const elapsed = (Date.now() - startTime) / 1000;
+                currentTimerDisplay.innerText = `${elapsed.toFixed(2)}s`;
+                
+                if (elapsed > bestTime) {
+                    bestTime = elapsed;
+                    bestRecordDisplay.innerText = `Best: ${bestTime.toFixed(2)}s`;
+                }
+            } else {
+                if (isPerfectlyLevel) {
+                    // Just lost perfect level
+                    isPerfectlyLevel = false;
+                    startTime = null;
+                    timerContainer.style.opacity = '0';
+                }
+            }
         }
 
         function handleOrientation(event) {
