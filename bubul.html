@@ -152,6 +152,10 @@
             transition: opacity 0.3s ease-in-out;
             pointer-events: none;
         }
+
+        #best-record {
+            transition: opacity 0.5s ease-in-out;
+        }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center p-6 h-screen">
@@ -199,10 +203,12 @@
     </div>
 
     <!-- Easter Egg Timer Display -->
-    <div id="timer-container" class="mt-8 text-center opacity-0">
-        <div class="text-success text-xs font-bold uppercase tracking-widest mb-1">Perfect Level Maintained</div>
-        <div id="current-timer" class="text-4xl font-mono font-black text-white">0.00s</div>
-        <div id="best-record" class="text-[10px] text-gray-500 mt-1 uppercase">Best: 0.00s</div>
+    <div class="mt-8 text-center min-h-[80px]">
+        <div id="timer-container" class="opacity-0">
+            <div class="text-success text-xs font-bold uppercase tracking-widest mb-1">Perfect Level Maintained</div>
+            <div id="current-timer" class="text-4xl font-mono font-black text-white">0.00s</div>
+        </div>
+        <div id="best-record" class="text-[10px] text-gray-500 mt-1 uppercase opacity-0">Best: 0.00s</div>
     </div>
 
     <!-- Controls -->
@@ -250,6 +256,22 @@
         let startTime = null;
         let bestTime = 0;
         let isPerfectlyLevel = false;
+
+        // Smooth timer animation loop
+        function runTimer() {
+            if (isPerfectlyLevel && startTime) {
+                const elapsed = (Date.now() - startTime) / 1000;
+                currentTimerDisplay.innerText = `${elapsed.toFixed(2)}s`;
+                
+                if (elapsed > bestTime) {
+                    bestTime = elapsed;
+                    bestRecordDisplay.innerText = `Best: ${bestTime.toFixed(2)}s`;
+                    bestRecordDisplay.style.opacity = '1';
+                }
+            }
+            requestAnimationFrame(runTimer);
+        }
+        requestAnimationFrame(runTimer);
 
         function updateUI(beta, gamma) {
             const x = gamma - offset.x;
@@ -323,26 +345,17 @@
 
             if (nowLevel) {
                 if (!isPerfectlyLevel) {
-                    // Just entered perfect level
                     isPerfectlyLevel = true;
                     startTime = Date.now();
                     timerContainer.style.opacity = '1';
                     if (window.navigator.vibrate) window.navigator.vibrate([10, 30, 10]);
                 }
-                
-                const elapsed = (Date.now() - startTime) / 1000;
-                currentTimerDisplay.innerText = `${elapsed.toFixed(2)}s`;
-                
-                if (elapsed > bestTime) {
-                    bestTime = elapsed;
-                    bestRecordDisplay.innerText = `Best: ${bestTime.toFixed(2)}s`;
-                }
             } else {
                 if (isPerfectlyLevel) {
-                    // Just lost perfect level
                     isPerfectlyLevel = false;
                     startTime = null;
                     timerContainer.style.opacity = '0';
+                    // Note: Best record stays visible via opacity set in runTimer()
                 }
             }
         }
