@@ -27,7 +27,7 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Horizontal vial - Now at Top */
+        /* Horizontal vial */
         .vial-h {
             width: 280px;
             height: 48px;
@@ -36,7 +36,18 @@
             border: 2px solid #444;
             position: relative;
             box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
-            margin-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        /* Vertical vial */
+        .vial-v {
+            width: 48px;
+            height: 260px;
+            background: #111;
+            border-radius: 24px;
+            border: 2px solid #444;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
         }
 
         .vial-bubble {
@@ -45,13 +56,24 @@
             background: radial-gradient(circle at 30% 30%, #fff 0%, var(--accent) 50%, #1d4ed8 100%);
             border-radius: 50%;
             position: absolute;
-            top: 3px;
-            left: 50%;
-            margin-left: -19px;
             transition: transform 0.05s linear;
         }
 
-        .vial-mark {
+        /* Horizontal bubble centering */
+        .vial-h .vial-bubble {
+            top: 3px;
+            left: 50%;
+            margin-left: -19px;
+        }
+
+        /* Vertical bubble centering */
+        .vial-v .vial-bubble {
+            left: 3px;
+            top: 50%;
+            margin-top: -19px;
+        }
+
+        .vial-mark-h {
             position: absolute;
             top: 0;
             bottom: 0;
@@ -59,7 +81,17 @@
             background: rgba(255,255,255,0.25);
             left: calc(50% - 21px);
         }
-        .vial-mark.right { left: calc(50% + 19px); }
+        .vial-mark-h.right { left: calc(50% + 19px); }
+
+        .vial-mark-v {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(255,255,255,0.25);
+            top: calc(50% - 21px);
+        }
+        .vial-mark-v.bottom { top: calc(50% + 19px); }
 
         /* The circular level container */
         .bullseye {
@@ -91,7 +123,9 @@
             box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
         }
 
-        .is-level .bubble, .is-level-vial .vial-bubble {
+        .is-level .bubble, 
+        .is-level-vial-h #vial-bubble-h,
+        .is-level-vial-v #vial-bubble-v {
             background: radial-gradient(circle at 30% 30%, #fff 0%, var(--success) 50%, #15803d 100%);
             box-shadow: 0 0 30px rgba(34, 197, 94, 0.6);
         }
@@ -106,36 +140,39 @@
         }
     </style>
 </head>
-<body class="flex flex-col items-center justify-between p-6 h-screen">
-
-    <!-- Header Section -->
-    <div class="w-full text-center mt-2">
-        <h1 class="text-2xl font-bold tracking-tight text-gray-300">PRO LEVEL</h1>
-        <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">Metric Precision Tool</p>
-    </div>
+<body class="flex flex-col items-center justify-center p-6 h-screen">
 
     <!-- Main Displays -->
-    <div id="main-display" class="flex flex-col items-center gap-6">
+    <div id="main-display" class="flex flex-col items-center gap-4">
         
-        <!-- Horizontal Vial (Top Position) -->
-        <div id="vial-ui" class="vial-h">
-            <div class="vial-mark"></div>
-            <div class="vial-mark right"></div>
-            <div id="vial-bubble" class="vial-bubble"></div>
+        <!-- Horizontal Vial -->
+        <div id="vial-ui-h" class="vial-h">
+            <div class="vial-mark-h"></div>
+            <div class="vial-mark-h right"></div>
+            <div id="vial-bubble-h" class="vial-bubble"></div>
         </div>
 
-        <!-- Bullseye Level -->
-        <div id="level-ui" class="bullseye">
-            <div class="ring" style="width: 40px; height: 40px; border-color: var(--success); border-width: 2px;"></div>
-            <div class="ring" style="width: 120px; height: 120px;"></div>
-            <div class="ring" style="width: 200px; height: 200px;"></div>
-            <div class="absolute top-1/2 left-0 w-full h-[1px] bg-white/10 -translate-y-1/2"></div>
-            <div class="absolute left-1/2 top-0 h-full w-[1px] bg-white/10 -translate-x-1/2"></div>
-            <div id="bubble" class="bubble" style="top: 50%; left: 50%; margin-top: -20px; margin-left: -20px;"></div>
+        <div class="flex items-center gap-4">
+            <!-- Vertical Vial -->
+            <div id="vial-ui-v" class="vial-v">
+                <div class="vial-mark-v"></div>
+                <div class="vial-mark-v bottom"></div>
+                <div id="vial-bubble-v" class="vial-bubble"></div>
+            </div>
+
+            <!-- Bullseye Level -->
+            <div id="level-ui" class="bullseye">
+                <div class="ring" style="width: 40px; height: 40px; border-color: var(--success); border-width: 2px;"></div>
+                <div class="ring" style="width: 120px; height: 120px;"></div>
+                <div class="ring" style="width: 200px; height: 200px;"></div>
+                <div class="absolute top-1/2 left-0 w-full h-[1px] bg-white/10 -translate-y-1/2"></div>
+                <div class="absolute left-1/2 top-0 h-full w-[1px] bg-white/10 -translate-x-1/2"></div>
+                <div id="bubble" class="bubble" style="top: 50%; left: 50%; margin-top: -20px; margin-left: -20px;"></div>
+            </div>
         </div>
 
         <!-- Digital Data -->
-        <div class="flex flex-col items-center">
+        <div class="flex flex-col items-center mt-4">
             <div class="text-5xl font-mono font-bold tracking-tighter" id="angle-display">0.0°</div>
             <div class="flex gap-4 text-gray-400 font-mono text-sm mt-2">
                 <span>X: <span id="val-x">0.0</span>°</span>
@@ -145,7 +182,7 @@
     </div>
 
     <!-- Controls -->
-    <div class="w-full max-w-xs space-y-4 mb-8">
+    <div class="w-full max-w-xs space-y-4 mt-8">
         <div id="request-panel" class="glass-panel p-6 rounded-2xl text-center space-y-4">
             <p class="text-sm text-gray-300">Sensors needed for high-precision leveling.</p>
             <button id="start-btn" class="w-full py-3 rounded-xl btn-primary font-bold shadow-lg">START SENSORS</button>
@@ -164,8 +201,10 @@
     <script>
         const bubble = document.getElementById('bubble');
         const levelUI = document.getElementById('level-ui');
-        const vialUI = document.getElementById('vial-ui');
-        const vialBubble = document.getElementById('vial-bubble');
+        const vialUIH = document.getElementById('vial-ui-h');
+        const vialUIV = document.getElementById('vial-ui-v');
+        const vialBubbleH = document.getElementById('vial-bubble-h');
+        const vialBubbleV = document.getElementById('vial-bubble-v');
         const angleDisplay = document.getElementById('angle-display');
         const valX = document.getElementById('val-x');
         const valY = document.getElementById('val-y');
@@ -196,11 +235,18 @@
                 levelUI.classList.remove('is-level');
             }
 
-            // Horizontal Vial Logic
+            // Horizontal Vial Logic (X axis)
             if (Math.abs(x) < 0.5) {
-                vialUI.classList.add('is-level-vial');
+                vialUIH.classList.add('is-level-vial-h');
             } else {
-                vialUI.classList.remove('is-level-vial');
+                vialUIH.classList.remove('is-level-vial-h');
+            }
+
+            // Vertical Vial Logic (Y axis)
+            if (Math.abs(y) < 0.5) {
+                vialUIV.classList.add('is-level-vial-v');
+            } else {
+                vialUIV.classList.remove('is-level-vial-v');
             }
 
             // Move Bullseye Bubble
@@ -216,11 +262,17 @@
             }
             bubble.style.transform = `translate(${moveX}px, ${moveY}px)`;
 
-            // Move Vial Bubble (X axis only)
-            const vialMax = 110;
+            // Move Horizontal Bubble
+            const hVialMax = 110;
             let moveVialX = x * sensitivity;
-            moveVialX = Math.max(-vialMax, Math.min(vialMax, moveVialX));
-            vialBubble.style.transform = `translateX(${moveVialX}px)`;
+            moveVialX = Math.max(-hVialMax, Math.min(hVialMax, moveVialX));
+            vialBubbleH.style.transform = `translateX(${moveVialX}px)`;
+
+            // Move Vertical Bubble
+            const vVialMax = 100;
+            let moveVialY = y * sensitivity;
+            moveVialY = Math.max(-vVialMax, Math.min(vVialMax, moveVialY));
+            vialBubbleV.style.transform = `translateY(${moveVialY}px)`;
             
             currentRotation.x = gamma;
             currentRotation.y = beta;
