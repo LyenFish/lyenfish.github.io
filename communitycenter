@@ -1,0 +1,228 @@
+import React, { useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, setDoc, onSnapshot, collection } from 'firebase/firestore';
+
+// Firebase configuration provided by the environment
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'stardew-tracker-default';
+
+const App = () => {
+  const [user, setUser] = useState(null);
+  const [username, setUsername] = useState(localStorage.getItem('stardew_username') || '');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [checkedItems, setCheckedItems] = useState({});
+  const [inputName, setInputName] = useState(localStorage.getItem('stardew_username') || '');
+
+  // 1. Initialize Auth
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        await signInAnonymously(auth);
+      } catch (error) {
+        console.error("Auth error:", error);
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Sync Data with Firestore based on Username
+  useEffect(() => {
+    if (!user || !username) return;
+
+    setIsSyncing(true);
+    // Path Rule 1: /artifacts/{appId}/public/data/{collectionName}
+    // We use the username as the document ID to allow sharing across devices
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'checklists', username.toLowerCase().trim());
+
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setCheckedItems(docSnap.data().items || {});
+      } else {
+        setCheckedItems({});
+      }
+      setIsSyncing(false);
+    }, (error) => {
+      console.error("Firestore sync error:", error);
+      setIsSyncing(false);
+    });
+
+    return () => unsubscribe();
+  }, [user, username]);
+
+  const handleToggle = async (id) => {
+    const newState = {
+      ...checkedItems,
+      [id]: !checkedItems[id]
+    };
+    setCheckedItems(newState);
+
+    if (username && user) {
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'checklists', username.toLowerCase().trim());
+      await setDoc(docRef, { items: newState }, { merge: true });
+    }
+  };
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (inputName.trim()) {
+      setUsername(inputName.trim());
+      localStorage.setItem('stardew_username', inputName.trim());
+    }
+  };
+
+  const resetAll = async () => {
+    if (window.confirm("Mega boss, delete all your hard work?")) {
+      setCheckedItems({});
+      if (username && user) {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'checklists', username.toLowerCase().trim());
+        await setDoc(docRef, { items: {} });
+      }
+    }
+  };
+
+  const data = {
+    crops: {
+      "🌱 Spring": ["Wild Horseradish", "Daffodil", "Leek", "Dandelion", "Parsnip", "Green Bean", "Cauliflower", "Potato", "Morel (Secret Woods)", "Apricot", "Cherry", "★ 5x Parsnip (Gold)"],
+      "☀️ Summer": ["Grape", "Spice Berry", "Sweet Pea", "Tomato", "Hot Pepper", "Blueberry", "Melon", "Poppy", "Sunflower", "Fiddlehead Fern", "Orange", "Peach", "★ 5x Melon (Gold)"],
+      "🍂 Fall": ["Common Mushroom", "Wild Plum", "Hazelnut", "Blackberry", "Corn", "Eggplant", "Pumpkin", "Yam", "Apple x3", "Pomegranate", "Truffle", "★ 5x Pumpkin (Gold)", "★ 5x Corn (Gold)"],
+      "❄️ Winter": ["Winter Root", "Crystal Fruit", "Snow Yam", "Crocus", "Nautilus Shell"]
+    },
+    fish: {
+      "🌱 Spring": ["Sunfish (Sun)", "Catfish (Rain)", "Shad (Rain)", "Sardine", "Eel (Rain/Night)"],
+      "☀️ Summer": ["Sunfish (Sun)", "Tuna", "Red Snapper (Rain)", "Tilapia", "Pufferfish (Sun/Noon)", "Sturgeon", "Rainbow Trout (Sun)", "Shad (Rain)"],
+      "🍂 Fall": ["Catfish (Rain)", "Shad (Rain)", "Tiger Trout", "Walleye (Rain/Night)", "Red Snapper (Rain)", "Tilapia", "Eel (Rain/Night)", "Sardine", "Salmon"],
+      "❄️ Winter": ["Tiger Trout", "Sturgeon", "Sardine", "Tuna", "Squid (Night)"],
+      "🛠️ Any / Specialty": ["Largemouth Bass", "Carp", "Bullhead", "Chub", "Bream (Night)", "Ghostfish (Mines)", "Sandfish (Desert)", "Woodskip (Woods)", "Lobster", "Crab", "Crayfish", "Shrimp", "Snail", "Periwinkle", "Oyster", "Cockle", "Mussel", "Clam"]
+    },
+    tech: {
+      "🌲 Construction": ["Wood (99 x2)", "Stone (99)", "Hardwood (10)"],
+      "💎 Boiler Room": ["Copper Bar", "Iron Bar", "Gold Bar", "Quartz", "Earth Crystal", "Frozen Tear", "Fire Quartz", "Slime (99)", "Bat Wing (10)", "Solar Essence", "Void Essence", "Frozen Geode", "Aquamarine"],
+      "🐔 Animal & Artisan": ["Large Milk", "Large Goat Milk", "Large White Egg", "Large Brown Egg", "Duck Egg", "Wool", "Duck Feather", "Rabbit's Foot", "Truffle Oil", "Cloth", "Goat Cheese", "Cheese", "Honey", "Jelly", "Wine", "Maple Syrup", "Oak Resin", "Pine Tar", "Mayonnaise"],
+      "🍳 Cooking / Other": ["Maki Roll", "Fried Egg", "Red Cabbage (Y2)", "Wheat x10", "Hay x10", "Sea Urchin", "Purple Mushroom", "Coconut", "Cactus Fruit", "Cave Carrot"],
+      "💰 Vault (Gold)": ["2,500g Bundle", "5,000g Bundle", "10,000g Bundle", "25,000g Bundle"]
+    }
+  };
+
+  const calculateProgress = () => {
+    const totalItems = Object.values(data).flatMap(cat => Object.values(cat).flat()).length;
+    const checkedCount = Object.values(checkedItems).filter(Boolean).length;
+    return { total: totalItems, checked: checkedCount, percent: Math.round((checkedCount / totalItems) * 100) || 0 };
+  };
+
+  const progress = calculateProgress();
+
+  return (
+    <div className="min-h-screen bg-[#fdf6e3] p-4 md:p-8 font-sans text-amber-900">
+      <div className="max-w-7xl mx-auto">
+        <header className="text-center mb-10">
+          <h1 className="text-4xl font-bold mb-2">Stardew Master Checklist</h1>
+          
+          {/* USER INTERFACE */}
+          <div className="max-w-md mx-auto mb-6 bg-white border-2 border-amber-800 rounded-lg p-4 shadow-sm">
+            {!username ? (
+              <form onSubmit={handleLogin} className="flex gap-2">
+                <input 
+                  type="text" 
+                  placeholder="Enter Username to Sync..." 
+                  className="flex-1 px-3 py-2 border rounded border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  value={inputName}
+                  onChange={(e) => setInputName(e.target.value)}
+                />
+                <button type="submit" className="bg-amber-800 text-white px-4 py-2 rounded font-bold hover:bg-amber-900">Start</button>
+              </form>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col items-start">
+                  <span className="text-xs uppercase font-bold text-amber-700">Logged in as</span>
+                  <span className="text-lg font-bold text-amber-900">{username}</span>
+                </div>
+                <div className="flex gap-2">
+                  {isSyncing && <span className="text-xs animate-pulse text-blue-600 font-bold self-center mr-2">Syncing...</span>}
+                  <button onClick={() => {setUsername(''); setInputName(''); localStorage.removeItem('stardew_username');}} className="text-xs text-red-700 font-bold underline">Change User</button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 bg-amber-200 rounded-full h-8 w-full max-w-xl mx-auto border-4 border-amber-900 overflow-hidden relative">
+            <div 
+              style={{ width: `${progress.percent}%` }}
+              className="bg-green-500 h-full flex items-center justify-center text-sm font-bold text-white shadow-inner transition-all duration-500"
+            >
+              {progress.percent}%
+            </div>
+          </div>
+          <p className="text-md mt-2 font-bold">{progress.checked} / {progress.total} items logged</p>
+        </header>
+
+        {!username ? (
+          <div className="text-center py-20 bg-white/50 rounded-xl border-2 border-dashed border-amber-400">
+            <p className="text-xl font-bold text-amber-800 italic">Please enter a username above to start tracking your progress, Mega boss!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <Section title="🚜 Farming & Forage" color="green" groups={data.crops} checkedItems={checkedItems} onToggle={handleToggle} />
+            <Section title="🐟 Fish Tank" color="blue" groups={data.fish} checkedItems={checkedItems} onToggle={handleToggle} />
+            <Section title="🌍 Tech & Specialty" color="purple" groups={data.tech} checkedItems={checkedItems} onToggle={handleToggle} />
+          </div>
+        )}
+
+        <footer className="mt-12 flex flex-col items-center gap-4">
+          <button onClick={resetAll} className="px-6 py-2 bg-red-700 text-white font-bold rounded-full hover:bg-red-800 transition-all shadow-lg active:scale-95">Reset All Progress</button>
+        </footer>
+      </div>
+    </div>
+  );
+};
+
+const Section = ({ title, color, groups, checkedItems, onToggle }) => {
+  const borderColors = {
+    green: 'border-t-green-400',
+    blue: 'border-t-blue-400',
+    purple: 'border-t-purple-400'
+  };
+
+  return (
+    <section className={`bg-white border-4 border-[#8b5a2b] shadow-[4px_4px_0px_#5d3a1a] rounded-lg p-5 flex flex-col ${borderColors[color]} border-t-8`}>
+      <h2 className="text-2xl font-bold mb-2">{title}</h2>
+      <div className="flex-grow">
+        {Object.entries(groups).map(([groupName, items]) => (
+          <div key={groupName} className="mb-4">
+            <div className="bg-slate-100 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">{groupName}</div>
+            <div className="space-y-1">
+              {items.map(item => {
+                const isGold = item.includes('★');
+                const id = `${groupName}-${item}`.replace(/\s+/g, '-').toLowerCase();
+                return (
+                  <div key={item} className="flex items-start gap-3 py-1 px-2 hover:bg-amber-50 rounded group transition-all">
+                    <input 
+                      type="checkbox" 
+                      id={id} 
+                      checked={!!checkedItems[id]} 
+                      onChange={() => onToggle(id)}
+                      className="mt-0.5 cursor-pointer accent-amber-800 h-4 w-4"
+                    />
+                    <label 
+                      htmlFor={id} 
+                      className={`text-sm cursor-pointer select-none leading-tight transition-all ${checkedItems[id] ? 'line-through text-gray-400' : ''} ${isGold ? 'text-amber-600 font-bold' : ''}`}
+                    >
+                      {item}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+export default App;
