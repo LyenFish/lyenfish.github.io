@@ -125,7 +125,12 @@
     <div class="max-w-7xl mx-auto">
         <header class="text-center mb-10">
             <h1 class="text-4xl font-bold text-amber-900 mb-2">Stardew Valley Tracker</h1>
-            <p id="welcome-msg" class="text-amber-700">Connect to your community center progress.</p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <p id="welcome-msg" class="text-amber-700">Connect to your community center progress.</p>
+                <button onclick="reloadAsPezpez()" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1 rounded-full border border-amber-300 font-bold transition-colors">
+                    Switch to Pezpez
+                </button>
+            </div>
             
             <div class="mt-6 bg-amber-200 rounded-full h-8 w-full max-w-xl mx-auto border-4 border-amber-900 overflow-hidden relative">
                 <div id="master-progress" class="progress-bar bg-green-500 h-full w-0 flex items-center justify-center text-sm font-bold text-white shadow-inner">0%</div>
@@ -203,18 +208,32 @@
             setTimeout(() => { syncStatus.style.display = 'none'; }, 2500);
         }
 
+        // Logic to reload as a specific user using URL parameters
+        function reloadAsPezpez() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('user', 'Pezpez');
+            window.location.href = url.toString();
+        }
+
         async function handleLogin() {
             const val = usernameInput.value.trim();
             if (val) currentUser = val;
+            await initializeSession();
+        }
+
+        async function initializeSession() {
             const btn = document.getElementById('login-btn');
-            btn.innerHTML = '<div class="loading-spinner"></div><span>Syncing...</span>';
-            btn.disabled = true;
+            if (btn) {
+                btn.innerHTML = '<div class="loading-spinner"></div><span>Syncing...</span>';
+                btn.disabled = true;
+            }
             
             await loadUserProgress();
             
-            document.getElementById('login-overlay').style.opacity = '0';
+            const overlay = document.getElementById('login-overlay');
+            overlay.style.opacity = '0';
             setTimeout(() => {
-                document.getElementById('login-overlay').style.display = 'none';
+                overlay.style.display = 'none';
                 document.getElementById('welcome-msg').innerHTML = `Logged in as: <span class="text-amber-900 font-bold">${currentUser}</span>`;
             }, 500);
         }
@@ -264,7 +283,6 @@
             const div = document.createElement('div');
             div.className = "flex items-start gap-3 py-1.5 px-2 hover:bg-amber-50 rounded-md transition-all";
             
-            // Extract season note if present in the name string
             let displayName = itemName;
             let note = "";
             if (itemName.includes('(')) {
@@ -321,7 +339,16 @@
             document.getElementById('stats-text').innerText = `${checked} / ${total} items collected`;
         }
 
-        window.onload = render;
+        window.onload = function() {
+            render();
+            // Check for auto-login URL parameter
+            const params = new URLSearchParams(window.location.search);
+            const autoUser = params.get('user');
+            if (autoUser) {
+                currentUser = autoUser;
+                initializeSession();
+            }
+        };
     </script>
 </body>
 </html>
