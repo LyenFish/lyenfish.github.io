@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stardew Valley Master Checklist</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #fdf6e3; font-family: 'Segoe UI', sans-serif; }
+        .stardew-card {
+            background: #fffdfa;
+            border: 4px solid #8b5a2b;
+            box-shadow: 4px 4px 0px #5d3a1a;
+            border-radius: 8px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .section-crops { border-top: 8px solid #4ade80; }
+        .section-fish { border-top: 8px solid #3b82f6; }
+        .section-any { border-top: 8px solid #a855f7; }
+
+        input[type="checkbox"] {
+            width: 1.1rem; height: 1.1rem;
+            cursor: pointer; accent-color: #8b5a2b;
+            flex-shrink: 0;
+        }
+
+        .completed-text { text-decoration: line-through; color: #9ca3af; }
+        .progress-bar { transition: width 0.5s ease-in-out; }
+        
+        .subhead {
+            background: #f1f5f9;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #475569;
+            text-transform: uppercase;
+            margin: 1rem 0 0.5rem 0;
+        }
+        
+        .weather-tag {
+            font-size: 0.65rem;
+            padding: 1px 4px;
+            border-radius: 3px;
+            background: #e2e8f0;
+            color: #475569;
+            margin-left: 4px;
+        }
+
+        .count-badge {
+            background: #8b5a2b;
+            color: white;
+            padding: 0 5px;
+            border-radius: 99px;
+            font-size: 0.7rem;
+            margin-left: 4px;
+        }
+
+        /* Sync Logic Styles */
+        #login-overlay {
+            position: fixed;
+            inset: 0;
+            background: #fdf6e3;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            transition: opacity 0.5s ease;
+        }
+        .login-card {
+            background: #fffdfa;
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            border: 4px solid #8b5a2b;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+        .sync-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            background: #fffdfa;
+            border: 2px solid #8b5a2b;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            font-weight: bold;
+        }
+        .loading-spinner {
+            border: 3px solid rgba(139, 90, 43, 0.1);
+            border-top: 3px solid #8b5a2b;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div id="sync-status" class="sync-indicator"></div>
+
+    <div id="login-overlay">
+        <div class="login-card text-center">
+            <div class="mb-6">
+                <div class="w-16 h-16 bg-amber-700 rounded-2xl mx-auto flex items-center justify-center mb-4">
+                    <span class="text-3xl">🐔</span>
+                </div>
+                <h1 class="text-2xl font-bold text-amber-900">Farm Progress Sync</h1>
+                <p class="text-amber-700 text-sm mt-1">Enter your name to load your checklist</p>
+            </div>
+            
+            <input type="text" id="username-input" placeholder="Mega boss..." 
+                   class="w-full p-4 rounded-xl bg-white border-2 border-amber-200 mb-4 focus:outline-none focus:ring-2 focus:ring-amber-500 text-amber-900 placeholder-amber-300 transition-all">
+            
+            <button id="login-btn" onclick="handleLogin()" 
+                    class="w-full bg-amber-800 hover:bg-amber-900 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center">
+                <span>Enter Farm</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-amber-900 mb-2">Stardew Valley Tracker</h1>
+            <p id="welcome-msg" class="text-amber-700">Connect to your community center progress.</p>
+            
+            <div class="mt-6 bg-amber-200 rounded-full h-8 w-full max-w-xl mx-auto border-4 border-amber-900 overflow-hidden relative">
+                <div id="master-progress" class="progress-bar bg-green-500 h-full w-0 flex items-center justify-center text-sm font-bold text-white shadow-inner">0%</div>
+            </div>
+            <p class="text-md mt-2 text-amber-800 font-bold" id="stats-text">Initializing items...</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <section class="stardew-card section-crops p-5">
+                <h2 class="text-2xl font-bold text-green-800 mb-2">🚜 Farming & Forage</h2>
+                <div id="crops-container" class="flex-grow"></div>
+            </section>
+
+            <section class="stardew-card section-fish p-5">
+                <h2 class="text-2xl font-bold text-blue-800 mb-2">🐟 Fish Tank</h2>
+                <div id="fish-container" class="flex-grow"></div>
+            </section>
+
+            <section class="stardew-card section-any p-5">
+                <h2 class="text-2xl font-bold text-purple-800 mb-2">🌍 Artisan & Vault</h2>
+                <div id="any-container" class="flex-grow"></div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbwhLTKpiZZzX7J-hD-Q8wvYMa35NTIp0mjrpXNrsHycUlFE8EyS__szrRArfHD5afH7nQ/exec";
+        
+        let currentUser = "Mega boss";
+        const syncStatus = document.getElementById('sync-status');
+        const usernameInput = document.getElementById('username-input');
+
+        const cropsData = {
+            "🌱 Spring": ["Wild Horseradish", "Daffodil", "Leek", "Dandelion", "Parsnip", "Green Bean", "Cauliflower", "Potato"],
+            "☀️ Summer": ["Grape", "Spice Berry", "Sweet Pea", "Tomato", "Hot Pepper", "Blueberry", "Melon", "Poppy"],
+            "🍂 Fall": ["Common Mushroom", "Wild Plum", "Hazelnut", "Blackberry", "Corn", "Eggplant", "Pumpkin", "Yam"],
+            "❄️ Winter": ["Winter Root", "Crystal Fruit", "Snow Yam", "Crocus"]
+        };
+
+        const fishData = {
+            "🌊 River": ["Sunfish", "Catfish", "Shad", "Tiger Trout"],
+            "🏞️ Lake": ["Largemouth Bass", "Carp", "Bullhead", "Chub"],
+            "⚓ Ocean": ["Sardine", "Tuna", "Red Snapper", "Tilapia"]
+        };
+
+        const techData = {
+            "🏠 Construction": ["Wood x99", "Stone x99", "Hardwood x10"],
+            "🍯 Artisan": ["Truffle Oil", "Cloth", "Goat Cheese", "Cheese", "Honey", "Jelly"],
+            "💰 Vault": ["2,500g", "5,000g", "10,000g", "25,000g"]
+        };
+
+        function showSync(msg, color = "#8b5a2b") {
+            syncStatus.style.display = 'block';
+            syncStatus.innerText = msg;
+            syncStatus.style.color = color;
+            setTimeout(() => { syncStatus.style.display = 'none'; }, 2500);
+        }
+
+        async function handleLogin() {
+            const val = usernameInput.value.trim();
+            if (val) currentUser = val;
+            const btn = document.getElementById('login-btn');
+            btn.innerHTML = '<div class="loading-spinner"></div><span>Syncing Data...</span>';
+            btn.disabled = true;
+            
+            await loadUserProgress();
+            
+            document.getElementById('login-overlay').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('welcome-msg').innerHTML = `Logged in as: <span class="text-amber-900 font-bold">${currentUser}</span>`;
+            }, 500);
+        }
+
+        async function loadUserProgress() {
+            try {
+                const response = await fetch(`${API_URL}?username=${encodeURIComponent(currentUser)}`);
+                const completedIds = await response.json(); 
+                
+                completedIds.forEach(id => {
+                    const cb = document.getElementById(id);
+                    if (cb) {
+                        cb.checked = true;
+                        cb.nextElementSibling.classList.add('completed-text');
+                    }
+                });
+                updateProgress();
+                showSync("Progress Synced!", "#16a34a");
+            } catch (err) {
+                console.error("Load failed:", err);
+                showSync("Offline Mode", "#dc2626");
+            }
+        }
+
+        async function syncToSheet(itemId, status) {
+            showSync("Saving...");
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    cache: 'no-cache',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: currentUser,
+                        questionId: itemId,
+                        status: status
+                    })
+                });
+                showSync("Cloud Saved", "#16a34a");
+            } catch (err) {
+                console.error("Sync failed:", err);
+                showSync("Save Error", "#dc2626");
+            }
+        }
+
+        function createCheckbox(container, itemName, groupKey) {
+            const id = `item-${groupKey}-${itemName}`.replace(/\s+/g, '-').toLowerCase();
+            const div = document.createElement('div');
+            div.className = "flex items-start gap-3 py-1.5 px-2 hover:bg-amber-50 rounded-md transition-all";
+            div.innerHTML = `
+                <input type="checkbox" id="${id}" onchange="toggleItem('${id}')">
+                <label for="${id}" class="text-sm text-amber-900 cursor-pointer select-none leading-tight">${itemName}</label>
+            `;
+            container.appendChild(div);
+        }
+
+        function render() {
+            const sections = [
+                { id: 'crops-container', data: cropsData },
+                { id: 'fish-container', data: fishData },
+                { id: 'any-container', data: techData }
+            ];
+
+            sections.forEach(sec => {
+                const container = document.getElementById(sec.id);
+                for (const [subGroup, list] of Object.entries(sec.data)) {
+                    const head = document.createElement('div');
+                    head.className = "subhead";
+                    head.innerText = subGroup;
+                    container.appendChild(head);
+                    list.forEach(item => createCheckbox(container, item, subGroup));
+                }
+            });
+            updateProgress();
+        }
+
+        function toggleItem(id) {
+            const cb = document.getElementById(id);
+            const label = cb.nextElementSibling;
+            label.classList.toggle('completed-text', cb.checked);
+            updateProgress();
+            syncToSheet(id, cb.checked ? 'visited' : 'removed');
+        }
+
+        function updateProgress() {
+            const total = document.querySelectorAll('input[type="checkbox"]').length;
+            const checked = document.querySelectorAll('input[type="checkbox"]:checked').length;
+            const percent = Math.round((checked / total) * 100) || 0;
+            
+            const bar = document.getElementById('master-progress');
+            bar.style.width = percent + '%';
+            bar.innerText = percent + '%';
+            document.getElementById('stats-text').innerText = `${checked} / ${total} total items logged`;
+        }
+
+        window.onload = render;
+    </script>
+</body>
+</html>
