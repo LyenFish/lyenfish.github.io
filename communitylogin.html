@@ -39,24 +39,6 @@
             text-transform: uppercase;
             margin: 1rem 0 0.5rem 0;
         }
-        
-        .weather-tag {
-            font-size: 0.65rem;
-            padding: 1px 4px;
-            border-radius: 3px;
-            background: #e2e8f0;
-            color: #475569;
-            margin-left: 4px;
-        }
-
-        .count-badge {
-            background: #8b5a2b;
-            color: white;
-            padding: 0 5px;
-            border-radius: 99px;
-            font-size: 0.7rem;
-            margin-left: 4px;
-        }
 
         /* Sync Logic Styles */
         #login-overlay {
@@ -143,18 +125,21 @@
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- CRAFTS ROOM & PANTRY -->
             <section class="stardew-card section-crops p-5">
-                <h2 class="text-2xl font-bold text-green-800 mb-2">🚜 Farming & Forage</h2>
+                <h2 class="text-2xl font-bold text-green-800 mb-2">🚜 Crops & Forage</h2>
                 <div id="crops-container" class="flex-grow"></div>
             </section>
 
+            <!-- FISH TANK -->
             <section class="stardew-card section-fish p-5">
                 <h2 class="text-2xl font-bold text-blue-800 mb-2">🐟 Fish Tank</h2>
                 <div id="fish-container" class="flex-grow"></div>
             </section>
 
+            <!-- BOILER, BULLETIN, VAULT -->
             <section class="stardew-card section-any p-5">
-                <h2 class="text-2xl font-bold text-purple-800 mb-2">🌍 Artisan & Vault</h2>
+                <h2 class="text-2xl font-bold text-purple-800 mb-2">🛠️ Specialty & Vault</h2>
                 <div id="any-container" class="flex-grow"></div>
             </section>
         </div>
@@ -168,22 +153,24 @@
         const usernameInput = document.getElementById('username-input');
 
         const cropsData = {
-            "🌱 Spring": ["Wild Horseradish", "Daffodil", "Leek", "Dandelion", "Parsnip", "Green Bean", "Cauliflower", "Potato"],
-            "☀️ Summer": ["Grape", "Spice Berry", "Sweet Pea", "Tomato", "Hot Pepper", "Blueberry", "Melon", "Poppy"],
-            "🍂 Fall": ["Common Mushroom", "Wild Plum", "Hazelnut", "Blackberry", "Corn", "Eggplant", "Pumpkin", "Yam"],
-            "❄️ Winter": ["Winter Root", "Crystal Fruit", "Snow Yam", "Crocus"]
+            "🎒 Crafts Room (Foraging)": ["Wild Horseradish", "Daffodil", "Leek", "Dandelion", "Grape", "Spice Berry", "Sweet Pea", "Common Mushroom", "Wild Plum", "Hazelnut", "Blackberry", "Winter Root", "Crystal Fruit", "Snow Yam", "Crocus", "Wood x99", "Stone x99", "Hardwood x10"],
+            "🧺 Pantry (Crops)": ["Parsnip", "Green Bean", "Cauliflower", "Potato", "Tomato", "Hot Pepper", "Blueberry", "Melon", "Corn", "Eggplant", "Pumpkin", "Yam", "Parsnip (Gold) x5", "Melon (Gold) x5", "Pumpkin (Gold) x5", "Corn (Gold) x5"],
+            "🐄 Pantry (Animal)": ["Large Milk", "Large Brown Egg", "Large White Egg", "Large Goat Milk", "Wool", "Duck Egg"]
         };
 
         const fishData = {
-            "🌊 River": ["Sunfish", "Catfish", "Shad", "Tiger Trout"],
-            "🏞️ Lake": ["Largemouth Bass", "Carp", "Bullhead", "Chub"],
-            "⚓ Ocean": ["Sardine", "Tuna", "Red Snapper", "Tilapia"]
+            "🌊 River Fish": ["Sunfish", "Catfish", "Shad", "Tiger Trout"],
+            "🏞️ Lake Fish": ["Largemouth Bass", "Carp", "Bullhead", "Chub"],
+            "⚓ Ocean Fish": ["Sardine", "Tuna", "Red Snapper", "Tilapia"],
+            "🌙 Night Fish": ["Walleye", "Bream", "Eel"],
+            "🦀 Specialty/Crab Pot": ["Pufferfish", "Ghostfish", "Sandfish", "Woodskip", "Lobster", "Crayfish", "Crab", "Cockle", "Mussel", "Shrimp", "Snail", "Periwinkle", "Oyster", "Clam"]
         };
 
         const techData = {
-            "🏠 Construction": ["Wood x99", "Stone x99", "Hardwood x10"],
-            "🍯 Artisan": ["Truffle Oil", "Cloth", "Goat Cheese", "Cheese", "Honey", "Jelly"],
-            "💰 Vault": ["2,500g", "5,000g", "10,000g", "25,000g"]
+            "⚙️ Boiler Room": ["Copper Bar", "Iron Bar", "Gold Bar", "Quartz", "Earth Crystal", "Frozen Tear", "Fire Quartz", "Slime x99", "Bat Wing x10", "Solar Essence", "Void Essence"],
+            "🍯 Bulletin Board": ["Maple Syrup", "Fiddlehead Fern", "Truffle", "Poppy", "Maki Roll", "Fried Egg", "Oak Resin", "Wine", "Rabbit's Foot", "Wheat x10", "Apple x3", "Fried Mushroom", "Purple Mushroom", "Nautilus Shell", "Chub", "Frozen Geode", "Red Mushroom", "Sunflower", "Duck Feather", "Aquamarine", "Red Cabbage"],
+            "🏡 Artisan": ["Truffle Oil", "Cloth", "Goat Cheese", "Cheese", "Honey", "Jelly", "Apple", "Apricot", "Orange", "Peach", "Pomegranate", "Cherry"],
+            "💰 Vault": ["2,500g Bundle", "5,000g Bundle", "10,000g Bundle", "25,000g Bundle"]
         };
 
         function showSync(msg, color = "#8b5a2b") {
@@ -197,7 +184,7 @@
             const val = usernameInput.value.trim();
             if (val) currentUser = val;
             const btn = document.getElementById('login-btn');
-            btn.innerHTML = '<div class="loading-spinner"></div><span>Syncing Data...</span>';
+            btn.innerHTML = '<div class="loading-spinner"></div><span>Syncing...</span>';
             btn.disabled = true;
             
             await loadUserProgress();
@@ -245,7 +232,6 @@
                 });
                 showSync("Cloud Saved", "#16a34a");
             } catch (err) {
-                console.error("Sync failed:", err);
                 showSync("Save Error", "#dc2626");
             }
         }
@@ -297,7 +283,7 @@
             const bar = document.getElementById('master-progress');
             bar.style.width = percent + '%';
             bar.innerText = percent + '%';
-            document.getElementById('stats-text').innerText = `${checked} / ${total} total items logged`;
+            document.getElementById('stats-text').innerText = `${checked} / ${total} items collected`;
         }
 
         window.onload = render;
