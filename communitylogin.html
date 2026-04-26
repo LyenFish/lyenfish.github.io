@@ -37,7 +37,16 @@
             font-weight: bold;
             color: #475569;
             text-transform: uppercase;
-            margin: 1rem 0 0.5rem 0;
+            margin: 1.25rem 0 0.5rem 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .season-note {
+            font-size: 0.65rem;
+            color: #64748b;
+            font-style: italic;
+            font-weight: normal;
         }
 
         /* Sync Logic Styles */
@@ -153,23 +162,37 @@
         const usernameInput = document.getElementById('username-input');
 
         const cropsData = {
-            "🎒 Crafts Room (Foraging)": ["Wild Horseradish", "Daffodil", "Leek", "Dandelion", "Grape", "Spice Berry", "Sweet Pea", "Common Mushroom", "Wild Plum", "Hazelnut", "Blackberry", "Winter Root", "Crystal Fruit", "Snow Yam", "Crocus", "Wood x99", "Stone x99", "Hardwood x10"],
-            "🧺 Pantry (Crops)": ["Parsnip", "Green Bean", "Cauliflower", "Potato", "Tomato", "Hot Pepper", "Blueberry", "Melon", "Corn", "Eggplant", "Pumpkin", "Yam", "Parsnip (Gold) x5", "Melon (Gold) x5", "Pumpkin (Gold) x5", "Corn (Gold) x5"],
-            "🐄 Pantry (Animal)": ["Large Milk", "Large Brown Egg", "Large White Egg", "Large Goat Milk", "Wool", "Duck Egg"]
+            "🎒 Crafts Room: Spring": ["Wild Horseradish", "Daffodil", "Leek", "Dandelion"],
+            "🎒 Crafts Room: Summer": ["Grape", "Spice Berry", "Sweet Pea"],
+            "🎒 Crafts Room: Fall": ["Common Mushroom", "Wild Plum", "Hazelnut", "Blackberry"],
+            "🎒 Crafts Room: Winter": ["Winter Root", "Crystal Fruit", "Snow Yam", "Crocus"],
+            "🎒 Crafts Room: Construction": ["Wood x99 (Any)", "Stone x99 (Any)", "Hardwood x10 (Any)"],
+            
+            "🧺 Pantry: Spring Crops": ["Parsnip", "Green Bean", "Cauliflower", "Potato"],
+            "🧺 Pantry: Summer Crops": ["Tomato", "Hot Pepper", "Blueberry", "Melon"],
+            "🧺 Pantry: Fall Crops": ["Corn (Summer/Fall)", "Eggplant", "Pumpkin", "Yam"],
+            "🧺 Pantry: Quality": ["Parsnip (Gold) x5 (Spring)", "Melon (Gold) x5 (Summer)", "Pumpkin (Gold) x5 (Fall)", "Corn (Gold) x5 (Summer/Fall)"],
+            "🐄 Pantry: Animal (Any)": ["Large Milk", "Large Brown Egg", "Large White Egg", "Large Goat Milk", "Wool", "Duck Egg"]
         };
 
         const fishData = {
-            "🌊 River Fish": ["Sunfish", "Catfish", "Shad", "Tiger Trout"],
-            "🏞️ Lake Fish": ["Largemouth Bass", "Carp", "Bullhead", "Chub"],
-            "⚓ Ocean Fish": ["Sardine", "Tuna", "Red Snapper", "Tilapia"],
-            "🌙 Night Fish": ["Walleye", "Bream", "Eel"],
-            "🦀 Specialty/Crab Pot": ["Pufferfish", "Ghostfish", "Sandfish", "Woodskip", "Lobster", "Crayfish", "Crab", "Cockle", "Mussel", "Shrimp", "Snail", "Periwinkle", "Oyster", "Clam"]
+            "🌊 River Fish: Spring": ["Sunfish (Spr/Sum)", "Catfish (Spr/Fall/Win)", "Shad (Spr/Sum/Fall)"],
+            "🌊 River Fish: Fall/Winter": ["Tiger Trout (Fall/Win)"],
+            "🏞️ Lake Fish: Spring/Summer": ["Largemouth Bass (Any)", "Carp (Spr/Sum/Fall)", "Bullhead (Any)", "Chub (Any)"],
+            "⚓ Ocean Fish: Summer": ["Tuna (Sum/Win)", "Red Snapper (Sum/Fall)", "Tilapia (Sum/Fall)"],
+            "⚓ Ocean Fish: Fall/Winter": ["Sardine (Spr/Fall/Win)"],
+            "🌙 Night Fish": ["Walleye (Fall)", "Bream (Any)", "Eel (Spr/Fall)"],
+            "🦀 Specialty/Crab Pot": ["Pufferfish (Sum)", "Ghostfish (Any/Mines)", "Sandfish (Any/Desert)", "Woodskip (Any/Secret Woods)", "Lobster", "Crayfish", "Crab", "Cockle", "Mussel", "Shrimp", "Snail", "Periwinkle", "Oyster", "Clam"]
         };
 
         const techData = {
             "⚙️ Boiler Room": ["Copper Bar", "Iron Bar", "Gold Bar", "Quartz", "Earth Crystal", "Frozen Tear", "Fire Quartz", "Slime x99", "Bat Wing x10", "Solar Essence", "Void Essence"],
-            "🍯 Bulletin Board": ["Maple Syrup", "Fiddlehead Fern", "Truffle", "Poppy", "Maki Roll", "Fried Egg", "Oak Resin", "Wine", "Rabbit's Foot", "Wheat x10", "Apple x3", "Fried Mushroom", "Purple Mushroom", "Nautilus Shell", "Chub", "Frozen Geode", "Red Mushroom", "Sunflower", "Duck Feather", "Aquamarine", "Red Cabbage"],
-            "🏡 Artisan": ["Truffle Oil", "Cloth", "Goat Cheese", "Cheese", "Honey", "Jelly", "Apple", "Apricot", "Orange", "Peach", "Pomegranate", "Cherry"],
+            "🍯 Bulletin Board: Spring": ["Fried Egg", "Aquamarine"],
+            "🍯 Bulletin Board: Summer": ["Poppy", "Fiddlehead Fern", "Red Mushroom (Sum/Fall)", "Sunflower (Sum/Fall)"],
+            "🍯 Bulletin Board: Fall": ["Purple Mushroom", "Apple x3", "Blackberry", "Red Cabbage"],
+            "🍯 Bulletin Board: Winter": ["Nautilus Shell"],
+            "🍯 Bulletin Board: Any": ["Maple Syrup", "Truffle", "Maki Roll", "Oak Resin", "Wine", "Rabbit's Foot", "Wheat x10", "Fried Mushroom", "Chub", "Frozen Geode", "Duck Feather"],
+            "🏡 Artisan (Any)": ["Truffle Oil", "Cloth", "Goat Cheese", "Cheese", "Honey", "Jelly", "Apple", "Apricot", "Orange", "Peach", "Pomegranate", "Cherry"],
             "💰 Vault": ["2,500g Bundle", "5,000g Bundle", "10,000g Bundle", "25,000g Bundle"]
         };
 
@@ -240,9 +263,21 @@
             const id = `item-${groupKey}-${itemName}`.replace(/\s+/g, '-').toLowerCase();
             const div = document.createElement('div');
             div.className = "flex items-start gap-3 py-1.5 px-2 hover:bg-amber-50 rounded-md transition-all";
+            
+            // Extract season note if present in the name string
+            let displayName = itemName;
+            let note = "";
+            if (itemName.includes('(')) {
+                const parts = itemName.split('(');
+                displayName = parts[0].trim();
+                note = `<span class="season-note">(${parts[1]}</span>`;
+            }
+
             div.innerHTML = `
                 <input type="checkbox" id="${id}" onchange="toggleItem('${id}')">
-                <label for="${id}" class="text-sm text-amber-900 cursor-pointer select-none leading-tight">${itemName}</label>
+                <label for="${id}" class="text-sm text-amber-900 cursor-pointer select-none leading-tight">
+                    ${displayName} ${note}
+                </label>
             `;
             container.appendChild(div);
         }
