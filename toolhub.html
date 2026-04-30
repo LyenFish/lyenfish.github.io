@@ -7,114 +7,115 @@
     <style>
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f0f4f8;
+            background-color: #0f172a; /* Sophisticated dark slate background */
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            padding: 20px;
+            padding: 40px 20px;
+            color: #f1f5f9;
         }
 
         .hub-container {
             background: transparent;
             text-align: center;
             width: 100%;
-            max-width: 600px;
+            max-width: 900px;
         }
 
         h1 {
-            color: #1a202c;
+            color: #f1f5f9;
             margin-bottom: 40px;
-            font-size: 2rem;
-            letter-spacing: -0.5px;
+            font-size: 2.5rem;
+            letter-spacing: -1px;
             font-weight: 800;
         }
 
         .button-group {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 480px) {
-            .button-group {
-                grid-template-columns: 1fr;
-            }
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 24px;
         }
 
         .nav-card {
             display: flex;
             flex-direction: column;
             text-decoration: none;
-            background: white;
+            background: #1e293b; /* Darker card background */
             border-radius: 16px;
             overflow: hidden;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #334155;
         }
 
         .thumbnail-preview {
             width: 100%;
             height: 140px;
-            background-color: #edf2f7;
+            background-color: #0f172a;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid #334155;
         }
 
         .thumbnail-preview svg {
-            width: 60px;
-            height: 60px;
-            color: #4c51bf;
+            width: 50px;
+            height: 50px;
+            color: #818cf8; /* Softer purple for dark mode */
             opacity: 0.8;
+            transition: transform 0.3s ease;
         }
 
         .card-content {
             padding: 16px;
-            background: white;
+            background: #1e293b;
+            text-align: left;
         }
 
         .card-title {
             display: block;
-            color: #2d3748;
+            color: #f1f5f9;
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             margin-bottom: 4px;
         }
 
         .card-url {
             display: block;
-            color: #718096;
-            font-size: 0.75rem;
+            color: #94a3b8;
+            font-size: 0.7rem;
             text-transform: lowercase;
+            font-family: monospace;
         }
 
         /* Hover Effects */
         .nav-card:hover {
             transform: translateY(-8px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            border-color: #4c51bf;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+            border-color: #818cf8;
         }
 
         .nav-card:hover .thumbnail-preview {
-            background-color: #ebf4ff;
+            background-color: #1e293b;
+        }
+
+        .nav-card:hover svg {
+            transform: scale(1.1);
+            color: #a5b4fc;
+            opacity: 1;
         }
 
         .nav-card:hover .card-title {
-            color: #4c51bf;
+            color: #a5b4fc;
         }
 
-        .nav-card.stopwatch:hover {
-            border-color: #2d3748;
-        }
-        
-        .nav-card.stopwatch:hover .card-title {
-            color: #2d3748;
-        }
+        /* Custom variant for the stopwatch style */
+        .card-special:hover { border-color: #cbd5e1; }
+        .card-special:hover .card-title { color: #cbd5e1; }
+        .card-special:hover svg { color: #cbd5e1; }
 
     </style>
 </head>
@@ -124,13 +125,13 @@
     <h1>Mega Boss Hub</h1>
     
     <div class="button-group">
-        <!-- Cuanto Mero Card -->
+        <!-- Cuanto Mero -->
         <a href="https://lyenfish.github.io/cuantomero.html" class="nav-card">
             <div class="thumbnail-preview">
-                <!-- Proportional/Math Icon -->
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="1" x2="12" y2="23"></line>
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
                 </svg>
             </div>
             <div class="card-content">
@@ -139,10 +140,9 @@
             </div>
         </a>
         
-        <!-- Stopwatch Card -->
-        <a href="https://lyenfish.github.io/Stopwatch.html" class="nav-card stopwatch">
+        <!-- Stopwatch -->
+        <a href="https://lyenfish.github.io/Stopwatch.html" class="nav-card card-special">
             <div class="thumbnail-preview">
-                <!-- Stopwatch Icon -->
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
@@ -150,6 +150,105 @@
             </div>
             <div class="card-content">
                 <span class="card-title">⏱️ Stopwatch</span>
+                <span class="card-url">lyenfish.github.io</span>
+            </div>
+        </a>
+
+        <!-- Thumbnailer -->
+        <a href="https://lyenfish.github.io/thumbnailer.html" class="nav-card">
+            <div class="thumbnail-preview">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+            </div>
+            <div class="card-content">
+                <span class="card-title">🖼️ Thumbnailer</span>
+                <span class="card-url">lyenfish.github.io</span>
+            </div>
+        </a>
+
+        <!-- Simply Three -->
+        <a href="https://lyenfish.github.io/simplythree.html" class="nav-card">
+            <div class="thumbnail-preview">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                </svg>
+            </div>
+            <div class="card-content">
+                <span class="card-title">✨ Simply Three</span>
+                <span class="card-url">lyenfish.github.io</span>
+            </div>
+        </a>
+
+        <!-- Photo Clicker -->
+        <a href="https://lyenfish.github.io/photoclicker.html" class="nav-card">
+            <div class="thumbnail-preview">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+            </div>
+            <div class="card-content">
+                <span class="card-title">📸 Photo Clicker</span>
+                <span class="card-url">lyenfish.github.io</span>
+            </div>
+        </a>
+
+        <!-- Currency Converter -->
+        <a href="https://lyenfish.github.io/currency.html" class="nav-card">
+            <div class="thumbnail-preview">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+            </div>
+            <div class="card-content">
+                <span class="card-title">💱 Currency Converter</span>
+                <span class="card-url">lyenfish.github.io</span>
+            </div>
+        </a>
+
+        <!-- Community Center -->
+        <a href="https://lyenfish.github.io/communitylogin.html" class="nav-card">
+            <div class="thumbnail-preview">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+            </div>
+            <div class="card-content">
+                <span class="card-title">🤝 Community Center</span>
+                <span class="card-url">lyenfish.github.io</span>
+            </div>
+        </a>
+
+        <!-- Bubul -->
+        <a href="https://lyenfish.github.io/bubul.html" class="nav-card">
+            <div class="thumbnail-preview">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-11.7 8.38 8.38 0 0 1 3.8.9L21 3.5l-1.9 5.4z"></path>
+                </svg>
+            </div>
+            <div class="card-content">
+                <span class="card-title">💬 Bubul</span>
+                <span class="card-url">lyenfish.github.io</span>
+            </div>
+        </a>
+
+        <!-- 300 Questions -->
+        <a href="https://lyenfish.github.io/asdlfkijyq34oiruywhaskdfjqowiur.html" class="nav-card">
+            <div class="thumbnail-preview">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </div>
+            <div class="card-content">
+                <span class="card-title">❓ 300 Questions</span>
                 <span class="card-url">lyenfish.github.io</span>
             </div>
         </a>
