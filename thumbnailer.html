@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mega Boss Icon Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .checkerboard {
+            background-image: linear-gradient(45deg, #e5e7eb 25%, transparent 25%), 
+                              linear-gradient(-45deg, #e5e7eb 25%, transparent 25%), 
+                              linear-gradient(45deg, transparent 75%, #e5e7eb 75%), 
+                              linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        canvas {
+            touch-action: none;
+            cursor: move;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen flex flex-col items-center p-4 md:p-8">
+
+    <div class="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-6 space-y-6">
+        <header class="text-center border-b border-slate-100 pb-4">
+            <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Mega Boss Icon Studio</h1>
+            <p class="text-slate-500 text-sm">Create circular 1000x1000 transparent thumbnails</p>
+        </header>
+
+        <!-- UI Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">1. Upload Image</label>
+                <input type="file" id="upload" accept="image/*" 
+                       class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer">
+            </div>
+            <div class="flex gap-2">
+                <div class="flex-1">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Background</label>
+                    <div class="flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-1.5 h-[38px] bg-slate-50">
+                        <input type="color" id="bgColor" value="#ffffff" class="w-6 h-6 cursor-pointer border-none bg-transparent">
+                        <span id="colorHex" class="text-xs font-mono text-slate-600 uppercase">#ffffff</span>
+                    </div>
+                </div>
+                <button id="download" class="flex-[1.5] py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all shadow-md active:scale-95 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed" disabled>
+                    Download PNG
+                </button>
+            </div>
+        </div>
+
+        <div class="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <div>
+                <label class="flex justify-between text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                    Zoom Level
+                    <span id="zoomLabel" class="text-blue-600 font-bold">100%</span>
+                </label>
+                <input type="range" id="zoom" min="0.05" max="3" step="0.01" value="1" 
+                       class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+            </div>
+            <p class="text-[10px] text-slate-400 text-center uppercase tracking-widest font-bold">Drag image below to re-position</p>
+        </div>
+
+        <!-- Preview Area -->
+        <div class="relative aspect-square w-full max-w-[500px] mx-auto border-8 border-slate-100 rounded-full overflow-hidden shadow-2xl checkerboard">
+            <canvas id="iconCanvas" width="1000" height="1000" class="w-full h-full"></canvas>
+        </div>
+        
+        <footer class="text-center pt-2">
+            <span class="inline-block px-3 py-1 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full uppercase tracking-tighter">1000x1000 High-Res Output</span>
+        </footer>
+    </div>
+
+    <script>
+        const upload = document.getElementById('upload');
+        const canvas = document.getElementById('iconCanvas');
+        const ctx = canvas.getContext('2d');
+        const downloadBtn = document.getElementById('download');
+        const zoomInput = document.getElementById('zoom');
+        const zoomLabel = document.getElementById('zoomLabel');
+        const bgColorInput = document.getElementById('bgColor');
+        const colorHex = document.getElementById('colorHex');
+
+        let img = null;
+        let scale = 1;
+        let posX = 500;
+        let posY = 500;
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
+        function draw() {
+            // Clear with transparency
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            // Create circular clip
+            ctx.beginPath();
+            ctx.arc(500, 500, 500, 0, Math.PI * 2);
+            ctx.clip();
+
+            // 1. Fill background color
+            ctx.fillStyle = bgColorInput.value;
+            ctx.fill();
+
+            // 2. Draw image if exists
+            if (img) {
+                const drawW = img.width * scale;
+                const drawH = img.height * scale;
+                ctx.drawImage(img, posX - drawW / 2, posY - drawH / 2, drawW, drawH);
+            }
+            
+            ctx.restore();
+        }
+
+        upload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const newImg = new Image();
+                newImg.onload = () => {
+                    img = newImg;
+                    const baseScale = Math.max(1000 / img.width, 1000 / img.height);
+                    scale = baseScale;
+                    zoomInput.value = baseScale;
+                    zoomLabel.textContent = Math.round(baseScale * 100) + '%';
+                    posX = 500;
+                    posY = 500;
+                    downloadBtn.disabled = false;
+                    draw();
+                };
+                newImg.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        zoomInput.addEventListener('input', (e) => {
+            scale = parseFloat(e.target.value);
+            zoomLabel.textContent = Math.round(scale * 100) + '%';
+            draw();
+        });
+
+        bgColorInput.addEventListener('input', (e) => {
+            colorHex.textContent = e.target.value;
+            draw();
+        });
+
+        // Mouse/Touch Interaction
+        const startDrag = (x, y) => {
+            if (!img) return;
+            isDragging = true;
+            lastMouseX = x;
+            lastMouseY = y;
+        };
+
+        const doDrag = (x, y) => {
+            if (!isDragging) return;
+            const dx = x - lastMouseX;
+            const dy = y - lastMouseY;
+            const rect = canvas.getBoundingClientRect();
+            const factor = 1000 / rect.width;
+
+            posX += dx * factor;
+            posY += dy * factor;
+            
+            lastMouseX = x;
+            lastMouseY = y;
+            draw();
+        };
+
+        const endDrag = () => { isDragging = false; };
+
+        canvas.addEventListener('mousedown', e => startDrag(e.clientX, e.clientY));
+        window.addEventListener('mousemove', e => doDrag(e.clientX, e.clientY));
+        window.addEventListener('mouseup', endDrag);
+
+        canvas.addEventListener('touchstart', e => {
+            const touch = e.touches[0];
+            startDrag(touch.clientX, touch.clientY);
+        }, { passive: false });
+        window.addEventListener('touchmove', e => {
+            const touch = e.touches[0];
+            doDrag(touch.clientX, touch.clientY);
+        }, { passive: false });
+        window.addEventListener('touchend', endDrag);
+
+        downloadBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = `mega-boss-icon-${Date.now()}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        });
+
+        // Initialize empty circle
+        draw();
+    </script>
+</body>
+</html>
