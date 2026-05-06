@@ -16,11 +16,10 @@
         }
         canvas {
             touch-action: none;
-            cursor: move;
         }
     </style>
 </head>
-<body class="bg-slate-900 min-h-screen flex flex-col items-center p-4 md:p-8">
+<body class="bg-slate-900 min-h-screen flex flex-col items-center p-4 md:p-8 text-slate-900">
 
     <div class="max-w-2xl w-full bg-white rounded-2xl shadow-2xl p-6 space-y-6">
         <header class="text-center border-b border-slate-100 pb-4">
@@ -35,18 +34,9 @@
                 <input type="file" id="upload" accept="image/*" 
                        class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer">
             </div>
-            <div class="flex gap-2">
-                <div class="flex-1">
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Background</label>
-                    <div class="flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-1.5 h-[38px] bg-slate-50">
-                        <input type="color" id="bgColor" value="#ffffff" class="w-6 h-6 cursor-pointer border-none bg-transparent">
-                        <span id="colorHex" class="text-xs font-mono text-slate-600 uppercase">#ffffff</span>
-                    </div>
-                </div>
-                <button id="download" class="flex-[1.5] py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all shadow-md active:scale-95 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed" disabled>
-                    Download PNG
-                </button>
-            </div>
+            <button id="download" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all shadow-md active:scale-95 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed" disabled>
+                Download PNG
+            </button>
         </div>
 
         <div class="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
@@ -58,16 +48,43 @@
                 <input type="range" id="zoom" min="0.05" max="3" step="0.01" value="1" 
                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
             </div>
-            <p class="text-[10px] text-slate-400 text-center uppercase tracking-widest font-bold">Drag image below to re-position</p>
+
+            <!-- Color Tool & Manual RGB Inputs -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Hover Color Info (RGB)</label>
+                    <div id="hoverColor" class="text-sm font-mono bg-white border border-slate-200 p-2 rounded text-slate-600">
+                        R: --- G: --- B: ---
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase">Background RGB Settings</label>
+                    <div class="flex gap-2">
+                        <div class="w-full">
+                            <label class="block text-[9px] text-slate-400 font-bold mb-0.5">TOP</label>
+                            <input type="text" id="rgbInput1" placeholder="e.g. 255, 255, 255" class="text-xs w-full p-2 border border-slate-200 rounded font-mono" title="RGB 1">
+                        </div>
+                        <div class="w-full">
+                            <label class="block text-[9px] text-slate-400 font-bold mb-0.5">BOTTOM</label>
+                            <input type="text" id="rgbInput2" placeholder="e.g. 0, 112, 187" class="text-xs w-full p-2 border border-slate-200 rounded font-mono" title="RGB 2 (Optional for Gradient)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-[10px] text-slate-400 text-center uppercase tracking-widest font-bold pt-2">Drag image to re-position • Fill one or both RGB fields for BG</p>
         </div>
 
         <!-- Preview Area -->
         <div class="relative aspect-square w-full max-w-[500px] mx-auto border-8 border-slate-100 rounded-full overflow-hidden shadow-2xl checkerboard">
-            <canvas id="iconCanvas" width="1000" height="1000" class="w-full h-full"></canvas>
+            <canvas id="iconCanvas" width="1000" height="1000" class="w-full h-full cursor-crosshair"></canvas>
         </div>
         
-        <footer class="text-center pt-2">
+        <footer class="flex flex-col items-center gap-4 pt-2">
             <span class="inline-block px-3 py-1 bg-slate-100 text-slate-400 text-[10px] font-bold rounded-full uppercase tracking-tighter">1000x1000 High-Res Output</span>
+            <button id="clearAll" class="text-xs font-bold text-red-500 hover:text-red-700 uppercase tracking-widest transition-colors">
+                Clear everything
+            </button>
         </footer>
     </div>
 
@@ -78,8 +95,10 @@
         const downloadBtn = document.getElementById('download');
         const zoomInput = document.getElementById('zoom');
         const zoomLabel = document.getElementById('zoomLabel');
-        const bgColorInput = document.getElementById('bgColor');
-        const colorHex = document.getElementById('colorHex');
+        const hoverColorDisp = document.getElementById('hoverColor');
+        const rgbInput1 = document.getElementById('rgbInput1');
+        const rgbInput2 = document.getElementById('rgbInput2');
+        const clearBtn = document.getElementById('clearAll');
 
         let img = null;
         let scale = 1;
@@ -89,21 +108,45 @@
         let lastMouseX = 0;
         let lastMouseY = 0;
 
-        function draw() {
-            // Clear with transparency
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        function parseRGB(str) {
+            if (!str) return null;
+            const parts = str.split(',').map(s => parseInt(s.trim()));
+            if (parts.length === 3 && parts.every(p => !isNaN(p) && p >= 0 && p <= 255)) {
+                return `rgb(${parts[0]}, ${parts[1]}, ${parts[2]})`;
+            }
+            return null;
+        }
 
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save();
-            // Create circular clip
+            
             ctx.beginPath();
             ctx.arc(500, 500, 500, 0, Math.PI * 2);
+            ctx.closePath();
             ctx.clip();
 
-            // 1. Fill background color
-            ctx.fillStyle = bgColorInput.value;
-            ctx.fill();
+            // Background Logic
+            const color1 = parseRGB(rgbInput1.value);
+            const color2 = parseRGB(rgbInput2.value);
 
-            // 2. Draw image if exists
+            if (color1 && color2) {
+                // Vertical Gradient
+                const grad = ctx.createLinearGradient(0, 0, 0, 1000);
+                grad.addColorStop(0, color1);
+                grad.addColorStop(1, color2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+            } else if (color1) {
+                // Solid Color 1
+                ctx.fillStyle = color1;
+                ctx.fill();
+            } else if (color2) {
+                // Solid Color 2
+                ctx.fillStyle = color2;
+                ctx.fill();
+            }
+
             if (img) {
                 const drawW = img.width * scale;
                 const drawH = img.height * scale;
@@ -116,7 +159,6 @@
         upload.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = (event) => {
                 const newImg = new Image();
@@ -142,49 +184,75 @@
             draw();
         });
 
-        bgColorInput.addEventListener('input', (e) => {
-            colorHex.textContent = e.target.value;
-            draw();
+        [rgbInput1, rgbInput2].forEach(input => {
+            input.addEventListener('input', draw);
         });
 
-        // Mouse/Touch Interaction
-        const startDrag = (x, y) => {
+        // Color Picker Tool (Hover Info)
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (1000 / rect.width);
+            const y = (e.clientY - rect.top) * (1000 / rect.height);
+            
+            // Sample pixel data
+            const pixel = ctx.getImageData(x, y, 1, 1).data;
+            if (pixel[3] === 0) {
+                hoverColorDisp.textContent = "Transparent";
+            } else {
+                hoverColorDisp.textContent = `R: ${pixel[0]} G: ${pixel[1]} B: ${pixel[2]}`;
+            }
+        });
+
+        // Movement Logic
+        const getPos = (e) => e.touches ? {x: e.touches[0].clientX, y: e.touches[0].clientY} : {x: e.clientX, y: e.clientY};
+
+        const startDrag = (e) => {
             if (!img) return;
+            const pos = getPos(e);
             isDragging = true;
-            lastMouseX = x;
-            lastMouseY = y;
+            lastMouseX = pos.x;
+            lastMouseY = pos.y;
         };
 
-        const doDrag = (x, y) => {
+        const doDrag = (e) => {
             if (!isDragging) return;
-            const dx = x - lastMouseX;
-            const dy = y - lastMouseY;
+            const pos = getPos(e);
+            const dx = pos.x - lastMouseX;
+            const dy = pos.y - lastMouseY;
             const rect = canvas.getBoundingClientRect();
             const factor = 1000 / rect.width;
 
             posX += dx * factor;
             posY += dy * factor;
-            
-            lastMouseX = x;
-            lastMouseY = y;
+            lastMouseX = pos.x;
+            lastMouseY = pos.y;
             draw();
         };
 
-        const endDrag = () => { isDragging = false; };
+        const endDrag = () => isDragging = false;
 
-        canvas.addEventListener('mousedown', e => startDrag(e.clientX, e.clientY));
-        window.addEventListener('mousemove', e => doDrag(e.clientX, e.clientY));
+        canvas.addEventListener('mousedown', startDrag);
+        window.addEventListener('mousemove', doDrag);
         window.addEventListener('mouseup', endDrag);
-
-        canvas.addEventListener('touchstart', e => {
-            const touch = e.touches[0];
-            startDrag(touch.clientX, touch.clientY);
-        }, { passive: false });
-        window.addEventListener('touchmove', e => {
-            const touch = e.touches[0];
-            doDrag(touch.clientX, touch.clientY);
-        }, { passive: false });
+        canvas.addEventListener('touchstart', startDrag, { passive: false });
+        window.addEventListener('touchmove', doDrag, { passive: false });
         window.addEventListener('touchend', endDrag);
+
+        // Reset Tool
+        clearBtn.addEventListener('click', () => {
+            img = null;
+            scale = 1;
+            posX = 500;
+            posY = 500;
+            upload.value = '';
+            rgbInput1.value = '';
+            rgbInput2.value = '';
+            zoomInput.value = 1;
+            zoomLabel.textContent = '100%';
+            downloadBtn.disabled = true;
+            hoverColorDisp.textContent = 'R: --- G: --- B: ---';
+            draw();
+        });
 
         downloadBtn.addEventListener('click', () => {
             const link = document.createElement('a');
@@ -193,7 +261,6 @@
             link.click();
         });
 
-        // Initialize empty circle
         draw();
     </script>
 </body>
