@@ -569,10 +569,11 @@
         }
         function toggleFreeze() { tFrozen = !tFrozen; if(tFrozen) tFZVal = tElapsed; document.getElementById('freezeBtn').textContent = tFrozen ? 'Live' : 'Freeze'; }
 
-        function load() { 
-            const saved = localStorage.getItem('megaBossHubState_v4'); 
-            if(saved) state = {...DEFAULTS, ...JSON.parse(saved)}; 
-            updateStyles(); renderGrid(); fetchRates(); initTimeCompi(); 
+        function load() {
+            const saved = localStorage.getItem('megaBossHubState_v4');
+            if(saved) state = {...DEFAULTS, ...JSON.parse(saved)};
+            state.calc = { base: 'USD', amount: 1.00 };
+            updateStyles(); renderGrid(); fetchRates(); initTimeCompi();
         }
         function saveToStorage() { localStorage.setItem('megaBossHubState_v4', JSON.stringify(state)); }
         function updateStyles() { 
