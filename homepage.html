@@ -322,14 +322,23 @@
             let path = e.composedPath();
             for (let el of path) {
                 if (el.classList && (
-                    el.classList.contains('overflow-y-auto') || 
-                    el.classList.contains('overflow-x-auto') || 
+                    el.classList.contains('overflow-y-auto') ||
+                    el.classList.contains('overflow-x-auto') ||
                     el.classList.contains('timeline-scroll') ||
                     el.id === 'cityRows' ||
                     el.id === 'settings-overlay' ||
                     el.closest('#settings-overlay')
                 )) {
-                    if (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth) {
+                    const canScrollV = el.scrollHeight > el.clientHeight;
+                    const canScrollH = el.scrollWidth > el.clientWidth;
+                    if (canScrollV) {
+                        const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+                        const atTop = el.scrollTop <= 0;
+                        if ((e.deltaY > 0 && !atBottom) || (e.deltaY < 0 && !atTop)) {
+                            isInsideScrollable = true;
+                            break;
+                        }
+                    } else if (canScrollH) {
                         isInsideScrollable = true;
                         break;
                     }
@@ -360,24 +369,23 @@
         }, { passive: false });
 
         let touchStartY = 0;
+        let touchScrollEl = null;
         window.addEventListener('touchstart', (e) => {
-            let isInsideScrollable = false;
+            touchScrollEl = null;
             let path = e.composedPath();
             for (let el of path) {
                 if (el.classList && (
-                    el.classList.contains('overflow-y-auto') || 
-                    el.classList.contains('overflow-x-auto') || 
+                    el.classList.contains('overflow-y-auto') ||
+                    el.classList.contains('overflow-x-auto') ||
                     el.classList.contains('timeline-scroll') ||
                     el.id === 'cityRows' ||
                     el.id === 'settings-overlay'
                 )) {
-                    isInsideScrollable = true;
-                    break;
+                    if (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth) {
+                        touchScrollEl = el;
+                        break;
+                    }
                 }
-            }
-            if (isInsideScrollable) {
-                touchStartY = 0;
-                return;
             }
             touchStartY = e.touches[0].clientY;
         }, { passive: true });
@@ -386,8 +394,16 @@
             if (touchStartY === 0) return;
             const touchEndY = e.changedTouches[0].clientY;
             const diffY = touchStartY - touchEndY;
-            
+
             if (Math.abs(diffY) > 80) {
+                if (touchScrollEl && touchScrollEl.scrollHeight > touchScrollEl.clientHeight) {
+                    const atBottom = touchScrollEl.scrollTop + touchScrollEl.clientHeight >= touchScrollEl.scrollHeight - 1;
+                    const atTop = touchScrollEl.scrollTop <= 0;
+                    if ((diffY > 0 && !atBottom) || (diffY < 0 && !atTop)) {
+                        touchStartY = 0;
+                        return;
+                    }
+                }
                 if (diffY > 0) {
                     navDown();
                 } else {
@@ -418,8 +434,9 @@
             setupTCDragAndDrop();
             setupTCSearch();
             document.getElementById('resetTime').onclick = () => { selectedTime = new Date(); renderTCRows(); scrollToTCHour(); };
-            document.getElementById('masterTimeline').onscroll = (e) => {
-                document.querySelectorAll('.city-timeline').forEach(s => s.scrollLeft = e.target.scrollLeft);
+            const masterEl = document.getElementById('masterTimeline');
+            masterEl.onscroll = () => {
+                document.querySelectorAll('.city-timeline').forEach(s => s.scrollLeft = masterEl.scrollLeft);
             };
             setTimeout(scrollToTCHour, 150);
         }
@@ -634,8 +651,8 @@
             state.bg = document.getElementById('input-bg').value || DEFAULTS.bg;
             state.gap = parseInt(document.getElementById('input-gap').value) || DEFAULTS.gap;
             state.bgOpacity = parseInt(document.getElementById('input-opacity').value) || DEFAULTS.bgOpacity;
-            state.thumbOpacity = parseInt(document.getElementById('input-thumb-opacity').value) !== undefined ? parseInt(document.getElementById('input-thumb-opacity').value) : DEFAULTS.thumbOpacity;
-            state.thumbSize = parseInt(document.getElementById('input-thumb-size').value) !== undefined ? parseInt(document.getElementById('input-thumb-size').value) : DEFAULTS.thumbSize;
+            state.thumbOpacity = parseInt(document.getElementById('input-thumb-opacity').value) || DEFAULTS.thumbOpacity;
+            state.thumbSize = parseInt(document.getElementById('input-thumb-size').value) || DEFAULTS.thumbSize;
 
             const total = state.cols * state.rows;
             state.dials = {};
