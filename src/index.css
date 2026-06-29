@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.progress-bar { transition: width 0.3s ease; }
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #1e293b; }
+::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+.tab-active { border-bottom: 3px solid #6366f1; color: #818cf8; }
+
+.autocomplete-items {
+  position: absolute;
+  z-index: 99;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.category-card.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+  border: 2px dashed #6366f1;
+}
+
+.drag-handle { cursor: grab; }
+.drag-handle:active { cursor: grabbing; }
+
+.modal-backdrop {
+  background-color: rgba(2, 6, 23, 0.85);
+  backdrop-filter: blur(4px);
+}
