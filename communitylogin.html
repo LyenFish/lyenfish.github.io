@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stardew Valley Master Checklist</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #fdf6e3; font-family: 'Segoe UI', sans-serif; }
+        .stardew-card {
+            background: #fffdfa;
+            border: 4px solid #8b5a2b;
+            box-shadow: 4px 4px 0px #5d3a1a;
+            border-radius: 8px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .section-crops { border-top: 8px solid #4ade80; }
+        .section-fish { border-top: 8px solid #3b82f6; }
+        .section-any { border-top: 8px solid #a855f7; }
+
+        input[type="checkbox"] {
+            width: 1.1rem; height: 1.1rem;
+            cursor: pointer; accent-color: #8b5a2b;
+            flex-shrink: 0;
+        }
+
+        .completed-text { text-decoration: line-through; color: #9ca3af; }
+        .progress-bar { transition: width 0.5s ease-in-out; }
+        
+        .subhead {
+            background: #f1f5f9;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #475569;
+            text-transform: uppercase;
+            margin: 1.25rem 0 0.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .season-note {
+            font-size: 0.65rem;
+            color: #64748b;
+            font-style: italic;
+            font-weight: normal;
+        }
+
+        /* Custom Scrollbar for Dropdown Menu */
+        #filter-dropdown-menu::-webkit-scrollbar {
+            width: 8px;
+        }
+        #filter-dropdown-menu::-webkit-scrollbar-track {
+            background: #fdf6e3;
+            border-radius: 4px;
+        }
+        #filter-dropdown-menu::-webkit-scrollbar-thumb {
+            background: #8b5a2b;
+            border-radius: 4px;
+        }
+
+        /* Sync Logic Styles */
+        #login-overlay {
+            position: fixed;
+            inset: 0;
+            background: #fdf6e3;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            transition: opacity 0.5s ease;
+        }
+        .login-card {
+            background: #fffdfa;
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            border: 4px solid #8b5a2b;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+        .sync-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            background: #fffdfa;
+            border: 2px solid #8b5a2b;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            font-weight: bold;
+        }
+        .loading-spinner {
+            border: 3px solid rgba(139, 90, 43, 0.1);
+            border-top: 3px solid #8b5a2b;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div id="sync-status" class="sync-indicator"></div>
+
+    <div id="login-overlay">
+        <div class="login-card text-center">
+            <div class="mb-6">
+                <div class="w-16 h-16 bg-amber-700 rounded-2xl mx-auto flex items-center justify-center mb-4">
+                    <span class="text-3xl">🐔</span>
+                </div>
+                <h1 class="text-2xl font-bold text-amber-900">Farm Progress Sync</h1>
+                <p class="text-amber-700 text-sm mt-1">Enter your name to load your checklist</p>
+            </div>
+            
+            <input type="text" id="username-input" placeholder="Mega boss..." 
+                   class="w-full p-4 rounded-xl bg-white border-2 border-amber-200 mb-4 focus:outline-none focus:ring-2 focus:ring-amber-500 text-amber-900 placeholder-amber-300 transition-all">
+            
+            <button id="login-btn" onclick="handleLogin()" 
+                    class="w-full bg-amber-800 hover:bg-amber-900 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center">
+                <span>Enter Farm</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-6">
+            <h1 class="text-4xl font-bold text-amber-900 mb-2">Stardew Valley Tracker</h1>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <p id="welcome-msg" class="text-amber-700">Connect to your community center progress.</p>
+                <button onclick="reloadAsPezpez()" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1 rounded-full border border-amber-300 font-bold transition-colors">
+                    Switch to Pezpez
+                </button>
+            </div>
+            
+            <div class="mt-6 bg-amber-200 rounded-full h-8 w-full max-w-xl mx-auto border-4 border-amber-900 overflow-hidden relative">
+                <div id="master-progress" class="progress-bar bg-green-500 h-full w-0 flex items-center justify-center text-sm font-bold text-white shadow-inner">0%</div>
+            </div>
+            <p class="text-md mt-2 text-amber-800 font-bold" id="stats-text">Initializing items...</p>
+
+            <!-- Dynamic Category Visibility Controller -->
+            <div class="relative inline-block text-left mt-4" id="category-filter-dropdown-container">
+                <button onclick="toggleFilterDropdown()" class="bg-[#fffdfa] hover:bg-amber-50 text-amber-900 px-4 py-2.5 rounded-xl border-2 border-amber-800 font-bold transition-all shadow-md flex items-center gap-2 mx-auto">
+                    <span>👁️ Show/Hide Categories</span>
+                    <svg class="w-4 h-4 text-amber-800 transition-transform" id="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+
+                <!-- Filter Dropdown Panel -->
+                <div id="filter-dropdown-menu" class="hidden absolute left-1/2 -translate-x-1/2 mt-2 w-72 bg-[#fffdfa] border-4 border-[#8b5a2b] shadow-xl rounded-xl z-50 p-4 max-h-96 overflow-y-auto text-left">
+                    <div class="flex justify-between items-center pb-2 mb-2 border-b-2 border-amber-100">
+                        <span class="font-bold text-amber-950 text-sm">Visible Categories</span>
+                        <div class="flex gap-2">
+                            <button onclick="toggleAllCategories(true)" class="text-xs text-blue-700 hover:text-blue-900 hover:underline font-bold">Show All</button>
+                            <span class="text-amber-300">|</span>
+                            <button onclick="toggleAllCategories(false)" class="text-xs text-amber-700 hover:text-amber-900 hover:underline font-bold">Hide All</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Dynamically generated list of categories with checkboxes -->
+                    <div id="dropdown-category-list" class="space-y-1"></div>
+
+                    <!-- Auto-Hide completed feature -->
+                    <div class="mt-4 pt-3 border-t-2 border-amber-100">
+                        <label class="flex items-center gap-2 text-xs font-bold text-amber-900 cursor-pointer">
+                            <input type="checkbox" id="auto-hide-completed" onchange="toggleAutoHideCompleted(this.checked)" class="accent-amber-800">
+                            <span>✨ Auto-hide completed categories</span>
+                        </label>
+                        <p class="text-[10px] text-amber-600 ml-6 italic">Hides bundles once all their items are selected.</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- CRAFTS ROOM & PANTRY -->
+            <section class="stardew-card section-crops p-5">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-2xl font-bold text-green-800">🚜 Crops & Forage</h2>
+                    <span id="crops-visible-badge" class="text-xs bg-green-100 text-green-800 font-bold px-2 py-0.5 rounded-full"></span>
+                </div>
+                <div id="crops-container" class="flex-grow"></div>
+            </section>
+
+            <!-- FISH TANK -->
+            <section class="stardew-card section-fish p-5">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-2xl font-bold text-blue-800">🐟 Fish Tank</h2>
+                    <span id="fish-visible-badge" class="text-xs bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full"></span>
+                </div>
+                <div id="fish-container" class="flex-grow"></div>
+            </section>
+
+            <!-- BOILER, BULLETIN, VAULT -->
+            <section class="stardew-card section-any p-5">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-2xl font-bold text-purple-800">🛠️ Specialty & Vault</h2>
+                    <span id="any-visible-badge" class="text-xs bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded-full"></span>
+                </div>
+                <div id="any-container" class="flex-grow"></div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbwhLTKpiZZzX7J-hD-Q8wvYMa35NTIp0mjrpXNrsHycUlFE8EyS__szrRArfHD5afH7nQ/exec";
+        
+        let currentUser = "Mega boss";
+        const syncStatus = document.getElementById('sync-status');
+        const usernameInput = document.getElementById('username-input');
+
+        // Manage hidden categories via state matching localStorage
+        let hiddenCategories = JSON.parse(localStorage.getItem('stardew_hidden_categories') || '[]');
+        let autoHideCompleted = JSON.parse(localStorage.getItem('stardew_auto_hide_completed') || 'false');
+
+        const cropsData = {
+            "🎒 Crafts Room: Spring Forage": ["Wild Horseradish", "Daffodil", "Leek", "Dandelion"],
+            "🎒 Crafts Room: Summer Forage": ["Grape", "Spice Berry", "Sweet Pea"],
+            "🎒 Crafts Room: Fall Forage": ["Common Mushroom", "Wild Plum", "Hazelnut", "Blackberry"],
+            "🎒 Crafts Room: Winter Forage": ["Winter Root", "Crystal Fruit", "Snow Yam", "Crocus"],
+            "🎒 Crafts Room: Construction": ["Wood x99 (x2)", "Stone x99", "Hardwood x10"],
+            "🎒 Crafts Room: Exotic Forage (Choose 5)": ["Coconut", "Cactus Fruit", "Cave Carrot", "Red Mushroom", "Purple Mushroom", "Maple Syrup", "Oak Resin", "Pine Tar", "Morel"],
+            
+            "🧺 Pantry: Spring Crops": ["Parsnip", "Green Bean", "Cauliflower", "Potato"],
+            "🧺 Pantry: Summer Crops": ["Tomato", "Hot Pepper", "Blueberry", "Melon"],
+            "🧺 Pantry: Fall Crops": ["Corn (Sum/Fall)", "Eggplant", "Pumpkin", "Yam"],
+            "🧺 Pantry: Quality Crops (Choose 3)": ["Parsnip (Gold) x5", "Melon (Gold) x5", "Pumpkin (Gold) x5", "Corn (Gold) x5"],
+            "🧺 Pantry: Animal (Choose 5)": ["Large Milk", "Large Brown Egg", "Large White Egg", "Large Goat Milk", "Wool", "Duck Egg"],
+            "🧺 Pantry: Artisan (Choose 6)": ["Truffle Oil", "Cloth", "Goat Cheese", "Cheese", "Honey", "Jelly", "Apple", "Apricot", "Orange", "Peach", "Pomegranate", "Cherry"]
+        };
+
+        const fishData = {
+            "🌊 River Fish": ["Sunfish (Spr/Sum)", "Catfish (Spr/Fall/Win Rain)", "Shad (Spr/Sum/Fall Rain)", "Tiger Trout (Fall/Win)"],
+            "🏞️ Lake Fish": ["Largemouth Bass (Any)", "Carp (Spr/Sum/Fall)", "Bullhead (Any)", "Sturgeon (Sum/Win)"],
+            "⚓ Ocean Fish": ["Sardine (Spr/Fall/Win)", "Tuna (Sum/Win)", "Red Snapper (Sum/Fall Rain)", "Tilapia (Sum/Fall)"],
+            "🌙 Night Fish": ["Walleye (Fall Rain)", "Bream (Any)", "Eel (Spr/Fall Rain)"],
+            "🦀 Crab Pot (Choose 5)": ["Lobster", "Crayfish", "Crab", "Cockle", "Mussel", "Shrimp", "Snail", "Periwinkle", "Oyster", "Clam"],
+            "⭐ Specialty Fish": ["Pufferfish (Sum Sun)", "Ghostfish (Any/Mines)", "Sandfish (Any/Desert)", "Woodskip (Any/Secret Woods)"]
+        };
+
+        const techData = {
+            "⚙️ Boiler Room: Blacksmith": ["Copper Bar", "Iron Bar", "Gold Bar"],
+            "⚙️ Boiler Room: Geologist": ["Quartz", "Earth Crystal", "Frozen Tear", "Fire Quartz"],
+            "⚙️ Boiler Room: Adventurer": ["Slime x99", "Bat Wing x10", "Solar Essence", "Void Essence"],
+            
+            "💰 Vault": ["2,500g Bundle", "5,000g Bundle", "10,000g Bundle", "25,000g Bundle"],
+            
+            "🍯 Bulletin Board: Chef": ["Maple Syrup", "Fiddlehead Fern", "Truffle", "Poppy", "Maki Roll", "Fried Egg"],
+            "🍯 Bulletin Board: Dye": ["Red Mushroom", "Sea Urchin", "Sunflower", "Duck Feather", "Aquamarine", "Red Cabbage"],
+            "🍯 Bulletin Board: Research": ["Chub", "Frozen Geode", "Red Mushroom", "Purple Mushroom"],
+            "🍯 Bulletin Board: Fodder": ["Wheat x10", "Hay x10", "Apple x3"],
+            "🍯 Bulletin Board: Enchanter": ["Oak Resin", "Wine", "Rabbit's Foot", "Pomegranate"]
+        };
+
+        function showSync(msg, color = "#8b5a2b") {
+            syncStatus.style.display = 'block';
+            syncStatus.innerText = msg;
+            syncStatus.style.color = color;
+            setTimeout(() => { syncStatus.style.display = 'none'; }, 2500);
+        }
+
+        function reloadAsPezpez() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('user', 'Pezpez');
+            window.location.href = url.toString();
+        }
+
+        async function handleLogin() {
+            const val = usernameInput.value.trim();
+            if (val) currentUser = val;
+            await initializeSession();
+        }
+
+        async function initializeSession() {
+            const btn = document.getElementById('login-btn');
+            if (btn) {
+                btn.innerHTML = '<div class="loading-spinner"></div><span>Syncing...</span>';
+                btn.disabled = true;
+            }
+            
+            await loadUserProgress();
+            
+            const overlay = document.getElementById('login-overlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                document.getElementById('welcome-msg').innerHTML = `Logged in as: <span class="text-amber-900 font-bold">${currentUser}</span>`;
+            }, 500);
+        }
+
+        async function loadUserProgress() {
+            try {
+                const response = await fetch(`${API_URL}?username=${encodeURIComponent(currentUser)}`);
+                const completedIds = await response.json(); 
+                
+                completedIds.forEach(id => {
+                    const cb = document.getElementById(id);
+                    if (cb) {
+                        cb.checked = true;
+                        cb.nextElementSibling.classList.add('completed-text');
+                    }
+                });
+                
+                updateProgress();
+                applyFilters(); // Re-evaluate auto-hide visibility rules on loading progress
+                buildFilterDropdown();
+                showSync("Progress Synced!", "#16a34a");
+            } catch (err) {
+                console.error("Load failed:", err);
+                showSync("Offline Mode", "#dc2626");
+            }
+        }
+
+        async function syncToSheet(itemId, status) {
+            showSync("Saving...");
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    cache: 'no-cache',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: currentUser,
+                        questionId: itemId,
+                        status: status
+                    })
+                });
+                showSync("Cloud Saved", "#16a34a");
+            } catch (err) {
+                showSync("Save Error", "#dc2626");
+            }
+        }
+
+        function createCheckbox(container, itemName, groupKey) {
+            const id = `item-${groupKey}-${itemName}`.replace(/\s+/g, '-').toLowerCase();
+            const div = document.createElement('div');
+            div.className = "flex items-start gap-3 py-1.5 px-2 hover:bg-amber-50 rounded-md transition-all";
+            
+            let displayName = itemName;
+            let note = "";
+            if (itemName.includes('(')) {
+                const parts = itemName.split('(');
+                displayName = parts[0].trim();
+                note = `<span class="season-note">(${parts[1]}</span>`;
+            }
+
+            div.innerHTML = `
+                <input type="checkbox" id="${id}" onchange="toggleItem('${id}')">
+                <label for="${id}" class="text-sm text-amber-900 cursor-pointer select-none leading-tight">
+                    ${displayName} ${note}
+                </label>
+            `;
+            container.appendChild(div);
+        }
+
+        function render() {
+            const sections = [
+                { id: 'crops-container', data: cropsData },
+                { id: 'fish-container', data: fishData },
+                { id: 'any-container', data: techData }
+            ];
+
+            sections.forEach(sec => {
+                const container = document.getElementById(sec.id);
+                container.innerHTML = ""; // Clear existing elements
+
+                for (const [subGroup, list] of Object.entries(sec.data)) {
+                    // Create wrapper div for each category group so we can hide/show them together
+                    const wrapper = document.createElement('div');
+                    wrapper.className = "category-wrapper mb-4 transition-all duration-300";
+                    wrapper.setAttribute('data-category', subGroup);
+
+                    const head = document.createElement('div');
+                    head.className = "subhead flex justify-between items-center";
+                    
+                    const titleSpan = document.createElement('span');
+                    titleSpan.innerText = subGroup;
+                    head.appendChild(titleSpan);
+
+                    // Quick-hide button on the header
+                    const hideBtn = document.createElement('button');
+                    hideBtn.className = "text-[10px] text-amber-700 hover:text-red-700 bg-amber-200/50 hover:bg-red-100 px-2 py-0.5 rounded transition-colors font-bold";
+                    hideBtn.innerText = "Hide";
+                    hideBtn.title = "Hide this category from view. Re-enable in the dropdown above.";
+                    hideBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        hideCategory(subGroup);
+                    };
+                    head.appendChild(hideBtn);
+                    
+                    wrapper.appendChild(head);
+
+                    // Container for the checkboxes in this category group
+                    const itemsContainer = document.createElement('div');
+                    itemsContainer.className = "space-y-1 pl-1";
+                    list.forEach(item => createCheckbox(itemsContainer, item, subGroup));
+                    
+                    wrapper.appendChild(itemsContainer);
+                    container.appendChild(wrapper);
+                }
+            });
+
+            buildFilterDropdown();
+            applyFilters();
+            updateProgress();
+        }
+
+        function toggleFilterDropdown() {
+            const menu = document.getElementById('filter-dropdown-menu');
+            const arrow = document.getElementById('dropdown-arrow');
+            const isHidden = menu.classList.toggle('hidden');
+            if (isHidden) {
+                arrow.style.transform = 'rotate(0deg)';
+            } else {
+                arrow.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(e) {
+            const menu = document.getElementById('filter-dropdown-menu');
+            const container = document.getElementById('category-filter-dropdown-container');
+            if (menu && container && !container.contains(e.target)) {
+                menu.classList.add('hidden');
+                document.getElementById('dropdown-arrow').style.transform = 'rotate(0deg)';
+            }
+        });
+
+        // Assemble all categories and construct filter elements dynamically
+        function buildFilterDropdown() {
+            const listContainer = document.getElementById('dropdown-category-list');
+            listContainer.innerHTML = '';
+
+            const sections = [
+                { title: "Crops & Forage", data: cropsData },
+                { title: "Fish Tank", data: fishData },
+                { title: "Specialty & Vault", data: techData }
+            ];
+
+            sections.forEach(section => {
+                const secTitle = document.createElement('div');
+                secTitle.className = "text-[10px] font-black text-amber-800 tracking-wider uppercase mt-2 mb-1 border-b border-amber-100 pb-0.5";
+                secTitle.innerText = section.title;
+                listContainer.appendChild(secTitle);
+
+                for (const cat of Object.keys(section.data)) {
+                    const isHidden = hiddenCategories.includes(cat);
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = "flex items-center justify-between py-1 px-1.5 hover:bg-amber-100/50 rounded text-xs text-amber-950 transition-colors";
+
+                    // Compute dynamic badge progress to display inside filter dropdown
+                    const wrapper = document.querySelector(`[data-category="${cat}"]`);
+                    let badgeText = "0/0";
+                    let isDone = false;
+                    if (wrapper) {
+                        const total = wrapper.querySelectorAll('input[type="checkbox"]').length;
+                        const checked = wrapper.querySelectorAll('input[type="checkbox"]:checked').length;
+                        badgeText = `${checked}/${total}`;
+                        isDone = (total > 0 && total === checked);
+                    }
+
+                    itemDiv.innerHTML = `
+                        <label class="flex items-center gap-2 cursor-pointer select-none truncate flex-grow mr-2">
+                            <input type="checkbox" class="category-toggle-cb accent-amber-800 w-3.5 h-3.5 rounded" data-cat="${cat}" ${!isHidden ? 'checked' : ''} onchange="onCategoryToggle(this)">
+                            <span class="${isDone ? 'line-through text-gray-400' : 'font-medium'}">${cat}</span>
+                        </label>
+                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isDone ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}">
+                            ${badgeText}
+                        </span>
+                    `;
+                    listContainer.appendChild(itemDiv);
+                }
+            });
+
+            document.getElementById('auto-hide-completed').checked = autoHideCompleted;
+        }
+
+        // Handle category toggling from within dropdown list
+        function onCategoryToggle(checkbox) {
+            const cat = checkbox.getAttribute('data-cat');
+            if (checkbox.checked) {
+                hiddenCategories = hiddenCategories.filter(c => c !== cat);
+            } else {
+                if (!hiddenCategories.includes(cat)) {
+                    hiddenCategories.push(cat);
+                }
+            }
+            localStorage.setItem('stardew_hidden_categories', JSON.stringify(hiddenCategories));
+            applyFilters();
+        }
+
+        // Quick hide from the shortcut on header
+        function hideCategory(cat) {
+            if (!hiddenCategories.includes(cat)) {
+                hiddenCategories.push(cat);
+                localStorage.setItem('stardew_hidden_categories', JSON.stringify(hiddenCategories));
+                applyFilters();
+                buildFilterDropdown();
+            }
+        }
+
+        // Mass-toggle category states
+        function toggleAllCategories(showAll) {
+            if (showAll) {
+                hiddenCategories = [];
+            } else {
+                hiddenCategories = [
+                    ...Object.keys(cropsData),
+                    ...Object.keys(fishData),
+                    ...Object.keys(techData)
+                ];
+            }
+            localStorage.setItem('stardew_hidden_categories', JSON.stringify(hiddenCategories));
+            applyFilters();
+            buildFilterDropdown();
+        }
+
+        function toggleAutoHideCompleted(checked) {
+            autoHideCompleted = checked;
+            localStorage.setItem('stardew_auto_hide_completed', JSON.stringify(autoHideCompleted));
+            applyFilters();
+            buildFilterDropdown();
+        }
+
+        // Apply style toggles to page based on active state preferences
+        function applyFilters() {
+            const wrappers = document.querySelectorAll('.category-wrapper');
+            let cropsVisible = 0, cropsTotal = 0;
+            let fishVisible = 0, fishTotal = 0;
+            let techVisible = 0, techTotal = 0;
+
+            wrappers.forEach(wrapper => {
+                const catName = wrapper.getAttribute('data-category');
+                const isCrops = Object.keys(cropsData).includes(catName);
+                const isFish = Object.keys(fishData).includes(catName);
+                const isTech = Object.keys(techData).includes(catName);
+
+                if (isCrops) cropsTotal++;
+                if (isFish) fishTotal++;
+                if (isTech) techTotal++;
+
+                let hideThis = hiddenCategories.includes(catName);
+
+                // Calculate if category is 100% completed
+                const totalItems = wrapper.querySelectorAll('input[type="checkbox"]').length;
+                const checkedItems = wrapper.querySelectorAll('input[type="checkbox"]:checked').length;
+                const isCompleted = (totalItems > 0 && totalItems === checkedItems);
+
+                if (!hideThis && autoHideCompleted && isCompleted) {
+                    hideThis = true;
+                }
+
+                if (hideThis) {
+                    wrapper.classList.add('hidden');
+                } else {
+                    wrapper.classList.remove('hidden');
+                    if (isCrops) cropsVisible++;
+                    if (isFish) fishVisible++;
+                    if (isTech) techVisible++;
+                }
+            });
+
+            // Update header badges
+            document.getElementById('crops-visible-badge').innerText = `${cropsVisible}/${cropsTotal} shown`;
+            document.getElementById('fish-visible-badge').innerText = `${fishVisible}/${fishTotal} shown`;
+            document.getElementById('any-visible-badge').innerText = `${techVisible}/${techTotal} shown`;
+        }
+
+        function toggleItem(id) {
+            const cb = document.getElementById(id);
+            const label = cb.nextElementSibling;
+            label.classList.toggle('completed-text', cb.checked);
+            
+            updateProgress();
+            
+            // Re-apply filters immediately when progress changes (vital for auto-hide trigger)
+            applyFilters();
+            buildFilterDropdown();
+
+            syncToSheet(id, cb.checked ? 'visited' : 'removed');
+        }
+
+        function updateProgress() {
+            const total = document.querySelectorAll('input[type="checkbox"]').length;
+            const checked = document.querySelectorAll('input[type="checkbox"]:checked').length;
+            const percent = Math.round((checked / total) * 100) || 0;
+            
+            const bar = document.getElementById('master-progress');
+            bar.style.width = percent + '%';
+            bar.innerText = percent + '%';
+            document.getElementById('stats-text').innerText = `${checked} / ${total} items collected`;
+        }
+
+        window.onload = function() {
+            render();
+            const params = new URLSearchParams(window.location.search);
+            const autoUser = params.get('user');
+            if (autoUser) {
+                currentUser = autoUser;
+                initializeSession();
+            }
+        };
+    </script>
+</body>
+</html>

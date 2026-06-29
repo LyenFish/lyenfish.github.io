@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zero Budget - Personal & Joint</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .progress-bar { transition: width 0.3s ease; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .tab-active { border-bottom: 3px solid #6366f1; color: #818cf8; }
+        
+        .autocomplete-items {
+            position: absolute;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        .category-card.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+            border: 2px dashed #6366f1;
+        }
+        
+        .drag-handle {
+            cursor: grab;
+        }
+        
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .modal-backdrop {
+            background-color: rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 min-h-screen font-sans text-slate-200">
+
+    <div class="max-w-6xl mx-auto p-4 md:p-8">
+        <!-- Header -->
+        <header class="flex flex-col mb-8 gap-6">
+            <div class="flex flex-wrap justify-between items-center gap-4">
+                <div class="flex items-center gap-4">
+                    <h1 class="text-3xl font-black text-slate-100 tracking-tight">Zero Budget</h1>
+                    <!-- Budget Switcher -->
+                    <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
+                        <button onclick="switchBudget('joint')" id="btnBudgetJoint" class="px-4 py-2 rounded-lg text-sm font-bold transition"></button>
+                        <button onclick="switchBudget('personal')" id="btnBudgetPersonal" class="px-4 py-2 rounded-lg text-sm font-bold transition"></button>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="openSettings()" class="bg-slate-900 border border-slate-800 p-2 rounded-lg text-slate-400 hover:text-white transition" title="Settings & Help">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                    <div class="w-px h-8 bg-slate-800 mx-1"></div>
+                    <button onclick="document.getElementById('csvImportInput').click()" class="bg-slate-900 border border-slate-800 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-800 transition text-slate-300">
+                        Import
+                    </button>
+                    <input type="file" id="csvImportInput" accept=".csv" class="hidden" onchange="importFromCSV(event)">
+                    <button onclick="exportToCSV()" class="bg-slate-900 border border-slate-800 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-800 transition text-slate-300">
+                        Export
+                    </button>
+                    <button onclick="clearData()" class="bg-red-950/30 text-red-400 border border-red-900/50 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-900/40 transition">
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Month Selector Grid -->
+            <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-2">
+                    <div class="flex items-center gap-4">
+                        <button onclick="changeYear(-1)" class="text-slate-500 hover:text-white p-2">◀</button>
+                        <span id="currentYearDisplay" class="text-xl font-bold text-indigo-400 min-w-[60px] text-center">2024</span>
+                        <button onclick="changeYear(1)" class="text-slate-500 hover:text-white p-2">▶</button>
+                    </div>
+                    <div id="monthGrid" class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2 flex-1">
+                        <!-- Month buttons injected here -->
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Left: Distribution -->
+            <div class="lg:col-span-7 space-y-6">
+                
+                <!-- Budgeted Pool -->
+                <div id="mainPoolCard" class="bg-indigo-700 text-white p-8 rounded-3xl shadow-2xl shadow-indigo-950/20 transition-colors duration-500">
+                    <div class="flex justify-between items-center mb-4">
+                        <span id="poolBudgetLabel" class="text-indigo-100 font-bold uppercase tracking-wider text-sm">Budget</span>
+                        <span id="poolMonthLabel" class="bg-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">Global Pool</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-5xl font-bold text-indigo-100">$</span>
+                            <span id="displayTotalPool" class="text-5xl font-bold tracking-tight">0.00</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs font-bold uppercase tracking-widest text-indigo-200 mb-1">Month Total Spent</div>
+                            <div class="text-2xl font-mono font-bold text-white">-$<span id="displayMonthSpend">0.00</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 pt-6 border-t border-indigo-600/50 grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-widest text-indigo-200 mb-2">Manual Funds (Month)</label>
+                            <input type="number" id="manualBase" oninput="updateManualBase(this.value)" placeholder="0" class="bg-indigo-800/50 text-white px-4 py-3 rounded-xl focus:outline-none w-full font-mono border border-indigo-600/30 text-lg">
+                        </div>
+                        <div id="unassignedWarning" class="bg-slate-950/30 p-4 rounded-xl flex flex-col justify-center border border-white/5">
+                            <span class="text-xs uppercase font-bold text-indigo-200 mb-1">Left to Assign</span>
+                            <span id="leftToDistribute" class="font-mono font-bold text-2xl leading-none">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category Manager -->
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                    <div class="flex gap-2 items-center">
+                        <input type="text" id="newCatName" onkeydown="if(event.key==='Enter') addCategory()" placeholder="New Category (e.g. Services)" class="flex-1 bg-slate-800 border border-slate-700 p-4 rounded-xl focus:outline-none text-slate-200 placeholder:text-slate-500">
+                        <button id="btnAddCategory" onclick="addCategory()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-500 transition">Add</button>
+                        <button onclick="sortCategoriesAlpha()" title="Sort Alphabetically" class="bg-slate-800 text-slate-400 hover:text-indigo-400 p-3 rounded-xl border border-slate-700 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="M11 4h10"/><path d="M11 8h7"/><path d="M11 12h4"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="categoryList" class="space-y-4">
+                    <!-- Categories -->
+                </div>
+            </div>
+
+            <!-- Right: Transactions & Templates -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <!-- Quick Templates -->
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-sm">
+                    <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4 flex justify-between items-center">
+                        Templates
+                        <button onclick="toggleTemplateForm()" id="btnToggleTemplate" class="bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30 px-3 py-1 rounded-md text-xs font-bold transition">+ New</button>
+                    </h2>
+                    
+                    <div id="templateForm" class="hidden mb-6 p-5 bg-slate-800/50 rounded-2xl border border-slate-700 space-y-4">
+                        <input type="text" id="tempName" placeholder="Template Label (e.g. Grocery Trip)" class="w-full bg-slate-900 p-3 rounded-xl text-sm border border-slate-700">
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="number" id="tempAmount" placeholder="Fixed Amount" class="w-full bg-slate-900 p-3 rounded-xl text-sm border border-slate-700">
+                            <input type="text" id="tempPayee" placeholder="Payee" class="w-full bg-slate-900 p-3 rounded-xl text-sm border border-slate-700">
+                        </div>
+                        <input type="text" id="tempConcept" placeholder="Default Concept (Optional)" class="w-full bg-slate-900 p-3 rounded-xl text-sm border border-slate-700">
+                        <select id="tempCategory" class="w-full bg-slate-900 p-3 rounded-xl text-sm border border-slate-700"></select>
+                        <button id="btnSaveTemplate" onclick="saveTemplate()" class="w-full bg-indigo-600 py-3 rounded-xl text-sm font-bold shadow-lg shadow-indigo-900/20">Save Template</button>
+                    </div>
+
+                    <div id="templateList" class="flex flex-wrap gap-2">
+                        <!-- Templates -->
+                    </div>
+                </div>
+
+                <!-- Transaction Logger -->
+                <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-sm relative">
+                    <div class="flex border-b border-slate-800 mb-6">
+                        <button id="tabExpense" onclick="setTxType('expense')" class="flex-1 py-3 font-bold text-sm tab-active text-indigo-400 uppercase tracking-widest">Expense</button>
+                        <button id="tabIncome" onclick="setTxType('income')" class="flex-1 py-3 font-bold text-sm text-slate-500 uppercase tracking-widest">Income</button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="space-y-1">
+                                <label class="text-[10px] uppercase font-bold text-slate-500 ml-1">Date</label>
+                                <input type="date" id="tDate" class="bg-slate-800 border border-slate-700 p-3 rounded-xl w-full text-sm text-slate-200">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[10px] uppercase font-bold text-slate-500 ml-1">Amount ($)</label>
+                                <input type="number" id="tAmount" placeholder="0.00" class="bg-slate-800 border border-slate-700 p-3 rounded-xl w-full text-base font-bold text-slate-100">
+                            </div>
+                        </div>
+                        <div class="relative space-y-1">
+                            <label class="text-[10px] uppercase font-bold text-slate-500 ml-1">Payee</label>
+                            <input type="text" id="tPayee" placeholder="Where did it go?" autocomplete="off" onfocus="showAllPayees()" class="bg-slate-800 border border-slate-700 p-3 rounded-xl w-full text-sm text-slate-200">
+                            <div id="autocompleteList" class="autocomplete-items hidden bg-slate-900 border border-slate-700 rounded-xl mt-1 shadow-2xl overflow-hidden ring-1 ring-white/10"></div>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] uppercase font-bold text-slate-500 ml-1">Concept / Notes</label>
+                            <input type="text" id="tConcept" placeholder="What was it for?" class="bg-slate-800 border border-slate-700 p-3 rounded-xl w-full text-sm text-slate-200">
+                        </div>
+                        <div id="categorySelectorWrapper" class="space-y-1">
+                            <label class="text-[10px] uppercase font-bold text-slate-500 ml-1">Category</label>
+                            <select id="tCategory" class="bg-slate-800 border border-slate-700 p-3 rounded-xl w-full text-sm text-slate-200"></select>
+                        </div>
+                        <button onclick="addTransaction()" id="btnSubmit" class="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black hover:bg-indigo-500 transition text-xl shadow-xl shadow-indigo-950/40 uppercase tracking-tighter">Log Transaction</button>
+                    </div>
+                </div>
+
+                <!-- Ledger -->
+                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+                    <div class="p-4 bg-slate-800/50 border-b border-slate-800 flex justify-between items-center cursor-pointer hover:bg-slate-800 transition" onclick="clearLedgerFilter()" title="Clear Filters">
+                        <h2 class="font-bold text-slate-300 text-base">History: <span id="ledgerTitle" class="text-indigo-400">Month</span></h2>
+                        <div class="flex items-center gap-2">
+                            <span id="activeFilterBadge" class="hidden text-[8px] bg-indigo-600 text-white px-2 py-0.5 rounded font-black uppercase tracking-tighter">Filtered</span>
+                            <span class="text-[10px] text-slate-500 uppercase font-black px-2 py-1 bg-slate-900 rounded border border-slate-700" id="transactionCount">0</span>
+                        </div>
+                    </div>
+                    <div id="ledger" class="max-h-[600px] overflow-y-auto"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-4 modal-backdrop">
+        <div class="bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-800 shadow-2xl overflow-hidden">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <h2 class="text-xl font-bold">Settings & Help</h2>
+                <button onclick="closeSettings()" class="text-slate-500 hover:text-white">✕</button>
+            </div>
+            <div class="p-6 space-y-6">
+                <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+                    <h3 class="text-xs font-black text-indigo-400 uppercase tracking-widest mb-3">How to Use</h3>
+                    <ul class="text-sm text-slate-400 space-y-2 list-disc list-inside">
+                        <li><span class="text-slate-200">Templates:</span> Save frequent transactions (like coffee or groceries) to log them in one click.</li>
+                        <li><span class="text-slate-200">Filter History:</span> Click any <span class="font-bold">Category Title</span> to see only its expenses in the history window.</li>
+                        <li><span class="text-slate-200">Reset View:</span> Click the <span class="font-bold">"History: [Month]"</span> header to see all expenses again.</li>
+                        <li><span class="text-slate-200">Reorder:</span> Drag the <span class="font-bold">grid handle</span> on category cards to sort them how you like.</li>
+                        <li><span class="text-slate-200">Sync:</span> Use <span class="font-bold">Export/Import</span> to backup or move your data between devices.</li>
+                    </ul>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Primary Budget Name</label>
+                        <input type="text" id="settingJointName" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Secondary Budget Name</label>
+                        <input type="text" id="settingPersonalName" class="w-full bg-slate-800 border border-slate-700 p-3 rounded-xl focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <button onclick="saveSettings()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-500 transition shadow-lg shadow-indigo-950/40">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-8 right-8 bg-indigo-600 text-white px-6 py-4 rounded-2xl shadow-2xl transform translate-y-32 transition duration-300 opacity-0 pointer-events-none z-[300] font-bold border border-white/10"></div>
+
+    <script>
+        const STORAGE_KEY = 'zero_budget_v10_preload';
+        
+        const preloadedCategories = [
+            "Las Niñas",
+            "Groceries",
+            "Dining Out",
+            "Munchies",
+            "CFE",
+            "Stuff I Forgot to Budget For"
+        ];
+
+        let state = {
+            activeBudgetId: 'joint',
+            ledgerFilterCatId: null,
+            settings: {
+                jointName: "El Nuestro Budget",
+                personalName: "El Mío Budget"
+            },
+            budgets: {
+                joint: {
+                    monthlyBases: {}, 
+                    categories: [],   
+                    assignments: {},  
+                    transactions: [],
+                    templates: []
+                },
+                personal: {
+                    monthlyBases: {}, 
+                    categories: [],   
+                    assignments: {},  
+                    transactions: [],
+                    templates: []
+                }
+            },
+            currentTxType: 'expense',
+            selectedYear: new Date().getFullYear(),
+            selectedMonth: new Date().getMonth() + 1
+        };
+
+        const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+        function loadData() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                state = JSON.parse(saved);
+            }
+            
+            // Ensure preloaded categories exist if empty
+            ['joint', 'personal'].forEach(bId => {
+                if (state.budgets[bId].categories.length === 0) {
+                    preloadedCategories.forEach((name, idx) => {
+                        state.budgets[bId].categories.push({ id: Date.now() + idx, name });
+                    });
+                }
+            });
+
+            const now = new Date();
+            if (!state.selectedYear) state.selectedYear = now.getFullYear();
+            if (!state.selectedMonth) state.selectedMonth = now.getMonth() + 1;
+            document.getElementById('tDate').valueAsDate = now;
+            
+            initAutocomplete();
+            initDragAndDrop();
+            render();
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            render();
+        }
+
+        function getSelectedMonth() {
+            return `${state.selectedYear}-${String(state.selectedMonth).padStart(2, '0')}`;
+        }
+
+        function switchBudget(id) {
+            state.activeBudgetId = id;
+            state.ledgerFilterCatId = null; 
+            setTxType(state.currentTxType);
+            saveData();
+        }
+
+        function setMonth(m) {
+            state.selectedMonth = m;
+            saveData();
+        }
+
+        function changeYear(offset) {
+            state.selectedYear += offset;
+            saveData();
+        }
+
+        function updateManualBase(val) {
+            const budget = state.budgets[state.activeBudgetId];
+            const monthStr = getSelectedMonth();
+            budget.monthlyBases[monthStr] = parseFloat(val) || 0;
+            saveData();
+        }
+
+        function addCategory(nameStr = null) {
+            const budget = state.budgets[state.activeBudgetId];
+            const name = nameStr || document.getElementById('newCatName').value.trim();
+            if (!name) return null;
+            
+            const existing = budget.categories.find(c => c.name.toLowerCase() === name.toLowerCase());
+            if (existing) return existing.id;
+
+            const newId = Date.now() + Math.floor(Math.random() * 1000);
+            budget.categories.unshift({ id: newId, name });
+            
+            if (!nameStr) {
+                document.getElementById('newCatName').value = '';
+                saveData();
+            }
+            return newId;
+        }
+
+        function updateAssigned(catId, amount, monthOverride = null) {
+            const budget = state.budgets[state.activeBudgetId];
+            const month = monthOverride || getSelectedMonth();
+            if (!budget.assignments[month]) budget.assignments[month] = {};
+            budget.assignments[month][catId] = parseFloat(amount) || 0;
+            saveData();
+        }
+
+        function sortCategoriesAlpha() {
+            const budget = state.budgets[state.activeBudgetId];
+            budget.categories.sort((a, b) => a.name.localeCompare(b.name));
+            saveData();
+            showToast("Sorted A-Z");
+        }
+
+        function filterLedgerByCategory(catId) {
+            state.ledgerFilterCatId = catId;
+            saveData();
+            showToast("Filtering History");
+        }
+
+        function clearLedgerFilter() {
+            state.ledgerFilterCatId = null;
+            saveData();
+            showToast("Showing All History");
+        }
+
+        function moveCategoryToTop(catId) {
+            const budget = state.budgets[state.activeBudgetId];
+            const index = budget.categories.findIndex(c => c.id === catId);
+            if (index > 0) {
+                const [cat] = budget.categories.splice(index, 1);
+                budget.categories.unshift(cat);
+            }
+        }
+
+        function handleAssignFocus(input) { if (parseFloat(input.value) === 0) input.value = ''; }
+        function handleAssignBlur(input, catId) {
+            if (input.value === '') input.value = '0';
+            updateAssigned(catId, input.value);
+        }
+
+        function toggleTemplateForm() {
+            const f = document.getElementById('templateForm');
+            f.classList.toggle('hidden');
+            document.getElementById('btnToggleTemplate').innerText = f.classList.contains('hidden') ? '+ New' : 'Cancel';
+        }
+
+        function saveTemplate() {
+            const budget = state.budgets[state.activeBudgetId];
+            const name = document.getElementById('tempName').value.trim();
+            const amount = document.getElementById('tempAmount').value ? parseFloat(document.getElementById('tempAmount').value) : null;
+            const payee = document.getElementById('tempPayee').value.trim();
+            const concept = document.getElementById('tempConcept').value.trim();
+            const catId = document.getElementById('tempCategory').value;
+
+            if (!name || !payee || !catId) return showToast("Name, Payee and Category are required");
+
+            budget.templates.push({
+                id: Date.now(),
+                name, amount, payee, concept,
+                catId: parseInt(catId)
+            });
+
+            ['tempName', 'tempAmount', 'tempPayee', 'tempConcept', 'tempCategory'].forEach(id => document.getElementById(id).value = '');
+            toggleTemplateForm();
+            saveData();
+        }
+
+        function applyTemplate(tid) {
+            const budget = state.budgets[state.activeBudgetId];
+            const t = budget.templates.find(item => item.id === tid);
+            if (!t) return;
+            document.getElementById('tPayee').value = t.payee;
+            document.getElementById('tCategory').value = t.catId;
+            document.getElementById('tAmount').value = t.amount !== null ? t.amount : '';
+            document.getElementById('tConcept').value = t.concept || '';
+            setTxType('expense');
+            document.getElementById('tAmount').focus();
+            showToast(`Applied ${t.name}`);
+        }
+
+        function deleteTemplate(tid, e) {
+            e.stopPropagation();
+            const budget = state.budgets[state.activeBudgetId];
+            budget.templates = budget.templates.filter(t => t.id !== tid);
+            saveData();
+        }
+
+        function formatDisplayDate(dateStr) {
+            const parts = dateStr.split('-');
+            if(parts.length !== 3) return dateStr;
+            const y = parts[0];
+            const m = parseInt(parts[1]) - 1;
+            const d = parts[2];
+            return `${monthNames[m]} - ${d} - ${y}`;
+        }
+
+        function addTransaction() {
+            const budget = state.budgets[state.activeBudgetId];
+            const dateStr = document.getElementById('tDate').value;
+            const amount = parseFloat(document.getElementById('tAmount').value);
+            const payee = document.getElementById('tPayee').value.trim();
+            const concept = document.getElementById('tConcept').value.trim();
+            const catId = state.currentTxType === 'expense' ? document.getElementById('tCategory').value : null;
+
+            if (!amount || (state.currentTxType === 'expense' && !catId)) return showToast("Amount and Category are required");
+
+            const cid = catId ? parseInt(catId) : null;
+            budget.transactions.unshift({
+                id: Date.now(),
+                type: state.currentTxType,
+                date: dateStr,
+                amount, payee, concept,
+                catId: cid
+            });
+
+            if (cid) moveCategoryToTop(cid);
+            document.getElementById('tAmount').value = '';
+            document.getElementById('tPayee').value = '';
+            document.getElementById('tConcept').value = '';
+            saveData();
+            showToast("Transaction Logged");
+        }
+
+        function openSettings() {
+            document.getElementById('settingJointName').value = state.settings.jointName;
+            document.getElementById('settingPersonalName').value = state.settings.personalName;
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+
+        function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
+
+        function saveSettings() {
+            state.settings.jointName = document.getElementById('settingJointName').value.trim() || "El Nuestro Budget";
+            state.settings.personalName = document.getElementById('settingPersonalName').value.trim() || "El Mío Budget";
+            closeSettings();
+            saveData();
+            showToast("Names Updated");
+        }
+
+        function render() {
+            const activeMonthStr = getSelectedMonth();
+            const activeBudget = state.budgets[state.activeBudgetId];
+            const isPersonal = state.activeBudgetId === 'personal';
+            const accentBase = isPersonal ? 'emerald' : 'indigo';
+
+            document.getElementById('btnBudgetJoint').innerText = state.settings.jointName;
+            document.getElementById('btnBudgetPersonal').innerText = state.settings.personalName;
+            document.getElementById('currentYearDisplay').innerText = state.selectedYear;
+            
+            const btnJoint = document.getElementById('btnBudgetJoint');
+            const btnPersonal = document.getElementById('btnBudgetPersonal');
+            btnJoint.className = `px-4 py-2 rounded-lg text-sm font-bold transition ${!isPersonal ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`;
+            btnPersonal.className = `px-4 py-2 rounded-lg text-sm font-bold transition ${isPersonal ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`;
+
+            const poolCard = document.getElementById('mainPoolCard');
+            poolCard.className = `p-8 rounded-3xl shadow-2xl transition-colors duration-500 text-white bg-${accentBase}-700 shadow-${accentBase}-950/20`;
+
+            const monthGrid = document.getElementById('monthGrid');
+            monthGrid.innerHTML = monthNames.map((name, i) => {
+                const mNum = i + 1;
+                const isActive = mNum === state.selectedMonth;
+                return `<button onclick="setMonth(${mNum})" class="py-2 rounded-xl text-xs font-bold border border-slate-800 bg-slate-800/50 hover:bg-slate-700 transition ${isActive ? `bg-${accentBase}-600 border-${accentBase}-500 text-white` : 'text-slate-400'}">${name}</button>`;
+            }).join('');
+
+            const monthBase = activeBudget.monthlyBases?.[activeMonthStr] || 0;
+            document.getElementById('manualBase').value = monthBase;
+            document.getElementById('manualBase').className = `bg-${accentBase}-800/50 text-white px-4 py-3 rounded-xl focus:outline-none w-full font-mono border border-${accentBase}-600/30 text-lg`;
+
+            const incomesThisMonth = activeBudget.transactions
+                .filter(t => t.type === 'income' && t.date.startsWith(activeMonthStr))
+                .reduce((acc, curr) => acc + curr.amount, 0);
+            
+            const totalPoolForThisMonth = monthBase + incomesThisMonth;
+            document.getElementById('displayTotalPool').innerText = totalPoolForThisMonth.toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('poolBudgetLabel').innerText = isPersonal ? state.settings.personalName : state.settings.jointName;
+            document.getElementById('poolMonthLabel').innerText = `${monthNames[state.selectedMonth-1]} ${state.selectedYear}`;
+
+            const totalSpentInActiveMonth = activeBudget.transactions
+                .filter(t => t.type === 'expense' && t.date.startsWith(activeMonthStr))
+                .reduce((acc, curr) => acc + curr.amount, 0);
+            
+            document.getElementById('displayMonthSpend').innerText = totalSpentInActiveMonth.toLocaleString('en-US', {minimumFractionDigits: 2});
+
+            let assignedThisMonth = 0;
+            if (activeBudget.assignments[activeMonthStr]) {
+                Object.values(activeBudget.assignments[activeMonthStr]).forEach(amt => assignedThisMonth += amt);
+            }
+
+            const leftToDistribute = totalPoolForThisMonth - assignedThisMonth;
+            const leftEl = document.getElementById('leftToDistribute');
+            leftEl.innerText = `$${leftToDistribute.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+            leftEl.className = leftToDistribute < 0 ? "font-mono font-bold text-2xl text-red-400" : `font-mono font-bold text-2xl text-${accentBase}-400`;
+
+            const catContainer = document.getElementById('categoryList');
+            catContainer.innerHTML = activeBudget.categories.map(cat => {
+                let totalAssignedToCatAllTime = 0;
+                Object.keys(activeBudget.assignments).forEach(m => {
+                    totalAssignedToCatAllTime += (activeBudget.assignments[m][cat.id] || 0);
+                });
+                const totalSpentToCatAllTime = activeBudget.transactions
+                    .filter(t => t.type === 'expense' && t.catId === cat.id)
+                    .reduce((acc, curr) => acc + curr.amount, 0);
+                
+                const lifetimeBalance = totalAssignedToCatAllTime - totalSpentToCatAllTime;
+                const assignedThisMonthVal = activeBudget.assignments[activeMonthStr]?.[cat.id] || 0;
+                const spentThisMonth = activeBudget.transactions
+                    .filter(t => t.type === 'expense' && t.catId === cat.id && t.date.startsWith(activeMonthStr))
+                    .reduce((acc, curr) => acc + curr.amount, 0);
+
+                return `
+                    <div class="category-card bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-sm" draggable="true" data-id="${cat.id}">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-start gap-4 flex-1">
+                                <div class="drag-handle text-slate-700 hover:text-slate-500 mt-1 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 onclick="filterLedgerByCategory(${cat.id})" class="font-bold text-xl text-slate-100 hover:text-${accentBase}-400 cursor-pointer transition-colors">${cat.name}</h3>
+                                    <div class="flex flex-wrap gap-x-8 gap-y-2 mt-2">
+                                        <div class="text-xs uppercase tracking-widest text-slate-400 font-bold">
+                                            Spent: <span class="text-slate-200">$${spentThisMonth.toLocaleString()}</span>
+                                        </div>
+                                        <div class="text-xs uppercase tracking-widest text-slate-400 font-bold">
+                                            Available: <span class="${lifetimeBalance < 0 ? 'text-red-400' : 'text-' + accentBase + '-400'}">$${lifetimeBalance.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="removeCategory(${cat.id})" class="text-slate-700 hover:text-red-500 p-2">✕</button>
+                        </div>
+                        <div class="flex items-center gap-6 mt-6">
+                            <div class="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+                                <div class="progress-bar h-full ${lifetimeBalance < 0 ? 'bg-red-500' : 'bg-' + accentBase + '-500'}" style="width: ${Math.min(100, (spentThisMonth / (assignedThisMonthVal || 1)) * 100)}%"></div>
+                            </div>
+                            <div class="flex items-center gap-2 border-b-2 border-slate-800 focus-within:border-${accentBase}-500 transition-colors pb-1">
+                                <span class="text-xs text-slate-500 font-black uppercase">Assign $</span>
+                                <input type="number" placeholder="0" onfocus="handleAssignFocus(this)" onblur="handleAssignBlur(this, ${cat.id})" value="${assignedThisMonthVal === 0 ? '' : assignedThisMonthVal}" class="w-24 text-base font-bold text-right bg-transparent text-${accentBase}-400 focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('btnAddCategory').className = `bg-${accentBase}-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-${accentBase}-500 transition`;
+            document.getElementById('btnSaveTemplate').className = `w-full bg-${accentBase}-600 py-3 rounded-xl text-sm font-bold shadow-lg shadow-${accentBase}-900/20`;
+
+            const templateContainer = document.getElementById('templateList');
+            templateContainer.innerHTML = activeBudget.templates.map(t => `
+                <button onclick="applyTemplate(${t.id})" class="group bg-slate-800/50 border border-slate-700 px-4 py-3 rounded-2xl text-xs font-bold text-slate-300 hover:border-${accentBase}-500 hover:bg-slate-800 flex items-center gap-3 transition">
+                    <span class="flex flex-col items-start">
+                        <span class="text-slate-100">${t.name}</span>
+                        <span class="text-[10px] text-${accentBase}-400 uppercase tracking-tighter">${t.payee} ${t.amount ? '· $' + t.amount : ''}</span>
+                    </span>
+                    <span onclick="deleteTemplate(${t.id}, event)" class="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-500 p-1">✕</span>
+                </button>
+            `).join('');
+
+            const ledgerContainer = document.getElementById('ledger');
+            let monthTx = activeBudget.transactions.filter(t => t.date.startsWith(activeMonthStr));
+            
+            const badge = document.getElementById('activeFilterBadge');
+            if (state.ledgerFilterCatId) {
+                monthTx = monthTx.filter(t => t.catId === state.ledgerFilterCatId);
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            document.getElementById('ledgerTitle').innerText = `${monthNames[state.selectedMonth-1]} ${state.selectedYear}`;
+            document.getElementById('transactionCount').innerText = `${monthTx.length} Entries`;
+
+            ledgerContainer.innerHTML = monthTx.length ? monthTx.map(t => {
+                const isInc = t.type === 'income';
+                const c = activeBudget.categories.find(cat => cat.id === t.catId);
+                return `
+                    <div class="p-5 border-b border-slate-800/50 hover:bg-slate-800/30 group transition-colors">
+                        <div class="flex justify-between items-start mb-1">
+                            <div class="flex-1">
+                                <span class="text-[10px] font-black uppercase tracking-widest ${isInc ? 'text-emerald-500' : 'text-' + accentBase + '-500'} block mb-1">
+                                    ${isInc ? 'Income' : (c?.name || 'Expense')}
+                                </span>
+                                <div class="flex items-baseline justify-between gap-4">
+                                    <span class="text-lg font-bold text-slate-100 leading-none">${t.payee || 'Misc'}</span>
+                                    <span class="text-xs font-bold uppercase tracking-tight text-slate-500 font-mono whitespace-nowrap opacity-80">
+                                        ${formatDisplayDate(t.date)}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center mt-2">
+                             <span class="text-sm text-slate-400 font-medium italic truncate max-w-[70%]">${t.concept || 'No description'}</span>
+                             <div class="flex items-center gap-4">
+                                <span class="font-mono text-xl font-bold ${isInc ? 'text-emerald-400' : 'text-red-400'}">
+                                    ${isInc ? '+' : '-'}$${t.amount.toLocaleString()}
+                                </span>
+                                <button onclick="deleteTransaction(${t.id})" class="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-500 transition-all p-1">✕</button>
+                             </div>
+                        </div>
+                    </div>
+                `;
+            }).join('') : `<div class="p-16 text-center text-slate-600 text-base italic">No entries found for this view.</div>`;
+
+            renderCategoryDropdowns();
+        }
+
+        function initDragAndDrop() {
+            const container = document.getElementById('categoryList');
+            let dragTarget = null;
+            container.addEventListener('dragstart', (e) => {
+                const card = e.target.closest('.category-card');
+                if (!card) return;
+                dragTarget = card;
+                card.classList.add('dragging');
+            });
+            container.addEventListener('dragend', () => {
+                const budget = state.budgets[state.activeBudgetId];
+                if (dragTarget) {
+                    dragTarget.classList.remove('dragging');
+                    const newOrder = Array.from(container.querySelectorAll('.category-card')).map(card => 
+                        budget.categories.find(c => c.id == card.dataset.id)
+                    );
+                    budget.categories = newOrder;
+                    saveData();
+                }
+                dragTarget = null;
+            });
+            container.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const dragging = document.querySelector('.dragging');
+                if (!dragging) return;
+                const afterElement = [...container.querySelectorAll('.category-card:not(.dragging)')].reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = e.clientY - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+                    else return closest;
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+                if (afterElement == null) container.appendChild(dragging);
+                else container.insertBefore(dragging, afterElement);
+            });
+        }
+
+        function showAllPayees() {
+            const input = document.getElementById('tPayee');
+            const list = document.getElementById('autocompleteList');
+            const val = input.value;
+            const budget = state.budgets[state.activeBudgetId];
+            list.innerHTML = '';
+            const allPayees = [...new Set(budget.transactions.map(t => t.payee))].filter(p => p);
+            const filtered = val ? allPayees.filter(p => p.toLowerCase().includes(val.toLowerCase())) : allPayees;
+            if (filtered.length) {
+                list.classList.remove('hidden');
+                filtered.slice(0, 10).forEach(m => {
+                    const d = document.createElement('div');
+                    d.className = "p-4 hover:bg-slate-800 cursor-pointer text-sm border-b border-slate-800/50 text-slate-300 transition-colors last:border-0";
+                    d.innerText = m;
+                    d.onmousedown = (e) => {
+                        e.preventDefault();
+                        input.value = m;
+                        list.classList.add('hidden');
+                        const last = budget.transactions.find(t => t.payee === m && t.catId);
+                        if (last && state.currentTxType === 'expense') {
+                            const existsInCurrent = budget.categories.some(c => c.id === last.catId);
+                            if (existsInCurrent) document.getElementById('tCategory').value = last.catId;
+                        }
+                    };
+                    list.appendChild(d);
+                });
+            } else { list.classList.add('hidden'); }
+        }
+
+        function initAutocomplete() {
+            const input = document.getElementById('tPayee');
+            input.addEventListener('input', showAllPayees);
+            input.addEventListener('blur', () => { setTimeout(() => document.getElementById('autocompleteList').classList.add('hidden'), 200); });
+        }
+
+        function setTxType(type) {
+            state.currentTxType = type;
+            const isInc = type === 'income';
+            const isPersonal = state.activeBudgetId === 'personal';
+            const accent = isPersonal ? 'emerald' : 'indigo';
+            document.getElementById('tabIncome').className = isInc ? `flex-1 py-3 font-bold text-sm tab-active text-emerald-400 uppercase tracking-widest` : "flex-1 py-3 font-bold text-sm text-slate-500 uppercase tracking-widest";
+            document.getElementById('tabExpense').className = !isInc ? `flex-1 py-3 font-bold text-sm tab-active text-${accent}-400 uppercase tracking-widest` : "flex-1 py-3 font-bold text-sm text-slate-500 uppercase tracking-widest";
+            document.getElementById('categorySelectorWrapper').style.display = isInc ? 'none' : 'block';
+            document.getElementById('btnSubmit').innerText = isInc ? "Log Income" : "Log Expense";
+            document.getElementById('btnSubmit').className = `w-full bg-${isInc ? 'emerald' : accent}-600 text-white py-5 rounded-2xl font-black hover:bg-${isInc ? 'emerald' : accent}-500 transition text-xl shadow-xl shadow-${isInc ? 'emerald' : accent}-950/40 uppercase tracking-tighter`;
+        }
+
+        function renderCategoryDropdowns() {
+            const budget = state.budgets[state.activeBudgetId];
+            ['tCategory', 'tempCategory'].forEach(id => {
+                const s = document.getElementById(id);
+                if (!s) return;
+                const val = s.value;
+                s.innerHTML = `<option value="">Select Category</option>` + budget.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                if (val) s.value = val;
+            });
+        }
+
+        function deleteTransaction(id) { 
+            state.budgets[state.activeBudgetId].transactions = state.budgets[state.activeBudgetId].transactions.filter(t => t.id !== id); 
+            saveData(); 
+        }
+        function removeCategory(id) { 
+            if(confirm("Delete category? History will remain but unlinked.")) { 
+                state.budgets[state.activeBudgetId].categories = state.budgets[state.activeBudgetId].categories.filter(c => c.id !== id); 
+                saveData(); 
+            } 
+        }
+        function clearData() { if(confirm("Wipe everything?")) { localStorage.clear(); location.reload(); } }
+        function showToast(m) {
+            const t = document.getElementById('toast');
+            t.innerText = m;
+            t.className = "fixed bottom-8 right-8 bg-indigo-600 text-white px-6 py-4 rounded-2xl shadow-2xl transform translate-y-0 opacity-100 transition duration-300 z-[300] font-bold border border-white/10";
+            setTimeout(() => t.className = "fixed bottom-8 right-8 bg-indigo-600 text-white px-6 py-4 rounded-2xl shadow-2xl transform translate-y-32 opacity-0 transition duration-300 pointer-events-none z-[300] font-bold border border-white/10", 2000);
+        }
+
+        function exportToCSV() {
+            const budget = state.budgets[state.activeBudgetId];
+            const name = state.activeBudgetId === 'joint' ? state.settings.jointName : state.settings.personalName;
+            let csv = "Date,Type,Payee,Concept,Amount,Category\n";
+            Object.keys(budget.monthlyBases).forEach(m => {
+                csv += `${m}-01,base,"Manual Funds","Funds for ${m}",${budget.monthlyBases[m]},\n`;
+            });
+            Object.keys(budget.assignments).forEach(m => {
+                Object.keys(budget.assignments[m]).forEach(cid => {
+                    const c = budget.categories.find(cat => cat.id == cid);
+                    if (c) {
+                        csv += `${m}-01,assignment,"Budget Allocation","Budget for ${c.name}",${budget.assignments[m][cid]},"${c.name}"\n`;
+                    }
+                });
+            });
+            budget.transactions.forEach(t => {
+                const cat = budget.categories.find(c => c.id === t.catId)?.name || '';
+                csv += `${t.date},${t.type},"${(t.payee||'').replace(/"/g, '""')}","${(t.concept||'').replace(/"/g, '""')}",${t.amount},"${cat.replace(/"/g, '""')}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `${name.replace(/\s+/g, '_')}_Backup.csv`; a.click();
+        }
+
+        function parseCSVRow(row) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < row.length; i++) {
+                const char = row[i];
+                if (char === '"') {
+                    if (inQuotes && row[i+1] === '"') {
+                        current += '"'; i++;
+                    } else inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else current += char;
+            }
+            result.push(current.trim());
+            return result;
+        }
+
+        function importFromCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (!confirm(`Overwrite ${state.activeBudgetId === 'joint' ? state.settings.jointName : state.settings.personalName} data?`)) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const rows = e.target.result.split(/\r?\n/).filter(r => r.trim());
+                const targetBudget = state.budgets[state.activeBudgetId];
+                targetBudget.monthlyBases = {};
+                targetBudget.categories = [];
+                targetBudget.assignments = {};
+                targetBudget.transactions = [];
+                for (let i = 1; i < rows.length; i++) {
+                    const cols = parseCSVRow(rows[i]);
+                    if (cols.length < 5) continue;
+                    const date = cols[0];
+                    const type = cols[1];
+                    const payee = cols[2];
+                    const concept = cols[3];
+                    const amount = parseFloat(cols[4]);
+                    const catName = cols[5];
+                    const monthKey = date.substring(0, 7);
+                    if (type === 'base') {
+                        targetBudget.monthlyBases[monthKey] = amount;
+                    } else if (type === 'assignment') {
+                        const cid = addCategory(catName);
+                        if (!targetBudget.assignments[monthKey]) targetBudget.assignments[monthKey] = {};
+                        targetBudget.assignments[monthKey][cid] = amount;
+                    } else {
+                        let cid = null;
+                        if (catName) cid = addCategory(catName);
+                        targetBudget.transactions.push({
+                            id: Date.now() + i,
+                            type: type === 'income' ? 'income' : 'expense',
+                            date, amount, payee, concept, catId: cid
+                        });
+                    }
+                }
+                saveData();
+                showToast("Import Successful");
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        window.onload = loadData;
+    </script>
+</body>
+</html>

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pro Spirit Level</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --level-bg: #1a1a1a;
+            --accent: #3b82f6;
+            --success: #22c55e;
+            --bubble-size: 40px;
+        }
+
+        body {
+            background-color: var(--level-bg);
+            color: white;
+            touch-action: none;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Horizontal vial */
+        .vial-h {
+            width: 280px;
+            height: 48px;
+            background: #111;
+            border-radius: 24px;
+            border: 2px solid #444;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+            margin-bottom: 8px;
+        }
+
+        /* Vertical vial */
+        .vial-v {
+            width: 48px;
+            height: 260px;
+            background: #111;
+            border-radius: 24px;
+            border: 2px solid #444;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        }
+
+        .vial-bubble {
+            height: 38px;
+            width: 38px;
+            background: radial-gradient(circle at 30% 30%, #fff 0%, var(--accent) 50%, #1d4ed8 100%);
+            border-radius: 50%;
+            position: absolute;
+            transition: transform 0.05s linear;
+        }
+
+        /* Horizontal bubble centering */
+        .vial-h .vial-bubble {
+            top: 3px;
+            left: 50%;
+            margin-left: -19px;
+        }
+
+        /* Vertical bubble centering */
+        .vial-v .vial-bubble {
+            left: 3px;
+            top: 50%;
+            margin-top: -19px;
+        }
+
+        .vial-mark-h {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(255,255,255,0.25);
+            left: calc(50% - 21px);
+        }
+        .vial-mark-h.right { left: calc(50% + 19px); }
+
+        .vial-mark-v {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(255,255,255,0.25);
+            top: calc(50% - 21px);
+        }
+        .vial-mark-v.bottom { top: calc(50% + 19px); }
+
+        /* The circular level container */
+        .bullseye {
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            border: 4px solid #333;
+            position: relative;
+            background: radial-gradient(circle, #2a2a2a 0%, #111 100%);
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        .ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .bubble {
+            width: var(--bubble-size);
+            height: var(--bubble-size);
+            background: radial-gradient(circle at 30% 30%, #fff 0%, var(--accent) 50%, #1d4ed8 100%);
+            border-radius: 50%;
+            position: absolute;
+            transition: transform 0.05s linear;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+        }
+
+        .is-level .bubble, 
+        .is-level-vial-h #vial-bubble-h,
+        .is-level-vial-v #vial-bubble-v {
+            background: radial-gradient(circle at 30% 30%, #fff 0%, var(--success) 50%, #15803d 100%);
+            box-shadow: 0 0 30px rgba(34, 197, 94, 0.6);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            transition: all 0.2s;
+        }
+        .btn-primary:active {
+            transform: scale(0.95);
+            filter: brightness(1.2);
+        }
+
+        .reading-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #666;
+            margin-bottom: -4px;
+        }
+
+        /* Easter Egg Timer Styling */
+        #timer-container {
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+        }
+
+        #best-record {
+            transition: opacity 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-6 h-screen">
+
+    <!-- Main Displays -->
+    <div id="main-display" class="flex flex-col items-center gap-4">
+        
+        <!-- Horizontal Vial & Reading -->
+        <div class="flex flex-col items-center">
+            <div id="vial-ui-h" class="vial-h">
+                <div class="vial-mark-h"></div>
+                <div class="vial-mark-h right"></div>
+                <div id="vial-bubble-h" class="vial-bubble"></div>
+            </div>
+            <div class="flex flex-col items-center mb-4">
+                <span class="reading-label">Horizontal</span>
+                <div class="text-2xl font-mono font-bold" id="read-h">0.0°</div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-6">
+            <!-- Vertical Vial & Reading -->
+            <div class="flex flex-col items-center">
+                <div id="vial-ui-v" class="vial-v">
+                    <div class="vial-mark-v"></div>
+                    <div class="vial-mark-v bottom"></div>
+                    <div id="vial-bubble-v" class="vial-bubble"></div>
+                </div>
+                <div class="flex flex-col items-center mt-2">
+                    <span class="reading-label">Vertical</span>
+                    <div class="text-xl font-mono font-bold" id="read-v">0.0°</div>
+                </div>
+            </div>
+
+            <!-- Bullseye Level -->
+            <div id="level-ui" class="bullseye">
+                <div class="ring" style="width: 40px; height: 40px; border-color: var(--success); border-width: 2px;"></div>
+                <div class="ring" style="width: 120px; height: 120px;"></div>
+                <div class="ring" style="width: 200px; height: 200px;"></div>
+                <div class="absolute top-1/2 left-0 w-full h-[1px] bg-white/10 -translate-y-1/2"></div>
+                <div class="absolute left-1/2 top-0 h-full w-[1px] bg-white/10 -translate-x-1/2"></div>
+                <div id="bubble" class="bubble" style="top: 50%; left: 50%; margin-top: -20px; margin-left: -20px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Easter Egg Timer Display -->
+    <div class="mt-8 text-center min-h-[80px]">
+        <div id="timer-container" class="opacity-0">
+            <div class="text-success text-xs font-bold uppercase tracking-widest mb-1">Perfect Level Maintained</div>
+            <div id="current-timer" class="text-4xl font-mono font-black text-white">0.00s</div>
+        </div>
+        <div id="best-record" class="text-[10px] text-gray-500 mt-1 uppercase opacity-0">Best: 0.00s</div>
+    </div>
+
+    <!-- Controls -->
+    <div class="w-full max-w-xs space-y-4 mt-4">
+        <div id="request-panel" class="glass-panel p-6 rounded-2xl text-center space-y-4">
+            <p class="text-sm text-gray-300">Sensors needed for high-precision leveling.</p>
+            <button id="start-btn" class="w-full py-3 rounded-xl btn-primary font-bold shadow-lg">START SENSORS</button>
+        </div>
+
+        <div id="controls-panel" class="hidden grid grid-cols-2 gap-3">
+            <button id="calibrate-btn" class="glass-panel py-3 rounded-xl text-sm font-semibold hover:bg-white/10 uppercase">Calibrate</button>
+            <button id="reset-btn" class="glass-panel py-3 rounded-xl text-sm font-semibold hover:bg-white/10 uppercase">Reset</button>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-24 bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium opacity-0 transition-opacity pointer-events-none">
+        Calibrated
+    </div>
+
+    <script>
+        const bubble = document.getElementById('bubble');
+        const levelUI = document.getElementById('level-ui');
+        const vialUIH = document.getElementById('vial-ui-h');
+        const vialUIV = document.getElementById('vial-ui-v');
+        const vialBubbleH = document.getElementById('vial-bubble-h');
+        const vialBubbleV = document.getElementById('vial-bubble-v');
+        const readH = document.getElementById('read-h');
+        const readV = document.getElementById('read-v');
+        const startBtn = document.getElementById('start-btn');
+        const requestPanel = document.getElementById('request-panel');
+        const controlsPanel = document.getElementById('controls-panel');
+        const calibrateBtn = document.getElementById('calibrate-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const toast = document.getElementById('toast');
+
+        // Timer Elements
+        const timerContainer = document.getElementById('timer-container');
+        const currentTimerDisplay = document.getElementById('current-timer');
+        const bestRecordDisplay = document.getElementById('best-record');
+
+        let offset = { x: 0, y: 0 };
+        let currentRotation = { x: 0, y: 0 };
+
+        // State for Timer Easter Egg
+        let startTime = null;
+        let bestTime = 0;
+        let isPerfectlyLevel = false;
+
+        // Smooth timer animation loop
+        function runTimer() {
+            if (isPerfectlyLevel && startTime) {
+                const elapsed = (Date.now() - startTime) / 1000;
+                currentTimerDisplay.innerText = `${elapsed.toFixed(2)}s`;
+                
+                if (elapsed > bestTime) {
+                    bestTime = elapsed;
+                    bestRecordDisplay.innerText = `Best: ${bestTime.toFixed(2)}s`;
+                    bestRecordDisplay.style.opacity = '1';
+                }
+            }
+            requestAnimationFrame(runTimer);
+        }
+        requestAnimationFrame(runTimer);
+
+        function updateUI(beta, gamma) {
+            const x = gamma - offset.x;
+            const y = beta - offset.y;
+            
+            const totalTilt = Math.sqrt(x*x + y*y);
+            
+            // Precision threshold
+            const threshold = 0.5;
+            const bullseyeLevel = totalTilt < threshold;
+            const horizontalLevel = Math.abs(x) < threshold;
+            const verticalLevel = Math.abs(y) < threshold;
+
+            // Update digital readings
+            readH.innerText = `${Math.abs(x).toFixed(1)}°`;
+            readV.innerText = `${Math.abs(y).toFixed(1)}°`;
+
+            // Bullseye Logic
+            if (bullseyeLevel) {
+                levelUI.classList.add('is-level');
+            } else {
+                levelUI.classList.remove('is-level');
+            }
+
+            // Horizontal Vial Logic
+            if (horizontalLevel) {
+                vialUIH.classList.add('is-level-vial-h');
+            } else {
+                vialUIH.classList.remove('is-level-vial-h');
+            }
+
+            // Vertical Vial Logic
+            if (verticalLevel) {
+                vialUIV.classList.add('is-level-vial-v');
+            } else {
+                vialUIV.classList.remove('is-level-vial-v');
+            }
+
+            // Move Bubbles
+            const sensitivity = 8;
+            const maxMove = 110;
+            let moveX = x * sensitivity;
+            let moveY = y * sensitivity;
+            const dist = Math.sqrt(moveX*moveX + moveY*moveY);
+            if (dist > maxMove) {
+                const ratio = maxMove / dist;
+                moveX *= ratio;
+                moveY *= ratio;
+            }
+            bubble.style.transform = `translate(${moveX}px, ${moveY}px)`;
+
+            const hVialMax = 110;
+            let moveVialX = x * sensitivity;
+            moveVialX = Math.max(-hVialMax, Math.min(hVialMax, moveVialX));
+            vialBubbleH.style.transform = `translateX(${moveVialX}px)`;
+
+            const vVialMax = 100;
+            let moveVialY = y * sensitivity;
+            moveVialY = Math.max(-vVialMax, Math.min(vVialMax, moveVialY));
+            vialBubbleV.style.transform = `translateY(${moveVialY}px)`;
+            
+            currentRotation.x = gamma;
+            currentRotation.y = beta;
+
+            // Timer Logic (Easter Egg)
+            checkPerfectLevel(bullseyeLevel, horizontalLevel, verticalLevel);
+        }
+
+        function checkPerfectLevel(b, h, v) {
+            const nowLevel = b && h && v;
+
+            if (nowLevel) {
+                if (!isPerfectlyLevel) {
+                    isPerfectlyLevel = true;
+                    startTime = Date.now();
+                    timerContainer.style.opacity = '1';
+                    if (window.navigator.vibrate) window.navigator.vibrate([10, 30, 10]);
+                }
+            } else {
+                if (isPerfectlyLevel) {
+                    isPerfectlyLevel = false;
+                    startTime = null;
+                    timerContainer.style.opacity = '0';
+                    // Note: Best record stays visible via opacity set in runTimer()
+                }
+            }
+        }
+
+        function handleOrientation(event) {
+            if (event.beta !== null && event.gamma !== null) {
+                updateUI(event.beta, event.gamma);
+            }
+        }
+
+        async function initSensors() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && 
+                typeof DeviceOrientationEvent.requestPermission === 'function') {
+                const permission = await DeviceOrientationEvent.requestPermission();
+                if (permission === 'granted') activate();
+            } else {
+                activate();
+            }
+        }
+
+        function activate() {
+            window.addEventListener('deviceorientation', handleOrientation);
+            requestPanel.classList.add('hidden');
+            controlsPanel.classList.remove('hidden');
+        }
+
+        calibrateBtn.addEventListener('click', () => {
+            offset.x = currentRotation.x;
+            offset.y = currentRotation.y;
+            showToast("Calibrated to current surface");
+        });
+
+        resetBtn.addEventListener('click', () => {
+            offset.x = 0;
+            offset.y = 0;
+            showToast("Calibration reset");
+        });
+
+        function showToast(msg) {
+            toast.innerText = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+        }
+
+        startBtn.addEventListener('click', initSensors);
+    </script>
+</body>
+</html>
