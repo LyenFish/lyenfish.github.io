@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b0f14">
+<title>Compass</title>
+<style>
+  :root {
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: radial-gradient(ellipse at 50% 30%, #151c26 0%, #0b0f14 70%);
+    color: #e8edf4;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  .heading-readout {
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  .heading-deg {
+    font-size: 15vw;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -2px;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+  .heading-deg small { font-size: 0.4em; font-weight: 400; opacity: 0.6; margin-left: 4px; }
+  .heading-card {
+    font-size: 5vw;
+    font-weight: 500;
+    color: #6fb3ff;
+    letter-spacing: 4px;
+    margin-top: 2px;
+  }
+
+  .compass-wrap {
+    position: relative;
+    width: min(82vw, 82vh);
+    height: min(82vw, 82vh);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pointer {
+    position: absolute;
+    top: -2px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 20px solid #ff5a5f;
+    filter: drop-shadow(0 0 6px rgba(255,90,95,0.6));
+    z-index: 5;
+  }
+
+  .dial {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(255,255,255,0.03), transparent 60%),
+      #10161f;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow:
+      inset 0 0 30px rgba(0,0,0,0.6),
+      0 0 40px rgba(0,0,0,0.5);
+    transform: rotate(0deg);
+    will-change: transform;
+  }
+
+  .tick {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 2px;
+    height: 3.5%;
+    background: rgba(255,255,255,0.25);
+    transform-origin: 50% 41vh;
+  }
+  .tick.major {
+    height: 6%;
+    width: 3px;
+    background: rgba(255,255,255,0.55);
+  }
+
+  .label {
+    position: absolute;
+    left: 50%;
+    top: 8%;
+    transform-origin: 50% 42vh;
+    font-weight: 700;
+    font-size: 6.5%;
+    color: #cfd8e3;
+  }
+  .label.n { color: #ff5a5f; }
+  .label.deg {
+    font-weight: 400;
+    font-size: 3.6%;
+    color: rgba(255,255,255,0.4);
+    top: 11.5%;
+  }
+
+  .center-dot {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #6fb3ff;
+    box-shadow: 0 0 10px rgba(111,179,255,0.8);
+    z-index: 4;
+  }
+
+  .status {
+    margin-top: 22px;
+    font-size: 3.6vw;
+    color: rgba(255,255,255,0.45);
+    text-align: center;
+    max-width: 80vw;
+    min-height: 1.4em;
+  }
+
+  #startBtn {
+    margin-top: 24px;
+    padding: 14px 28px;
+    font-size: 4.5vw;
+    font-weight: 600;
+    color: #0b0f14;
+    background: #6fb3ff;
+    border: none;
+    border-radius: 999px;
+    box-shadow: 0 4px 18px rgba(111,179,255,0.35);
+  }
+  #startBtn:active { transform: scale(0.97); }
+
+  .hidden { display: none !important; }
+
+  .calib {
+    color: #ffb44d;
+  }
+</style>
+</head>
+<body>
+
+  <div class="heading-readout">
+    <div class="heading-deg" id="headingDeg">--<small>°</small></div>
+    <div class="heading-card" id="headingCard">&nbsp;</div>
+  </div>
+
+  <div class="compass-wrap">
+    <div class="pointer"></div>
+    <div class="dial" id="dial"></div>
+    <div class="center-dot"></div>
+  </div>
+
+  <div class="status" id="status">Tap start to enable the compass</div>
+  <button id="startBtn">Start Compass</button>
+
+<script>
+(function () {
+  const dial = document.getElementById('dial');
+  const headingDeg = document.getElementById('headingDeg');
+  const headingCard = document.getElementById('headingCard');
+  const status = document.getElementById('status');
+  const startBtn = document.getElementById('startBtn');
+
+  const DIRS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+
+  // Build the dial face (ticks + labels) once.
+  function buildDial() {
+    for (let deg = 0; deg < 360; deg += 10) {
+      const tick = document.createElement('div');
+      tick.className = 'tick' + (deg % 90 === 0 ? ' major' : (deg % 30 === 0 ? ' major' : ''));
+      tick.style.transform = 'rotate(' + deg + 'deg)';
+      dial.appendChild(tick);
+    }
+    const cardinals = [
+      { txt: 'N', deg: 0, cls: 'label n' },
+      { txt: 'E', deg: 90, cls: 'label' },
+      { txt: 'S', deg: 180, cls: 'label' },
+      { txt: 'W', deg: 270, cls: 'label' }
+    ];
+    cardinals.forEach(c => {
+      const el = document.createElement('div');
+      el.className = c.cls;
+      el.style.transform = 'rotate(' + c.deg + 'deg)';
+      const inner = document.createElement('span');
+      inner.style.display = 'inline-block';
+      inner.style.transform = 'rotate(' + (-c.deg) + 'deg)';
+      inner.textContent = c.txt;
+      el.appendChild(inner);
+      dial.appendChild(el);
+    });
+    for (let deg = 30; deg < 360; deg += 30) {
+      if (deg % 90 === 0) continue;
+      const el = document.createElement('div');
+      el.className = 'label deg';
+      el.style.transform = 'rotate(' + deg + 'deg)';
+      const inner = document.createElement('span');
+      inner.style.display = 'inline-block';
+      inner.style.transform = 'rotate(' + (-deg) + 'deg)';
+      inner.textContent = deg + '°';
+      el.appendChild(inner);
+      dial.appendChild(el);
+    }
+  }
+  buildDial();
+
+  function cardinalName(h) {
+    return DIRS[Math.round(h / 22.5) % 16];
+  }
+
+  let lastHeading = null;
+  function render(heading) {
+    heading = ((heading % 360) + 360) % 360;
+    lastHeading = heading;
+    dial.style.transform = 'rotate(' + (-heading) + 'deg)';
+    headingDeg.innerHTML = Math.round(heading) + '<small>°</small>';
+    headingCard.textContent = cardinalName(heading);
+  }
+
+  function screenAngle() {
+    if (screen.orientation && typeof screen.orientation.angle === 'number') {
+      return screen.orientation.angle;
+    }
+    if (typeof window.orientation === 'number') return window.orientation;
+    return 0;
+  }
+
+  let usingAbsoluteFallback = false;
+  let calibWarned = false;
+
+  function onOrientation(event) {
+    let heading = null;
+
+    if (typeof event.webkitCompassHeading === 'number' && !isNaN(event.webkitCompassHeading)) {
+      // iOS: already true compass heading, accounts for device tilt.
+      heading = event.webkitCompassHeading;
+      usingAbsoluteFallback = false;
+    } else if (event.alpha !== null && event.alpha !== undefined) {
+      const isAbsolute = event.absolute === true;
+      usingAbsoluteFallback = !isAbsolute;
+      heading = 360 - event.alpha - screenAngle();
+    } else {
+      return;
+    }
+
+    render(heading);
+    status.classList.remove('calib');
+    status.textContent = usingAbsoluteFallback
+      ? 'Heading may drift — move phone in a figure-8 to calibrate'
+      : '';
+    if (usingAbsoluteFallback && !calibWarned) {
+      calibWarned = true;
+    }
+  }
+
+  function beginListening() {
+    const useAbsoluteEvent = 'ondeviceorientationabsolute' in window;
+    window.addEventListener(
+      useAbsoluteEvent ? 'deviceorientationabsolute' : 'deviceorientation',
+      onOrientation,
+      true
+    );
+
+    setTimeout(() => {
+      if (lastHeading === null) {
+        status.textContent = 'No compass data received. Your device may not support this.';
+      }
+    }, 2500);
+  }
+
+  function needsIOSPermission() {
+    return typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function';
+  }
+
+  startBtn.addEventListener('click', function () {
+    if (needsIOSPermission()) {
+      DeviceOrientationEvent.requestPermission().then(function (result) {
+        if (result === 'granted') {
+          startBtn.classList.add('hidden');
+          status.textContent = 'Locating north…';
+          beginListening();
+        } else {
+          status.textContent = 'Permission denied. Enable motion & orientation access in Settings > Safari.';
+        }
+      }).catch(function (err) {
+        status.textContent = 'Could not request permission: ' + err.message;
+      });
+    } else if (typeof DeviceOrientationEvent === 'undefined') {
+      status.textContent = 'This device/browser does not support orientation sensors.';
+    } else {
+      startBtn.classList.add('hidden');
+      status.textContent = 'Locating north…';
+      beginListening();
+    }
+  });
+})();
+</script>
+</body>
+</html>
