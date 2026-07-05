@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mega Compass Pro</title>
+    <title>Mega Compass</title>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -113,18 +113,22 @@
         <div>
             <h1 class="text-xl font-black tracking-wider text-white flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-accent animate-ping"></span>
-                MEGA COMPASS <span class="text-xs bg-accent px-1.5 py-0.5 rounded text-white font-bold tracking-normal">PRO</span>
+                MEGA COMPASS
             </h1>
             <p class="text-xs text-gray-400">Optimized for Android OS & Web</p>
         </div>
-        <div class="flex gap-2">
-            <!-- Night Mode Button -->
-            <button id="toggle-night" class="p-2.5 bg-panel border border-gray-800 rounded-xl hover:scale-105 active:scale-95 transition" title="Toggle Night Mode">
-                <i data-lucide="moon" class="w-5 h-5 text-gray-300"></i>
+        <div class="flex gap-2 items-center">
+            <!-- Lemon (Italy Waypoint) Toggle Button -->
+            <button id="lemon-btn" class="p-2.5 bg-panel border border-gray-800 rounded-xl hover:scale-105 active:scale-95 transition flex items-center justify-center text-base" title="Plot Italy Waypoint">
+                <span>🍋</span>
             </button>
             <!-- Lock Heading Button -->
             <button id="lock-heading-btn" class="p-2.5 bg-panel border border-gray-800 rounded-xl hover:scale-105 active:scale-95 transition" title="Lock Target Bearing">
                 <i data-lucide="compass" id="lock-icon" class="w-5 h-5 text-gray-300"></i>
+            </button>
+            <!-- Night Mode Button -->
+            <button id="toggle-night" class="p-2.5 bg-panel border border-gray-800 rounded-xl hover:scale-105 active:scale-95 transition" title="Toggle Night Mode">
+                <i data-lucide="moon" class="w-5 h-5 text-gray-300"></i>
             </button>
         </div>
     </div>
@@ -232,52 +236,14 @@
             <!-- Active Waypoints Pills List -->
             <div id="active-waypoints-container" class="flex flex-wrap gap-2 max-h-32 overflow-y-auto no-scrollbar">
                 <!-- Dynamic pills go here -->
-                <p id="no-waypoints-text" class="text-xs text-gray-500 italic py-1">No country waypoints selected. Select countries above to plot on your dial.</p>
+                <p id="no-waypoints-text" class="text-xs text-gray-500 italic py-1">No country waypoints selected. Select countries above or click the lemon 🍋 to plot waypoints.</p>
             </div>
         </div>
 
         <!-- Utility Drawer: Telemetry, GPS, and Settings -->
         <div class="w-full mt-3 space-y-3">
             
-            <!-- GPS & Location Panel -->
-            <div class="bg-panel/60 border border-gray-800 rounded-2xl p-4 backdrop-blur-sm">
-                <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-800/60">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="navigation" class="w-4 h-4 text-accent"></i>
-                        <span class="text-xs font-semibold tracking-wider uppercase text-gray-400">GPS Telemetry</span>
-                    </div>
-                    <span id="gps-accuracy" class="text-[10px] bg-gray-800 px-2 py-0.5 rounded text-gray-400">Default (Cancun)</span>
-                </div>
-                <div class="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
-                    <div>
-                        <div class="text-[10px] text-gray-400 uppercase tracking-wider">Latitude</div>
-                        <div id="gps-lat" class="font-mono font-bold text-white">21.161900</div>
-                    </div>
-                    <div>
-                        <div class="text-[10px] text-gray-400 uppercase tracking-wider">Longitude</div>
-                        <div id="gps-lon" class="font-mono font-bold text-white">-86.851500</div>
-                    </div>
-                    <div>
-                        <div class="text-[10px] text-gray-400 uppercase tracking-wider">Altitude</div>
-                        <div id="gps-alt" class="font-mono font-bold text-white">10 m</div>
-                    </div>
-                    <div>
-                        <div class="text-[10px] text-gray-400 uppercase tracking-wider">Speed</div>
-                        <div id="gps-speed" class="font-mono font-bold text-white">0 km/h</div>
-                    </div>
-                </div>
-                
-                <div class="mt-4 flex gap-2">
-                    <button id="copy-coords" class="w-full py-2 bg-gray-800 hover:bg-gray-700 active:scale-98 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition">
-                        <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Coords
-                    </button>
-                    <button id="share-maps" class="w-full py-2 bg-gray-800 hover:bg-gray-700 active:scale-98 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition">
-                        <i data-lucide="map" class="w-3.5 h-3.5"></i> Open Maps
-                    </button>
-                </div>
-            </div>
-
-            <!-- Device Stats & Sensor Quality -->
+            <!-- Device Calibration & Calibration Stats -->
             <div class="grid grid-cols-2 gap-3">
                 <div class="bg-panel/40 border border-gray-800/60 rounded-xl p-3 flex flex-col justify-between">
                     <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Mag Declination</span>
@@ -339,6 +305,44 @@
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- GPS & Location Panel (Sent to the Bottom of layout drawer) -->
+            <div class="bg-panel/60 border border-gray-800 rounded-2xl p-4 backdrop-blur-sm">
+                <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-800/60">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="navigation" class="w-4 h-4 text-accent"></i>
+                        <span class="text-xs font-semibold tracking-wider uppercase text-gray-400">GPS Telemetry</span>
+                    </div>
+                    <span id="gps-accuracy" class="text-[10px] bg-gray-800 px-2 py-0.5 rounded text-gray-400">Default (Cancun)</span>
+                </div>
+                <div class="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+                    <div>
+                        <div class="text-[10px] text-gray-400 uppercase tracking-wider">Latitude</div>
+                        <div id="gps-lat" class="font-mono font-bold text-white">21.161900</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-gray-400 uppercase tracking-wider">Longitude</div>
+                        <div id="gps-lon" class="font-mono font-bold text-white">-86.851500</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-gray-400 uppercase tracking-wider">Altitude</div>
+                        <div id="gps-alt" class="font-mono font-bold text-white">10 m</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-gray-400 uppercase tracking-wider">Speed</div>
+                        <div id="gps-speed" class="font-mono font-bold text-white">0 km/h</div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 flex gap-2">
+                    <button id="copy-coords" class="w-full py-2 bg-gray-800 hover:bg-gray-700 active:scale-98 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Coords
+                    </button>
+                    <button id="share-maps" class="w-full py-2 bg-gray-800 hover:bg-gray-700 active:scale-98 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition">
+                        <i data-lucide="map" class="w-3.5 h-3.5"></i> Open Maps
+                    </button>
                 </div>
             </div>
 
@@ -415,6 +419,7 @@
         const targetMarker = document.getElementById('target-marker');
         const lockHeadingBtn = document.getElementById('lock-heading-btn');
         const lockIcon = document.getElementById('lock-icon');
+        const lemonBtn = document.getElementById('lemon-btn');
         const deviationBanner = document.getElementById('deviation-banner');
         const targetValue = document.getElementById('target-value');
         const deviationValue = document.getElementById('deviation-value');
@@ -436,6 +441,8 @@
         const simGpsBtn = document.getElementById('sim-gps-btn');
 
         let currentHeading = 211;
+        let currentDialRotation = -211; // Tracks accumulated continuous dial angle to eliminate 360 spins
+        let currentTargetRotation = 0;  // Tracks accumulated continuous target marker angle
         let targetHeading = null;
         let isNightMode = false;
         let lastVibeTime = 0;
@@ -577,6 +584,13 @@
                 lucide.createIcons();
             }
 
+            // Sync Lemon Toggle button background active state
+            if (activeWaypoints.includes("ITA")) {
+                lemonBtn.classList.add('border-yellow-500', 'bg-yellow-500/15');
+            } else {
+                lemonBtn.classList.remove('border-yellow-500', 'bg-yellow-500/15');
+            }
+
             // Refresh physical graphics on dial
             renderWaypointMarkers();
         }
@@ -664,8 +678,15 @@
         function updateCompassDisplay(heading) {
             const roundedHeading = Math.round(heading);
 
+            // Shortest-path angular interpolation to avoid quick 360 degree spin across North
+            let targetRotation = -heading;
+            let diff = (targetRotation - currentDialRotation) % 360;
+            if (diff < -180) diff += 360;
+            if (diff > 180) diff -= 360;
+            currentDialRotation += diff;
+
             // Rotate Compass Dial in opposite direction to stay fixed on north
-            dial.style.transform = `rotate(${-heading}deg)`;
+            dial.style.transform = `rotate(${currentDialRotation}deg)`;
 
             // Update text elements
             headingDegText.innerText = String(roundedHeading).padStart(3, '0');
@@ -673,7 +694,13 @@
 
             // Update Target Lock indicators if activated
             if (targetHeading !== null) {
-                targetMarker.style.transform = `rotate(${-heading + targetHeading}deg)`;
+                let targetMarkerRotation = -heading + targetHeading;
+                let targetDiff = (targetMarkerRotation - currentTargetRotation) % 360;
+                if (targetDiff < -180) targetDiff += 360;
+                if (targetDiff > 180) targetDiff -= 360;
+                currentTargetRotation += targetDiff;
+
+                targetMarker.style.transform = `rotate(${currentTargetRotation}deg)`;
                 
                 // Deviation algorithm: returns degrees distance short way (-180 to +180)
                 let dev = targetHeading - roundedHeading;
@@ -889,6 +916,20 @@
                 showToast("Target lock released");
             }
             lucide.createIcons();
+        });
+
+        // Lemon (Italy Toggle) Button Controller
+        lemonBtn.addEventListener('click', () => {
+            const italyId = "ITA";
+            if (!activeWaypoints.includes(italyId)) {
+                activeWaypoints.push(italyId);
+                updateWaypointPills();
+                showToast("Italy (ITA) waypoint plotted! 🍋");
+            } else {
+                activeWaypoints = activeWaypoints.filter(id => id !== italyId);
+                updateWaypointPills();
+                showToast("Italy waypoint removed. 🍋");
+            }
         });
 
         // Tactical Night Mode (Saves eyes & power during night runs)
