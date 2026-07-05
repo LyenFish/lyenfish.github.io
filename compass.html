@@ -581,8 +581,10 @@
                     `;
                     activeWaypointsContainer.appendChild(pill);
                 });
-                lucide.createIcons();
             }
+            
+            // Render any active dynamic icons globally
+            lucide.createIcons();
 
             // Sync Lemon Toggle button background active state
             if (activeWaypoints.includes("ITA")) {
@@ -955,6 +957,7 @@
         populateSelector();
         updateWaypointPills();
         updateCompassDisplay(211); // Start with aesthetic SSW default
+        lucide.createIcons();      // Global first-run parse to scale all static icons immediately
     </script>
 </body>
 </html>
