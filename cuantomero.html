@@ -53,6 +53,29 @@
             outline: none;
             box-shadow: 0 0 0 3px rgba(76, 81, 191, 0.2);
         }
+        .income-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        .income-row input[type="number"] {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        .mxn-output {
+            flex: 1;
+            padding: 12px;
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            color: #2a4365;
+            font-weight: 700;
+            background-color: #f7fafc;
+            text-align: right;
+            min-height: 1.2em;
+        }
         button {
             width: 100%;
             padding: 12px;
@@ -107,54 +130,198 @@
             margin-bottom: 20px;
             display: none;
         }
+        .rate-status {
+            font-size: 0.8rem;
+            margin-top: -20px;
+            margin-bottom: 20px;
+            color: #718096;
+        }
+        .rate-status.live {
+            color: #2f855a;
+        }
+        .rate-status.failed {
+            color: #dd6b20;
+        }
+        .copy-btn {
+            margin-top: 15px;
+            background-color: #2f855a;
+            font-size: 1rem;
+        }
+        .copy-btn:hover {
+            background-color: #38a169;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>💳 Proportional Debt Split</h2>
-    
-    <label for="debt">Total Credit Card Debt ($):</label>
+
+    <label for="exchange-rate">Exchange Rate (MXN per 1 USD):</label>
+    <input type="number" id="exchange-rate" placeholder="e.g. 18.50" min="0" step="0.01" oninput="onManualRateEdit()">
+    <div id="rate-status" class="rate-status">Fetching live rate…</div>
+
+    <label for="debt">Total Credit Card Debt (MXN $):</label>
     <input type="number" id="debt" placeholder="e.g. 27000" min="0">
 
-    <label for="wife-income">Flaquita Income ($):</label>
-    <input type="number" id="wife-income" placeholder="e.g. 20000" min="0">
+    <label for="wife-income-usd">Flaquita Income (USD → MXN):</label>
+    <div class="income-row">
+        <input type="number" id="wife-income-usd" placeholder="USD e.g. 1100" min="0" oninput="updateConversions()">
+        <div class="mxn-output" id="wife-income-mxn">MXN —</div>
+    </div>
 
-    <label for="user-income">Yo mero Income ($):</label>
-    <input type="number" id="user-income" placeholder="e.g. 15000" min="0">
+    <label for="user-income-usd">Yo mero Income (USD → MXN):</label>
+    <div class="income-row">
+        <input type="number" id="user-income-usd" placeholder="USD e.g. 800" min="0" oninput="updateConversions()">
+        <div class="mxn-output" id="user-income-mxn">MXN —</div>
+    </div>
 
     <div id="error-message" class="error-msg">Please enter valid numbers for all fields.</div>
 
     <button onclick="calculateSplit()">Calculate Payments</button>
 
     <div id="results" class="result" style="display:none;">
-        <p class="total">Total Income: <strong id="total-income-output"></strong></p>
+        <p class="total">Total Income (MXN): <strong id="total-income-output"></strong></p>
         <hr>
         <p>Flaquita (<span id="wife-percent-output"></span>): <strong id="wife-payment-output"></strong></p>
         <p>Yo mero (<span id="user-percent-output"></span>): <strong id="user-payment-output"></strong></p>
+        <button class="copy-btn" onclick="copyResults()" id="copy-btn">📋 Copy Results for Google Sheets</button>
     </div>
 </div>
 
 <script>
     /**
-     * Calculates the proportional debt split based on income and displays the results.
+     * Fetches the current USD -> MXN exchange rate from a free API
+     * (open.er-api.com, updated daily) and fills in the field.
+     * The field stays editable so you can override it manually.
+     */
+    async function fetchLiveRate() {
+        const statusDiv = document.getElementById('rate-status');
+        const rateInput = document.getElementById('exchange-rate');
+        try {
+            const response = await fetch('https://open.er-api.com/v6/latest/USD');
+            if (!response.ok) throw new Error('Request failed');
+            const data = await response.json();
+            const mxnRate = data && data.rates && data.rates.MXN;
+            if (!mxnRate) throw new Error('MXN rate not found');
+
+            rateInput.value = mxnRate.toFixed(4);
+            statusDiv.textContent = `✓ Live rate loaded: ${mxnRate.toFixed(4)} MXN per USD (you can still edit it)`;
+            statusDiv.className = 'rate-status live';
+            updateConversions();
+        } catch (err) {
+            statusDiv.textContent = '⚠ Could not fetch live rate — please enter it manually.';
+            statusDiv.className = 'rate-status failed';
+        }
+    }
+
+    /**
+     * Marks the rate as manually overridden when the user edits it.
+     */
+    function onManualRateEdit() {
+        const statusDiv = document.getElementById('rate-status');
+        statusDiv.textContent = 'Using manually entered rate.';
+        statusDiv.className = 'rate-status';
+        updateConversions();
+    }
+
+    window.addEventListener('DOMContentLoaded', fetchLiveRate);
+
+    let lastResults = null;
+
+    /**
+     * Copies the results as tab-separated values so they paste
+     * directly into Google Sheets as separate columns.
+     */
+    async function copyResults() {
+        if (!lastResults) return;
+        const r = lastResults;
+        const round2 = (n) => n.toFixed(2);
+
+        const tsv = [
+            ['Date', r.date],
+            ['Exchange Rate (MXN/USD)', r.rate],
+            ['Total Debt (MXN)', round2(r.debt)],
+            ['Total Income (MXN)', round2(r.totalIncome)],
+            ['Flaquita', r.wifePercent, round2(r.wifePayment)],
+            ['Yo mero', r.userPercent, round2(r.userPayment)]
+        ].map(row => row.join('\t')).join('\n');
+
+        const btn = document.getElementById('copy-btn');
+        try {
+            await navigator.clipboard.writeText(tsv);
+            btn.textContent = '✓ Copied! Paste into Sheets';
+        } catch (err) {
+            // Fallback for browsers/contexts where the Clipboard API is blocked
+            const textarea = document.createElement('textarea');
+            textarea.value = tsv;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            btn.textContent = '✓ Copied! Paste into Sheets';
+        }
+        setTimeout(() => {
+            btn.textContent = '📋 Copy Results for Google Sheets';
+        }, 2500);
+    }
+
+    const formatMXN = (amount) => {
+        return amount.toLocaleString('es-MX', {
+            style: 'currency',
+            currency: 'MXN',
+        }) + ' MXN';
+    };
+
+    /**
+     * Converts each USD income to MXN using the exchange rate
+     * and displays the result live next to each input.
+     */
+    function updateConversions() {
+        const rate = parseFloat(document.getElementById('exchange-rate').value);
+        const wifeUSD = parseFloat(document.getElementById('wife-income-usd').value);
+        const userUSD = parseFloat(document.getElementById('user-income-usd').value);
+
+        const wifeOut = document.getElementById('wife-income-mxn');
+        const userOut = document.getElementById('user-income-mxn');
+
+        if (!isNaN(rate) && rate > 0 && !isNaN(wifeUSD) && wifeUSD >= 0) {
+            wifeOut.textContent = formatMXN(wifeUSD * rate);
+        } else {
+            wifeOut.textContent = 'MXN —';
+        }
+
+        if (!isNaN(rate) && rate > 0 && !isNaN(userUSD) && userUSD >= 0) {
+            userOut.textContent = formatMXN(userUSD * rate);
+        } else {
+            userOut.textContent = 'MXN —';
+        }
+    }
+
+    /**
+     * Calculates the proportional debt split based on MXN-converted incomes.
      */
     function calculateSplit() {
+        const rate = parseFloat(document.getElementById('exchange-rate').value);
         const debt = parseFloat(document.getElementById('debt').value);
-        const wifeIncome = parseFloat(document.getElementById('wife-income').value);
-        const userIncome = parseFloat(document.getElementById('user-income').value);
+        const wifeUSD = parseFloat(document.getElementById('wife-income-usd').value);
+        const userUSD = parseFloat(document.getElementById('user-income-usd').value);
         const resultsDiv = document.getElementById('results');
         const errorDiv = document.getElementById('error-message');
 
         // Input validation
-        if (isNaN(debt) || isNaN(wifeIncome) || isNaN(userIncome) || debt < 0 || wifeIncome < 0 || userIncome < 0) {
+        if (isNaN(rate) || isNaN(debt) || isNaN(wifeUSD) || isNaN(userUSD) ||
+            rate <= 0 || debt < 0 || wifeUSD < 0 || userUSD < 0) {
+            errorDiv.textContent = "Please enter valid numbers for all fields (exchange rate must be greater than zero).";
             errorDiv.style.display = 'block';
             resultsDiv.style.display = 'none';
             return;
         }
-        
+
         errorDiv.style.display = 'none';
 
+        const wifeIncome = wifeUSD * rate;
+        const userIncome = userUSD * rate;
         const totalIncome = wifeIncome + userIncome;
 
         if (totalIncome === 0) {
@@ -166,24 +333,30 @@
 
         const wifeProportion = wifeIncome / totalIncome;
         const userProportion = userIncome / totalIncome;
-        
+
         const wifePayment = debt * wifeProportion;
         const userPayment = debt * userProportion;
 
-        const formatCurrency = (amount) => {
-            return amount.toLocaleString('en-US', {
-                style: 'currency',
-                currency: 'USD',
-            });
-        };
         const formatPercent = (proportion) => `${(proportion * 100).toFixed(2)}%`;
 
-        document.getElementById('total-income-output').textContent = formatCurrency(totalIncome);
+        // Store raw values for the copy-to-spreadsheet feature
+        lastResults = {
+            date: new Date().toLocaleDateString('es-MX'),
+            rate: rate,
+            debt: debt,
+            totalIncome: totalIncome,
+            wifePercent: formatPercent(wifeProportion),
+            wifePayment: wifePayment,
+            userPercent: formatPercent(userProportion),
+            userPayment: userPayment
+        };
+
+        document.getElementById('total-income-output').textContent = formatMXN(totalIncome);
         document.getElementById('wife-percent-output').textContent = formatPercent(wifeProportion);
-        document.getElementById('wife-payment-output').textContent = formatCurrency(wifePayment);
+        document.getElementById('wife-payment-output').textContent = formatMXN(wifePayment);
         document.getElementById('user-percent-output').textContent = formatPercent(userProportion);
-        document.getElementById('user-payment-output').textContent = formatCurrency(userPayment);
-        
+        document.getElementById('user-payment-output').textContent = formatMXN(userPayment);
+
         resultsDiv.style.display = 'block';
     }
 </script>
