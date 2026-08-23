@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compound Growth</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="icon" type="image/png" href="data:image/png;base64,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">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased selection:bg-emerald-500 selection:text-white">
+    <header class="bg-slate-950 border-b border-slate-800 sticky top-0 z-30 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-emerald-600 text-white p-2.5 rounded-xl shadow-md">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight text-white">Compound Growth</h1>
+            </div>
+            
+            <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800 text-sm font-medium">
+                <button onclick="switchTab('monthly')" id="tab-monthly" class="px-4 py-2 rounded-lg transition-all duration-200 text-slate-400 hover:text-white">Monthly Compound</button>
+                <button onclick="switchTab('recurring')" id="tab-recurring" class="px-4 py-2 rounded-lg transition-all duration-200 text-slate-400 hover:text-white">Recurring Contribution</button>
+                <button onclick="switchTab('yearly')" id="tab-yearly" class="px-4 py-2 rounded-lg transition-all duration-200 bg-emerald-600 text-white shadow">Yearly Compound</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <!-- Control Panel -->
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Initial Investment ($)</label>
+                <div class="relative rounded-xl shadow-sm">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 font-semibold">$</div>
+                    <input type="number" id="initialInvestment" value="1000" min="1" step="100" class="block w-full pl-8 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition">
+                </div>
+            </div>
+
+            <div>
+                <label id="rateLabel" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Annual Interest Rate (%)</label>
+                <div class="relative rounded-xl shadow-sm">
+                    <input type="number" id="annualRate" value="3.0" min="0.01" step="0.1" class="block w-full pl-4 pr-10 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition">
+                    <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-500 font-semibold">%</div>
+                </div>
+            </div>
+
+            <div id="recurringAmountContainer" class="hidden">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Recurring Add ($)</label>
+                <div class="relative rounded-xl shadow-sm">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 font-semibold">$</div>
+                    <input type="number" id="recurringAmount" value="50" min="0" step="10" class="block w-full pl-8 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition">
+                </div>
+            </div>
+
+            <div id="recurringDaysContainer" class="hidden">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Frequency (Every X Days)</label>
+                <input type="number" id="recurringDays" value="30" min="1" max="365" step="1" class="block w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition">
+            </div>
+
+        </div>
+
+        <!-- Milestone Progress Breakdown -->
+        <div class="space-y-4">
+            <h2 class="text-lg font-bold text-white tracking-tight">Milestone Progress Breakdown</h2>
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-900/90 text-xs font-semibold uppercase text-slate-400 tracking-wider border-b border-slate-800">
+                            <tr>
+                                <th class="py-3.5 px-6">Milestone Timeframe</th>
+                                <th class="py-3.5 px-6">Day Count</th>
+                                <th class="py-3.5 px-6">Compounded Interest ($)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="textMilestonesBody" class="divide-y divide-slate-800/60 text-sm text-slate-300">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Day-by-Day Ledger Section -->
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+            <div class="p-6 border-b border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-white tracking-tight">Day-by-Day Growth Ledger</h2>
+                    <p class="text-xs text-slate-400 mt-0.5">Complete schedule tracking daily accrued interest and updated compounded balance.</p>
+                </div>
+                <div class="text-xs bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-emerald-400 font-medium" id="scheduleDurationLabel">
+                    Duration: 365 Days
+                </div>
+            </div>
+            <div class="overflow-x-auto max-h-[500px]">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-900/90 sticky top-0 z-10 text-xs font-semibold uppercase text-slate-400 tracking-wider border-b border-slate-800">
+                        <tr>
+                            <th class="py-3.5 px-6">Day</th>
+                            <th class="py-3.5 px-6">Compounded Interest</th>
+                            <th class="py-3.5 px-6">Compounded Balance</th>
+                            <th class="py-3.5 px-6">That Day's Interest</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledgerTableBody" class="divide-y divide-slate-800/60 text-sm text-slate-300">
+                        <!-- Populated dynamically via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Growth Trajectory Curve Section -->
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
+                <div>
+                    <h2 class="text-lg font-bold text-white tracking-tight">Growth Trajectory Visualization</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="inline-block w-3 h-3 rounded-full bg-emerald-500"></span>
+                    <span class="text-xs text-slate-400 font-medium">Compounded Balance ($)</span>
+                </div>
+            </div>
+            <div class="w-full h-80">
+                <canvas id="growthChart"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentTab = 'monthly';
+        let chartInstance = null;
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('header button[id^="tab-"]').forEach(btn => {
+                btn.className = "px-4 py-2 rounded-lg transition-all duration-200 text-slate-400 hover:text-white";
+            });
+            document.getElementById(`tab-${tab}`).className = "px-4 py-2 rounded-lg transition-all duration-200 bg-emerald-600 text-white shadow";
+
+            const recAmountCont = document.getElementById('recurringAmountContainer');
+            const recDaysCont = document.getElementById('recurringDaysContainer');
+
+            if (tab === 'recurring') {
+                recAmountCont.classList.remove('hidden');
+                recDaysCont.classList.remove('hidden');
+            } else {
+                recAmountCont.classList.add('hidden');
+                recDaysCont.classList.add('hidden');
+            }
+
+            const rateLabel = document.getElementById('rateLabel');
+            rateLabel.innerText = (tab === 'monthly' || tab === 'recurring') ? 'Monthly Interest Rate (%)' : 'Annual Interest Rate (%)';
+
+            calculate();
+        }
+
+        function formatCurrency(val) {
+            return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function calculate() {
+            const initialInvestment = parseFloat(document.getElementById('initialInvestment').value) || 1000;
+            const rateInput = parseFloat(document.getElementById('annualRate').value) || 3.0;
+            const recurringAmount = parseFloat(document.getElementById('recurringAmount').value) || 0;
+            const recurringDays = parseInt(document.getElementById('recurringDays').value) || 30;
+
+            let totalDays = 365;
+            if (currentTab === 'monthly') totalDays = 365;
+            if (currentTab === 'recurring') totalDays = 365;
+
+            document.getElementById('scheduleDurationLabel').innerText = `Duration: ${totalDays} Days`;
+
+            // Yearly & Recurring tabs: rate is an annual rate, compounded daily.
+            // Monthly tab: rate is a monthly rate; converted to a nominal annual rate (x12)
+            // then compounded daily, for granular day-by-day accrual.
+            const dailyRate = (rateInput / 100) / 365;
+            const monthlyDailyRate = ((rateInput / 100) * 12) / 365;
+
+            let balance = initialInvestment;
+            let totalInterest = 0;
+            let ledger = [];
+            let chartLabels = [];
+            let chartData = [];
+
+            const activeDailyRate = (currentTab === 'monthly' || currentTab === 'recurring') ? monthlyDailyRate : dailyRate;
+
+            for (let day = 1; day <= totalDays; day++) {
+                if (currentTab === 'recurring' && recurringDays > 0 && (day % recurringDays === 0)) {
+                    balance += recurringAmount;
+                }
+
+                // Record state BEFORE today's interest posts (so Day 1 shows $0 profit)
+                const startBalance = balance;
+                const cumulativeBeforeToday = totalInterest;
+
+                const dayInterest = balance * activeDailyRate;
+                totalInterest += dayInterest;
+                balance += dayInterest;
+
+                ledger.push({
+                    day: day,
+                    dailyInterest: dayInterest,
+                    totalInterest: cumulativeBeforeToday,
+                    balance: startBalance
+                });
+
+                if (currentTab === 'recurring') {
+                    // Force chart points every 15 days for the recurring tab
+                    if (day % 15 === 0 || day === totalDays) {
+                        chartLabels.push(`Day ${day}`);
+                        chartData.push(balance);
+                    }
+                } else {
+                    if (totalDays <= 31 || day % Math.ceil(totalDays / 30) === 0 || day === totalDays) {
+                        chartLabels.push(`Day ${day}`);
+                        chartData.push(balance);
+                    }
+                }
+            }
+
+            renderMilestones(ledger, totalDays, totalInterest, balance);
+            renderTable(ledger);
+            renderChart(chartLabels, chartData);
+        }
+
+        function renderMilestones(ledger, totalDays, finalTotalInterest, finalBalance) {
+            let milestones = [];
+            if (totalDays <= 30) {
+                milestones = [
+                    { label: '3 Days', day: Math.min(3, totalDays) },
+                    { label: '1 Week', day: Math.min(7, totalDays) },
+                    { label: '2 Weeks', day: Math.min(14, totalDays) },
+                    { label: '3 Weeks', day: Math.min(21, totalDays) },
+                    { label: `End (${totalDays} days)`, day: totalDays }
+                ];
+            } else {
+                milestones = [
+                    { label: '1 Week', day: 7 },
+                    { label: '1 Month (~30 days)', day: 30 },
+                    { label: '1 Quarter (90 days)', day: Math.min(90, totalDays) },
+                    { label: 'Half Year (180 days)', day: Math.min(180, totalDays) },
+                    { label: `Full Year (${totalDays} days)`, day: totalDays }
+                ];
+            }
+
+            const tbody = document.getElementById('textMilestonesBody');
+            tbody.innerHTML = '';
+
+            milestones.forEach(m => {
+                // Ledger rows store PRE-interest state, so "after day m.day" is row (m.day + 1),
+                // or the true final totals if m.day is the last day of the period.
+                let totalInterestAtDay, balanceAtDay;
+                if (m.day >= totalDays) {
+                    totalInterestAtDay = finalTotalInterest;
+                    balanceAtDay = finalBalance;
+                } else {
+                    const item = ledger.find(l => l.day === m.day + 1);
+                    totalInterestAtDay = item ? item.totalInterest : finalTotalInterest;
+                    balanceAtDay = item ? item.balance : finalBalance;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-900/50 transition-colors";
+                tr.innerHTML = `
+                    <td class="py-3.5 px-6 font-semibold text-emerald-400">${m.label}</td>
+                    <td class="py-3.5 px-6 font-medium text-white">${m.day}</td>
+                    <td class="py-3.5 px-6 font-semibold text-white">$${totalInterestAtDay.toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderTable(ledger) {
+            const tbody = document.getElementById('ledgerTableBody');
+            tbody.innerHTML = '';
+
+            ledger.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-900/50 transition-colors";
+                tr.innerHTML = `
+                    <td class="py-3.5 px-6 font-medium text-white">${row.day}</td>
+                    <td class="py-3.5 px-6 text-slate-300">${formatCurrency(row.totalInterest)}</td>
+                    <td class="py-3.5 px-6 font-semibold text-white">${formatCurrency(row.balance)}</td>
+                    <td class="py-3.5 px-6 text-emerald-400">${formatCurrency(row.dailyInterest)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderChart(labels, data) {
+            const canvas = document.getElementById('growthChart');
+            const ctx = canvas.getContext('2d');
+
+            // Create gradient for enhanced visual depth
+            const gradient = ctx.createLinearGradient(0, 0, 0, 320);
+            gradient.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+            gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+            if (chartInstance) {
+                // Update the existing chart in place rather than destroying/recreating it.
+                // Destroy+recreate on every keystroke can race with Chart.js's internal
+                // teardown and leave the canvas stuck showing a stale frame.
+                chartInstance.data.labels = labels;
+                chartInstance.data.datasets[0].data = data;
+                chartInstance.data.datasets[0].backgroundColor = gradient;
+                chartInstance.update();
+                return;
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Compounded Balance ($)',
+                        data: data,
+                        borderColor: '#34d399',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        cubicInterpolationMode: 'monotone',
+                        pointRadius: 3,
+                        pointBackgroundColor: '#34d399',
+                        pointBorderColor: '#0f172a',
+                        pointBorderWidth: 1.5,
+                        pointHoverRadius: 5,
+                        pointHoverBackgroundColor: '#10b981',
+                        pointHoverBorderColor: '#ffffff',
+                        pointHoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 300
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#020617',
+                            titleColor: '#ffffff',
+                            bodyColor: '#34d399',
+                            borderColor: '#334155',
+                            borderWidth: 1.5,
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Balance: ' + formatCurrency(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(51, 65, 85, 0.4)', borderColor: '#334155' },
+                            ticks: { color: '#94a3b8', font: { family: 'Inter', size: 12, weight: '500' } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(51, 65, 85, 0.4)', borderColor: '#334155' },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { family: 'Inter', size: 12, weight: '500' },
+                                callback: function(value) { return '$' + value.toLocaleString(); }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        window.onload = function() {
+            ['initialInvestment', 'annualRate', 'recurringAmount', 'recurringDays'].forEach(id => {
+                document.getElementById(id).addEventListener('input', calculate);
+            });
+            switchTab('monthly');
+        };
+    </script>
+</body>
+</html>
