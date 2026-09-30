@@ -104,7 +104,7 @@
         <div class="w-9 h-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fa-solid fa-chart-pie"></i></div>
         <div>
           <h3 id="detailModalTitle" class="text-lg font-bold text-slate-800">Month Details</h3>
-          <p class="text-xs text-slate-500">Expense breakdown chart and category summary</p>
+          <p id="detailModalSubtitle" class="text-xs text-slate-500">Expense breakdown chart and category summary</p>
         </div>
       </div>
       <div class="flex items-center space-x-2">
@@ -185,8 +185,22 @@
       <input type="hidden" id="editMonthId">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Name *</label>
-          <input type="text" id="monthNameInput" required placeholder="e.g. March" class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Month *</label>
+          <select id="monthNameInput" required class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="" disabled selected>Select month…</option>
+            <option value="January">January</option>
+            <option value="February">February</option>
+            <option value="March">March</option>
+            <option value="April">April</option>
+            <option value="May">May</option>
+            <option value="June">June</option>
+            <option value="July">July</option>
+            <option value="August">August</option>
+            <option value="September">September</option>
+            <option value="October">October</option>
+            <option value="November">November</option>
+            <option value="December">December</option>
+          </select>
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Year *</label>
@@ -373,6 +387,24 @@ function saveStoredData(data) {
 }
 
 // ---------- Helpers ----------
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+// Select a month in the dropdown. Old free-text names (e.g. "March 2026") are matched to a month;
+// anything unrecognised is kept as an extra option so no data is lost.
+function setMonthSelect(name) {
+  const sel = document.getElementById('monthNameInput');
+  sel.querySelectorAll('option[data-custom]').forEach(o => o.remove());
+  const lower = String(name || '').toLowerCase();
+  if (!lower) { sel.value = ''; return; }
+  const found = MONTH_NAMES.find(m => lower.includes(m.toLowerCase())) ||
+                MONTH_NAMES.find(m => new RegExp('\\b' + m.slice(0, 3).toLowerCase() + (m === 'September' ? 't?' : '') + '\\b').test(lower));
+  if (found) { sel.value = found; return; }
+  const opt = document.createElement('option');
+  opt.value = name; opt.textContent = name; opt.dataset.custom = '1';
+  sel.appendChild(opt);
+  sel.value = name;
+}
+
 // Card of a record: saved card, else KLAR (the default)
 function getRecordCard(m) {
   return m.card === 'AMEX' ? 'AMEX' : 'KLAR';
@@ -605,7 +637,10 @@ function renderThumbnailChart(month) {
 
 function updateDashboardStats(data) {
   const totalSpend = data.reduce((acc, m) => acc + calculateMonthTotal(m), 0);
-  const avgSpend = data.length > 0 ? totalSpend / data.length : 0;
+  // Count distinct months (same name + year = one month, even with both a KLAR and an AMEX record)
+  const monthKey = m => `${getRecordYear(m)}|${String(m.monthName).replace(/\b(19|20|21)\d{2}\b/, '').trim().toLowerCase()}`;
+  const distinctMonths = new Set(data.map(monthKey)).size;
+  const avgSpend = distinctMonths > 0 ? totalSpend / distinctMonths : 0;
   const totals = {};
   data.forEach(m => m.categories.forEach(c => { totals[c.name] = (totals[c.name] || 0) + Number(c.amount || 0); }));
   let topName = '-', max = 0;
@@ -712,7 +747,7 @@ function addCategoryRow(name = '', amount = '', color) {
 function openAddMonthModal() {
   document.getElementById('addMonthModalTitle').innerText = 'Add Monthly Expense Record';
   document.getElementById('editMonthId').value = '';
-  document.getElementById('monthNameInput').value = '';
+  setMonthSelect('');
   document.getElementById('yearInput').value = new Date().getFullYear();
   document.getElementById('cardInput').value = 'KLAR';
   document.getElementById('flaquitaPaidInput').value = '';
@@ -729,7 +764,7 @@ function openEditMonthModal(monthId) {
   if (!month) return;
   document.getElementById('addMonthModalTitle').innerText = 'Edit Monthly Expense Record';
   document.getElementById('editMonthId').value = month.id;
-  document.getElementById('monthNameInput').value = month.monthName;
+  setMonthSelect(month.monthName);
   document.getElementById('yearInput').value = getRecordYear(month);
   document.getElementById('cardInput').value = getRecordCard(month);
   document.getElementById('flaquitaPaidInput').value = month.flaquitaPaid || '';
