@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monthly Expense Analytics & PDF Tool</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  .card-hover { transition: all 0.25s ease-in-out; }
+  .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 24px -10px rgba(0,0,0,0.12); }
+  .backdrop-blur-custom { backdrop-filter: blur(6px); background-color: rgba(15,23,42,0.55); }
+</style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+<header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20"><i class="fa-solid fa-chart-pie text-lg"></i></div>
+      <div>
+        <h1 class="text-lg font-bold text-slate-800 leading-tight">Aura Expenses & PDF</h1>
+        <p class="text-xs text-slate-500 hidden sm:block">Monthly Analytics, Local Storage & PDF Exports</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-2 sm:space-x-3">
+      <button onclick="openImportModal()" title="Import JSON Data" class="px-3 py-2 text-xs sm:text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center space-x-1.5"><i class="fa-solid fa-file-import text-slate-500"></i><span class="hidden sm:inline">Import</span></button>
+      <button onclick="exportDataJSON()" title="Export JSON Data" class="px-3 py-2 text-xs sm:text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center space-x-1.5"><i class="fa-solid fa-file-export text-slate-500"></i><span class="hidden sm:inline">Export</span></button>
+      <button onclick="exportSummaryPDF()" title="Export PDF Summary" class="px-3 py-2 text-xs sm:text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg flex items-center space-x-1.5"><i class="fa-solid fa-file-pdf text-purple-600"></i><span class="hidden md:inline">Summary PDF</span></button>
+      <button onclick="openDebtModal()" title="Proportional Debt Split" class="px-3 py-2 text-xs sm:text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center space-x-1.5"><i class="fa-solid fa-calculator text-emerald-600"></i><span class="hidden md:inline">Debt Split</span></button>
+      <button onclick="openAddMonthModal()" class="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm flex items-center space-x-2"><i class="fa-solid fa-plus"></i><span>Add Month</span></button>
+    </div>
+  </div>
+</header>
+
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center space-x-4">
+      <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl"><i class="fa-solid fa-wallet"></i></div>
+      <div><p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Recorded</p><h3 id="stat-total-spend" class="text-xl font-bold text-slate-800">$0.00</h3></div>
+    </div>
+    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center space-x-4">
+      <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl"><i class="fa-solid fa-calculator"></i></div>
+      <div><p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Monthly Average</p><h3 id="stat-avg-spend" class="text-xl font-bold text-slate-800">$0.00</h3></div>
+    </div>
+    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center space-x-4">
+      <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl"><i class="fa-solid fa-trophy"></i></div>
+      <div><p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Top Category</p><h3 id="stat-top-category" class="text-xl font-bold text-slate-800">-</h3></div>
+    </div>
+  </section>
+
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+    <div>
+      <h2 class="text-xl font-bold text-slate-800">Monthly Expense Charts</h2>
+      <p class="text-xs text-slate-500">Thumbnail overview of all saved monthly breakdown charts</p>
+    </div>
+    <div class="flex items-center space-x-3">
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+        <input type="text" id="searchInput" oninput="renderApp()" placeholder="Search month..." class="pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-44">
+      </div>
+      <select id="sortSelect" onchange="renderApp()" class="px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+        <option value="newest">Newest First</option>
+        <option value="oldest">Oldest First</option>
+        <option value="highest">Highest Amount</option>
+        <option value="lowest">Lowest Amount</option>
+      </select>
+      <button onclick="resetToSampleData()" class="px-2.5 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg" title="Delete all records"><i class="fa-solid fa-rotate-left mr-1"></i> Reset Data</button>
+    </div>
+  </div>
+
+  <section id="monthsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></section>
+
+  <div id="emptyState" class="hidden text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300 p-8">
+    <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl"><i class="fa-solid fa-chart-pie"></i></div>
+    <h3 class="text-base font-bold text-slate-700 mb-1">No monthly records found</h3>
+    <p class="text-xs text-slate-500 max-w-sm mx-auto mb-6">Create a new month or import an existing JSON backup file to start viewing expense charts.</p>
+    <button onclick="openAddMonthModal()" class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"><i class="fa-solid fa-plus mr-1.5"></i> Add First Month</button>
+  </div>
+</main>
+
+<!-- MODAL 1: Detail -->
+<div id="detailModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-custom hidden">
+  <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fa-solid fa-chart-pie"></i></div>
+        <div>
+          <h3 id="detailModalTitle" class="text-lg font-bold text-slate-800">Month Details</h3>
+          <p class="text-xs text-slate-500">Expense breakdown chart and category summary</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button id="detailExportPdfBtn" class="px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 flex items-center space-x-1"><i class="fa-solid fa-file-pdf"></i><span>Export Month PDF</span></button>
+        <button onclick="closeDetailModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+
+    <div id="detailPrintContainer" class="p-6 space-y-6 flex-1">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-100 gap-4">
+        <div>
+          <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Expense Report</span>
+          <h2 id="detailReportMonthName" class="text-2xl font-extrabold text-slate-800"></h2>
+        </div>
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-right">
+          <span class="text-xs text-slate-400 font-medium block">Total Monthly Expenses</span>
+          <span id="detailReportTotal" class="text-2xl font-black text-slate-800">$0.00</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        <div class="lg:col-span-7 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 flex flex-col items-center justify-center min-h-[320px]">
+          <div class="w-full h-72 relative"><canvas id="detailChartCanvas"></canvas></div>
+        </div>
+        <div class="lg:col-span-5 space-y-4">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Key Takeaways</h4>
+          <div class="space-y-3">
+            <div class="p-3.5 bg-blue-50/60 rounded-xl border border-blue-100 flex items-center justify-between">
+              <div class="flex items-center space-x-2.5"><i class="fa-solid fa-crown text-amber-500 text-sm"></i><span class="text-xs font-semibold text-slate-700">Highest Category</span></div>
+              <span id="detailTopCategoryBadge" class="text-xs font-bold text-blue-700 bg-white px-2.5 py-1 rounded-md">-</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="p-3 bg-pink-50/70 rounded-xl border border-pink-100"><span class="text-[11px] text-pink-600 font-semibold block uppercase">Flaquita Paid</span><span id="detailFlaquitaPaid" class="text-base font-bold text-pink-700">$0.00</span></div>
+              <div class="p-3 bg-cyan-50/70 rounded-xl border border-cyan-100"><span class="text-[11px] text-cyan-600 font-semibold block uppercase">Yo Mero Paid</span><span id="detailYoMeroPaid" class="text-base font-bold text-cyan-800">$0.00</span></div>
+            </div>
+            <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
+              <div class="flex items-center space-x-2.5"><i class="fa-solid fa-list-check text-slate-500 text-sm"></i><span class="text-xs font-semibold text-slate-700">Categories Tracked</span></div>
+              <span id="detailCategoryCount" class="text-xs font-bold text-slate-800">0</span>
+            </div>
+          </div>
+          <div id="detailCategoryProgressBar" class="pt-2 space-y-2"></div>
+        </div>
+      </div>
+
+      <div class="space-y-3 pt-4">
+        <h4 class="text-sm font-bold text-slate-800">Itemized Category Breakdown</h4>
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
+                <th class="py-3 px-4 font-semibold">Category</th>
+                <th class="py-3 px-4 font-semibold text-right">Amount</th>
+                <th class="py-3 px-4 font-semibold text-right">Percentage</th>
+              </tr>
+            </thead>
+            <tbody id="detailTableBody" class="divide-y divide-slate-100 text-sm text-slate-700"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center rounded-b-2xl">
+      <button id="detailEditBtn" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg flex items-center space-x-1.5"><i class="fa-solid fa-pen-to-square text-slate-500"></i><span>Edit This Month</span></button>
+      <button onclick="closeDetailModal()" class="px-5 py-2 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-900 rounded-lg">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 2: Add / Edit -->
+<div id="addMonthModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-custom hidden">
+  <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+      <h3 id="addMonthModalTitle" class="text-lg font-bold text-slate-800">Add Monthly Expense Record</h3>
+      <button type="button" onclick="closeAddMonthModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <form id="addMonthForm" onsubmit="handleSaveMonth(event)" class="p-6 space-y-6 flex-1">
+      <input type="hidden" id="editMonthId">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Month & Year *</label>
+          <input type="text" id="monthNameInput" required placeholder="e.g. March 2026" class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Currency Symbol</label>
+          <select id="currencyInput" class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="$">$ (USD / MXN / CAD)</option>
+            <option value="€">€ (EUR)</option>
+            <option value="£">£ (GBP)</option>
+            <option value="¥">¥ (JPY)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+        <div>
+          <label class="block text-xs font-bold text-pink-700 uppercase tracking-wider mb-1"><i class="fa-solid fa-heart text-pink-500 mr-1"></i> Flaquita Paid</label>
+          <input type="number" step="0.01" min="0" id="flaquitaPaidInput" placeholder="0.00" class="w-full px-3.5 py-2 text-sm bg-white border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-cyan-800 uppercase tracking-wider mb-1"><i class="fa-solid fa-user text-cyan-600 mr-1"></i> Yo Mero Paid</label>
+          <input type="number" step="0.01" min="0" id="yoMeroPaidInput" placeholder="0.00" class="w-full px-3.5 py-2 text-sm bg-white border border-cyan-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400">
+        </div>
+      </div>
+
+      <div class="space-y-3 pt-2">
+        <div class="flex items-center justify-between">
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Categories & Amounts</label>
+          <div class="flex items-center space-x-3">
+            <button type="button" onclick="toggleBulkPasteArea()" class="text-xs font-semibold text-purple-600 hover:text-purple-700 flex items-center space-x-1"><i class="fa-solid fa-paste text-xs"></i><span>Paste Raw Text</span></button>
+            <button type="button" onclick="addCategoryRow()" class="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center space-x-1"><i class="fa-solid fa-plus text-xs"></i><span>Add Category Row</span></button>
+          </div>
+        </div>
+
+        <div id="bulkPasteContainer" class="hidden bg-purple-50/60 p-3.5 rounded-xl border border-purple-200/80 space-y-2.5">
+          <p class="text-xs text-purple-900 font-medium">Paste spreadsheet rows or plain text lines (e.g., <code>Groceries $6,084.65</code>):</p>
+          <textarea id="bulkPasteInput" rows="5" placeholder="Groceries&#9;$6,084.65&#10;Niñas&#9;$8,968.20&#10;Dining out&#9;$821.11&#10;CFE&#9;$7,873.00" class="w-full text-xs font-mono p-2.5 bg-white border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+          <div class="flex justify-end space-x-2">
+            <button type="button" onclick="toggleBulkPasteArea()" class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200/60 rounded-lg">Cancel</button>
+            <button type="button" onclick="applyBulkPaste()" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-sm flex items-center space-x-1"><i class="fa-solid fa-file-import"></i><span>Parse & Populate</span></button>
+          </div>
+        </div>
+
+        <div id="categoryRowsContainer" class="space-y-2.5 max-h-60 overflow-y-auto pr-1"></div>
+      </div>
+
+      <div class="pt-4 border-t border-slate-100 flex justify-end space-x-3">
+        <button type="button" onclick="closeAddMonthModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+        <button type="submit" class="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm">Save Record</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL 3: Import -->
+<div id="importModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-custom hidden">
+  <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 space-y-5">
+    <div class="flex items-center justify-between">
+      <h3 class="text-lg font-bold text-slate-800">Import Expense JSON Data</h3>
+      <button onclick="closeImportModal()" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <p class="text-xs text-slate-500">Select a previously exported <code>.json</code> file to restore your expense records across browsers.</p>
+    <div class="border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-xl p-6 text-center cursor-pointer" onclick="document.getElementById('fileInputHidden').click()">
+      <i class="fa-solid fa-cloud-arrow-up text-3xl text-blue-500 mb-2"></i>
+      <p class="text-xs font-medium text-slate-700">Click to choose .json backup file</p>
+      <span id="selectedFileName" class="text-xs text-slate-400 mt-1 block">No file selected</span>
+      <input type="file" id="fileInputHidden" accept=".json" class="hidden" onchange="handleFileSelect(event)">
+    </div>
+    <div class="flex justify-end space-x-2">
+      <button onclick="closeImportModal()" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+      <button onclick="executeImport()" class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Import File</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Proportional Debt Split -->
+<div id="debtModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-custom hidden">
+  <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl max-h-[92vh] overflow-y-auto">
+    <div class="px-8 py-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+      <h3 class="text-xl font-bold text-slate-800">💳 Proportional Debt Split</h3>
+      <button type="button" onclick="closeDebtModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="p-8 space-y-6">
+      <div>
+        <label class="block text-sm font-bold text-slate-700 uppercase tracking-wider mb-1.5" for="ds-rate">Exchange Rate (MXN per 1 USD)</label>
+        <input type="number" id="ds-rate" placeholder="e.g. 18.50" min="0" step="0.01" oninput="debtManualRateEdit()" class="w-full px-4 py-3 text-base bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <p id="ds-rate-status" class="text-sm mt-1.5 text-slate-500">Fetching live rate…</p>
+      </div>
+      <div>
+        <label class="block text-sm font-bold text-slate-700 uppercase tracking-wider mb-1.5" for="ds-debt">Total Credit Card Debt (MXN $)</label>
+        <input type="number" id="ds-debt" placeholder="e.g. 27000" min="0" class="w-full px-4 py-3 text-base bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div>
+        <label class="block text-sm font-bold text-slate-700 uppercase tracking-wider mb-1.5" for="ds-wife-usd">Flaquita Income (USD → MXN)</label>
+        <div class="grid grid-cols-2 gap-3">
+          <input type="number" id="ds-wife-usd" placeholder="USD e.g. 1100" min="0" oninput="debtUpdateConversions()" class="w-full px-4 py-3 text-base bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <div id="ds-wife-mxn" class="px-4 py-3 text-base font-bold text-slate-800 bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg text-right flex items-center justify-end">MXN —</div>
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-bold text-slate-700 uppercase tracking-wider mb-1.5" for="ds-user-usd">Yo mero Income (USD → MXN)</label>
+        <div class="grid grid-cols-2 gap-3">
+          <input type="number" id="ds-user-usd" placeholder="USD e.g. 800" min="0" oninput="debtUpdateConversions()" class="w-full px-4 py-3 text-base bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <div id="ds-user-mxn" class="px-4 py-3 text-base font-bold text-slate-800 bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg text-right flex items-center justify-end">MXN —</div>
+        </div>
+      </div>
+      <p id="ds-error" class="hidden text-sm text-rose-600"></p>
+      <button type="button" onclick="debtCalculate()" class="w-full py-3.5 text-base font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm">Calculate Payments</button>
+
+      <div id="ds-results" class="hidden p-5 rounded-xl bg-blue-50 border-l-4 border-blue-600 space-y-3 text-base text-slate-700">
+        <p class="flex justify-between font-bold text-slate-800"><span>Total Income (MXN)</span><strong id="ds-total-income" class="text-blue-700"></strong></p>
+        <hr class="border-slate-200">
+        <p class="flex justify-between"><span>Flaquita (<span id="ds-wife-pct"></span>)</span><strong id="ds-wife-pay" class="text-blue-700"></strong></p>
+        <p class="flex justify-between"><span>Yo mero (<span id="ds-user-pct"></span>)</span><strong id="ds-user-pay" class="text-blue-700"></strong></p>
+        <button type="button" id="ds-copy-btn" onclick="debtCopyResults()" class="w-full mt-2 py-3 text-base font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg">📋 Copy Results for Google Sheets</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 4: Confirm -->
+<div id="confirmModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 backdrop-blur-custom hidden">
+  <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-sm p-6 space-y-4 text-center">
+    <div class="w-12 h-12 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto text-xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <h3 id="confirmTitle" class="text-base font-bold text-slate-800">Are you sure?</h3>
+    <p id="confirmMessage" class="text-xs text-slate-500">This action cannot be undone.</p>
+    <div class="flex justify-center space-x-3 pt-2">
+      <button onclick="closeConfirmModal(false)" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+      <button onclick="closeConfirmModal(true)" class="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Summary PDF container -->
+<div id="summaryPdfContainer" class="hidden p-8 bg-white space-y-8">
+  <div class="border-b pb-4 flex justify-between items-center">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-800">Monthly Expense Summary Report</h1>
+      <p class="text-xs text-slate-500">Generated on <span id="summaryPdfDate"></span></p>
+    </div>
+    <div class="text-right">
+      <span class="text-xs text-slate-400 font-semibold block">Total Recorded Spend</span>
+      <span id="summaryPdfTotalSpend" class="text-2xl font-black text-blue-600">$0.00</span>
+    </div>
+  </div>
+  <div id="summaryPdfGrid" class="grid grid-cols-2 gap-6"></div>
+</div>
+
+<div id="toastContainer" class="fixed bottom-5 right-5 z-[70] space-y-2 pointer-events-none"></div>
+
+<script>
+const STORAGE_KEY = 'monthly_expenses_v1';
+
+const DEFAULT_COLORS = ['#4285F4','#EA4335','#34A853','#FB8C00','#2EA44F','#00ACC1','#7E57C2','#FF7043','#26A69A','#AB47BC','#EC407A'];
+
+const INITIAL_SAMPLE_DATA = [];
+
+let chartInstances = {};
+let confirmCallback = null;
+let selectedImportFile = null;
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ---------- Storage ----------
+function writeStorage(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+  catch (err) { console.error('Failed to write localStorage:', err); }
+}
+
+function getStoredData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) { writeStorage(INITIAL_SAMPLE_DATA); return INITIAL_SAMPLE_DATA; }
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error('Failed to read localStorage:', err);
+    return INITIAL_SAMPLE_DATA;
+  }
+}
+
+function saveStoredData(data) {
+  writeStorage(data);
+  renderApp();
+}
+
+// ---------- Helpers ----------
+// Today's date as Month_day_year, e.g. September_30_2026 (local time)
+function exportFileName() {
+  const d = new Date();
+  return `${d.toLocaleString('en-US', { month: 'long' })}_${d.getDate()}_${d.getFullYear()}`;
+}
+
+function formatMoney(amount, currency = '$') {
+  return `${currency}${Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function calculateMonthTotal(m) {
+  return m.categories.reduce((acc, c) => acc + Number(c.amount || 0), 0);
+}
+
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  const bg = { success: 'bg-emerald-600', error: 'bg-rose-600', info: 'bg-slate-800' };
+  const icon = { success: 'fa-circle-check', error: 'fa-circle-exclamation', info: 'fa-circle-info' };
+  toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-lg text-xs font-semibold text-white flex items-center space-x-2 transition-all transform translate-y-2 opacity-0 ${bg[type] || bg.info}`;
+  toast.innerHTML = `<i class="fa-solid ${icon[type] || icon.info}"></i><span>${esc(message)}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 50);
+  setTimeout(() => {
+    toast.classList.add('opacity-0', 'translate-y-2');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+function openConfirmModal(title, message, callback) {
+  document.getElementById('confirmTitle').innerText = title;
+  document.getElementById('confirmMessage').innerText = message;
+  confirmCallback = callback;
+  document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function closeConfirmModal(result) {
+  document.getElementById('confirmModal').classList.add('hidden');
+  if (result && typeof confirmCallback === 'function') confirmCallback();
+  confirmCallback = null;
+}
+
+// ---------- Main render ----------
+function renderApp() {
+  const data = getStoredData();
+  const grid = document.getElementById('monthsGrid');
+  const emptyState = document.getElementById('emptyState');
+  const searchVal = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+  const sortVal = document.getElementById('sortSelect')?.value || 'newest';
+
+  Object.keys(chartInstances).forEach(k => {
+    if (k !== 'detail' && chartInstances[k]) chartInstances[k].destroy();
+  });
+  const detail = chartInstances['detail'];
+  chartInstances = detail ? { detail } : {};
+
+  let filtered = data.filter(m => m.monthName.toLowerCase().includes(searchVal));
+  if (sortVal === 'newest') filtered.sort((a, b) => b.createdAt - a.createdAt);
+  if (sortVal === 'oldest') filtered.sort((a, b) => a.createdAt - b.createdAt);
+  if (sortVal === 'highest') filtered.sort((a, b) => calculateMonthTotal(b) - calculateMonthTotal(a));
+  if (sortVal === 'lowest') filtered.sort((a, b) => calculateMonthTotal(a) - calculateMonthTotal(b));
+
+  updateDashboardStats(data);
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    emptyState.classList.remove('hidden');
+    return;
+  }
+  emptyState.classList.add('hidden');
+
+  grid.innerHTML = filtered.map(month => {
+    const total = calculateMonthTotal(month);
+    const topCat = [...month.categories].sort((a, b) => b.amount - a.amount)[0];
+    const topPct = topCat && total > 0 ? Math.round((topCat.amount / total) * 100) : 0;
+    return `
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm card-hover flex flex-col justify-between overflow-hidden">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-slate-800 text-base">${esc(month.monthName)}</h3>
+            <p class="text-xs text-slate-400 font-medium">${month.categories.length} Categories</p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs text-slate-400 font-medium block">Total</span>
+            <span class="text-base font-extrabold text-slate-800">${formatMoney(total, month.currency)}</span>
+          </div>
+        </div>
+        <div class="p-4 bg-slate-50/50 flex items-center justify-center relative cursor-pointer" onclick="openDetailModal('${month.id}')">
+          <div class="w-full h-48 relative"><canvas id="chart-${month.id}"></canvas></div>
+        </div>
+        <div class="px-5 py-3 bg-white border-t border-slate-100 text-xs flex justify-between items-center text-slate-600">
+          <span class="truncate max-w-[180px]"><span class="text-slate-400">Top:</span> <strong>${topCat ? esc(topCat.name) : 'N/A'}</strong></span>
+          <span class="font-semibold text-blue-600">${topPct}%</span>
+        </div>
+        <div class="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
+          <button onclick="openDetailModal('${month.id}')" class="flex-1 py-1.5 px-3 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg flex items-center justify-center space-x-1"><i class="fa-solid fa-chart-line text-blue-500"></i><span>View Details</span></button>
+          <button onclick="openEditMonthModal('${month.id}')" class="p-1.5 px-2.5 text-xs text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg" title="Edit Month"><i class="fa-solid fa-pen-to-square"></i></button>
+          <button onclick="promptDeleteMonth('${month.id}')" class="p-1.5 px-2.5 text-xs text-rose-500 hover:text-rose-700 bg-white hover:bg-rose-50 border border-slate-200 rounded-lg" title="Delete Month"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>`;
+  }).join('');
+
+  filtered.forEach(renderThumbnailChart);
+}
+
+// Draws "Name + amount" on each slice: inside for big slices, outside with a leader line for small ones
+const sliceLabelsPlugin = {
+  id: 'sliceLabels',
+  afterDatasetsDraw(chart, args, opts) {
+    const meta = chart.getDatasetMeta(0);
+    const values = chart.data.datasets[0].data.map(Number);
+    const labels = chart.data.labels;
+    const total = values.reduce((a, b) => a + b, 0);
+    if (!total) return;
+    const cut = (t, n) => t.length > n ? t.slice(0, n - 1) + '…' : t;
+    const money = v => formatMoney(v, opts.currency).replace(/\.00$/, '');
+    const ctx = chart.ctx;
+    const outside = [];
+
+    ctx.save();
+    ctx.textBaseline = 'middle';
+
+    meta.data.forEach((arc, i) => {
+      if (!values[i]) return;
+      const mid = (arc.startAngle + arc.endAngle) / 2;
+      const cos = Math.cos(mid), sin = Math.sin(mid);
+      if (values[i] / total >= 0.12) {
+        const r = arc.outerRadius * 0.6;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '600 10px Inter, sans-serif';
+        ctx.fillText(cut(String(labels[i]), 11), arc.x + cos * r, arc.y + sin * r - 6);
+        ctx.font = '500 9px Inter, sans-serif';
+        ctx.fillText(money(values[i]), arc.x + cos * r, arc.y + sin * r + 5);
+      } else {
+        outside.push({ i, arc, cos, sin, side: cos >= 0 ? 1 : -1, y: arc.y + sin * (arc.outerRadius + 10) });
+      }
+    });
+
+    // Spread outside labels vertically on each side so they don't overlap
+    [1, -1].forEach(side => {
+      const group = outside.filter(o => o.side === side).sort((a, b) => a.y - b.y);
+      for (let k = 1; k < group.length; k++) {
+        if (group[k].y - group[k - 1].y < 24) group[k].y = group[k - 1].y + 24;
+      }
+    });
+
+    outside.forEach(o => {
+      const { arc, cos, sin, side, i } = o;
+      const R = arc.outerRadius;
+      const p1 = [arc.x + cos * (R - 2), arc.y + sin * (R - 2)];
+      const p2 = [arc.x + cos * (R + 10), arc.y + sin * (R + 10)];
+      const p3 = [arc.x + side * (R + 22), o.y];
+
+      ctx.beginPath();
+      ctx.moveTo(p1[0], p1[1]);
+      ctx.lineTo(p2[0], p2[1]);
+      ctx.lineTo(p3[0], p3[1]);
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(p1[0], p1[1], 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#64748b';
+      ctx.fill();
+
+      ctx.textAlign = side === 1 ? 'left' : 'right';
+      ctx.fillStyle = '#334155';
+      ctx.font = '600 10px Inter, sans-serif';
+      ctx.fillText(cut(String(labels[i]), 15), p3[0] + side * 3, p3[1] - 6);
+      ctx.font = '500 9px Inter, sans-serif';
+      ctx.fillText(money(values[i]), p3[0] + side * 3, p3[1] + 5);
+    });
+    ctx.restore();
+  }
+};
+
+function renderThumbnailChart(month) {
+  const canvas = document.getElementById(`chart-${month.id}`);
+  if (!canvas || typeof Chart === 'undefined') return;
+  chartInstances[month.id] = new Chart(canvas.getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: month.categories.map(c => c.name),
+      datasets: [{
+        data: month.categories.map(c => c.amount),
+        backgroundColor: month.categories.map((c, i) => c.color || DEFAULT_COLORS[i % DEFAULT_COLORS.length]),
+        borderWidth: 2, borderColor: '#ffffff'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { left: 88, right: 88, top: 22, bottom: 22 } },
+      plugins: {
+        legend: { display: false },
+        sliceLabels: { currency: month.currency },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${formatMoney(ctx.raw, month.currency)}` } }
+      }
+    },
+    plugins: [sliceLabelsPlugin]
+  });
+}
+
+function updateDashboardStats(data) {
+  const totalSpend = data.reduce((acc, m) => acc + calculateMonthTotal(m), 0);
+  const avgSpend = data.length > 0 ? totalSpend / data.length : 0;
+  const totals = {};
+  data.forEach(m => m.categories.forEach(c => { totals[c.name] = (totals[c.name] || 0) + Number(c.amount || 0); }));
+  let topName = '-', max = 0;
+  Object.keys(totals).forEach(k => { if (totals[k] > max) { max = totals[k]; topName = k; } });
+  const sym = data[0]?.currency || '$';
+  document.getElementById('stat-total-spend').innerText = formatMoney(totalSpend, sym);
+  document.getElementById('stat-avg-spend').innerText = formatMoney(avgSpend, sym);
+  document.getElementById('stat-top-category').innerText = topName;
+}
+
+// ---------- Detail modal ----------
+function openDetailModal(monthId) {
+  const month = getStoredData().find(m => m.id === monthId);
+  if (!month) return;
+  const total = calculateMonthTotal(month);
+  const sorted = [...month.categories].sort((a, b) => b.amount - a.amount);
+  const topCat = sorted[0];
+
+  document.getElementById('detailModalTitle').innerText = `${month.monthName} Analytics`;
+  document.getElementById('detailReportMonthName').innerText = month.monthName;
+  document.getElementById('detailReportTotal').innerText = formatMoney(total, month.currency);
+  document.getElementById('detailCategoryCount').innerText = month.categories.length;
+  document.getElementById('detailFlaquitaPaid').innerText = formatMoney(month.flaquitaPaid || 0, month.currency);
+  document.getElementById('detailYoMeroPaid').innerText = formatMoney(month.yoMeroPaid || 0, month.currency);
+  document.getElementById('detailTopCategoryBadge').innerText = topCat ? `${topCat.name} (${formatMoney(topCat.amount, month.currency)})` : 'N/A';
+
+  document.getElementById('detailTableBody').innerHTML = month.categories.map((c, i) => {
+    const pct = total > 0 ? ((c.amount / total) * 100).toFixed(1) : '0.0';
+    const color = c.color || DEFAULT_COLORS[i % DEFAULT_COLORS.length];
+    return `
+      <tr class="hover:bg-slate-50">
+        <td class="py-3 px-4"><div class="flex items-center space-x-2.5"><span class="w-3 h-3 rounded-full inline-block" style="background-color:${esc(color)}"></span><span class="font-semibold text-slate-800">${esc(c.name)}</span></div></td>
+        <td class="py-3 px-4 text-right font-medium text-slate-800">${formatMoney(c.amount, month.currency)}</td>
+        <td class="py-3 px-4 text-right font-bold text-blue-600">${pct}%</td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('detailCategoryProgressBar').innerHTML = sorted.slice(0, 4).map((c, i) => {
+    const pct = total > 0 ? ((c.amount / total) * 100).toFixed(1) : '0.0';
+    const color = c.color || DEFAULT_COLORS[i % DEFAULT_COLORS.length];
+    return `
+      <div class="space-y-1">
+        <div class="flex justify-between text-xs font-medium text-slate-600"><span>${esc(c.name)}</span><span>${pct}%</span></div>
+        <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${pct}%;background-color:${esc(color)}"></div></div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('detailEditBtn').onclick = () => { closeDetailModal(); openEditMonthModal(monthId); };
+  document.getElementById('detailExportPdfBtn').onclick = () => exportMonthPDF(month);
+  document.getElementById('detailModal').classList.remove('hidden');
+
+  setTimeout(() => {
+    if (chartInstances['detail']) chartInstances['detail'].destroy();
+    chartInstances['detail'] = new Chart(document.getElementById('detailChartCanvas').getContext('2d'), {
+      type: 'pie',
+      data: {
+        labels: month.categories.map(c => c.name),
+        datasets: [{
+          data: month.categories.map(c => c.amount),
+          backgroundColor: month.categories.map((c, i) => c.color || DEFAULT_COLORS[i % DEFAULT_COLORS.length]),
+          borderWidth: 2, borderColor: '#ffffff'
+        }]
+      },
+      plugins: [sliceLabelsPlugin],
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { left: 100, right: 100, top: 24, bottom: 24 } },
+        plugins: {
+          legend: { display: false },
+          sliceLabels: { currency: month.currency },
+          tooltip: { callbacks: { label: ctx => {
+            const v = ctx.raw || 0;
+            const pct = total > 0 ? ((v / total) * 100).toFixed(1) : '0.0';
+            return ` ${ctx.label}: ${formatMoney(v, month.currency)} (${pct}%)`;
+          } } }
+        }
+      }
+    });
+  }, 50);
+}
+
+function closeDetailModal() {
+  document.getElementById('detailModal').classList.add('hidden');
+}
+
+// ---------- Add / Edit modal ----------
+function addCategoryRow(name = '', amount = '', color) {
+  const container = document.getElementById('categoryRowsContainer');
+  color = color || DEFAULT_COLORS[container.children.length % DEFAULT_COLORS.length];
+  const row = document.createElement('div');
+  row.className = 'category-row flex items-center gap-2';
+  row.innerHTML = `
+    <input type="color" class="category-color-input w-9 h-9 p-0.5 bg-white border border-slate-200 rounded-lg cursor-pointer">
+    <input type="text" class="category-name-input flex-1 min-w-0 px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Category">
+    <input type="number" step="0.01" min="0" class="category-amount-input w-32 px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0.00">
+    <button type="button" title="Remove row" class="w-8 h-8 shrink-0 text-rose-500 hover:bg-rose-50 rounded-lg" onclick="this.closest('.category-row').remove()"><i class="fa-solid fa-trash text-xs"></i></button>`;
+  row.querySelector('.category-color-input').value = color;
+  row.querySelector('.category-name-input').value = name;
+  row.querySelector('.category-amount-input').value = amount;
+  container.appendChild(row);
+}
+
+function openAddMonthModal() {
+  document.getElementById('addMonthModalTitle').innerText = 'Add Monthly Expense Record';
+  document.getElementById('editMonthId').value = '';
+  document.getElementById('monthNameInput').value = '';
+  document.getElementById('currencyInput').value = '$';
+  document.getElementById('flaquitaPaidInput').value = '';
+  document.getElementById('yoMeroPaidInput').value = '';
+  document.getElementById('bulkPasteContainer').classList.add('hidden');
+  document.getElementById('categoryRowsContainer').innerHTML = '';
+  [['Groceries','#4285F4'],['Niñas','#EA4335'],['CFE','#34A853'],['Dining out','#2EA44F'],['Oxxo','#FB8C00']]
+    .forEach(([n, c]) => addCategoryRow(n, '', c));
+  document.getElementById('addMonthModal').classList.remove('hidden');
+}
+
+function openEditMonthModal(monthId) {
+  const month = getStoredData().find(m => m.id === monthId);
+  if (!month) return;
+  document.getElementById('addMonthModalTitle').innerText = 'Edit Monthly Expense Record';
+  document.getElementById('editMonthId').value = month.id;
+  document.getElementById('monthNameInput').value = month.monthName;
+  document.getElementById('currencyInput').value = month.currency || '$';
+  document.getElementById('flaquitaPaidInput').value = month.flaquitaPaid || '';
+  document.getElementById('yoMeroPaidInput').value = month.yoMeroPaid || '';
+  document.getElementById('bulkPasteContainer').classList.add('hidden');
+  document.getElementById('categoryRowsContainer').innerHTML = '';
+  month.categories.forEach(c => addCategoryRow(c.name, c.amount, c.color));
+  document.getElementById('addMonthModal').classList.remove('hidden');
+}
+
+function closeAddMonthModal() {
+  document.getElementById('addMonthModal').classList.add('hidden');
+  document.getElementById('bulkPasteContainer').classList.add('hidden');
+}
+
+function toggleBulkPasteArea() {
+  document.getElementById('bulkPasteContainer').classList.toggle('hidden');
+}
+
+function applyBulkPaste() {
+  const parsed = [];
+  document.getElementById('bulkPasteInput').value.split('\n').forEach(line => {
+    const m = line.trim().match(/^(.+?)[\s\t]+\$?\s*(-?[\d,]+(?:\.\d+)?)$/);
+    if (m) parsed.push({ name: m[1].trim(), amount: parseFloat(m[2].replace(/,/g, '')) });
+  });
+  if (parsed.length === 0) { showToast('No valid "Name  Amount" lines found.', 'error'); return; }
+  document.getElementById('categoryRowsContainer').innerHTML = '';
+  parsed.forEach(p => addCategoryRow(p.name, p.amount));
+  document.getElementById('bulkPasteInput').value = '';
+  document.getElementById('bulkPasteContainer').classList.add('hidden');
+  showToast(`Loaded ${parsed.length} categories`, 'success');
+}
+
+function handleSaveMonth(e) {
+  e.preventDefault();
+  const monthId = document.getElementById('editMonthId').value;
+  const monthName = document.getElementById('monthNameInput').value.trim();
+  const currency = document.getElementById('currencyInput').value;
+  const flaquitaPaid = parseFloat(document.getElementById('flaquitaPaidInput').value) || 0;
+  const yoMeroPaid = parseFloat(document.getElementById('yoMeroPaidInput').value) || 0;
+
+  const categories = [];
+  document.querySelectorAll('#categoryRowsContainer .category-row').forEach(row => {
+    const name = row.querySelector('.category-name-input').value.trim();
+    const amount = parseFloat(row.querySelector('.category-amount-input').value);
+    const color = row.querySelector('.category-color-input').value;
+    if (name && !isNaN(amount)) categories.push({ name, amount, color });
+  });
+
+  if (categories.length === 0) { showToast('Please add at least one valid category row.', 'error'); return; }
+
+  let data = getStoredData();
+  if (monthId) {
+    data = data.map(m => m.id === monthId ? { ...m, monthName, currency, flaquitaPaid, yoMeroPaid, categories } : m);
+    showToast(`Updated record for ${monthName}`, 'success');
+  } else {
+    data.unshift({ id: 'month-' + Date.now(), monthName, currency, flaquitaPaid, yoMeroPaid, createdAt: Date.now(), categories });
+    showToast(`Added new record for ${monthName}`, 'success');
+  }
+  saveStoredData(data);
+  closeAddMonthModal();
+}
+
+// ---------- Delete / Reset ----------
+function promptDeleteMonth(monthId) {
+  const month = getStoredData().find(m => m.id === monthId);
+  if (!month) return;
+  openConfirmModal('Delete Monthly Record?', `Are you sure you want to delete ${month.monthName}? This cannot be undone.`, () => {
+    saveStoredData(getStoredData().filter(m => m.id !== monthId));
+    showToast(`Deleted ${month.monthName}`, 'info');
+  });
+}
+
+function resetToSampleData() {
+  openConfirmModal('Delete All Data?', 'This will permanently delete all your monthly records. Export a JSON backup first if you want to keep them.', () => {
+    saveStoredData(JSON.parse(JSON.stringify(INITIAL_SAMPLE_DATA)));
+    showToast('All data cleared.', 'success');
+  });
+}
+
+// ---------- Import / Export ----------
+function exportDataJSON() {
+  const data = getStoredData();
+  if (!data || data.length === 0) { showToast('No data available to export.', 'error'); return; }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${exportFileName()}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+  showToast('JSON Backup exported successfully!', 'success');
+}
+
+function openImportModal() {
+  selectedImportFile = null;
+  document.getElementById('selectedFileName').innerText = 'No file selected';
+  document.getElementById('fileInputHidden').value = '';
+  document.getElementById('importModal').classList.remove('hidden');
+}
+
+function closeImportModal() {
+  document.getElementById('importModal').classList.add('hidden');
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) {
+    selectedImportFile = file;
+    document.getElementById('selectedFileName').innerText = file.name;
+  }
+}
+
+function executeImport() {
+  if (!selectedImportFile) { showToast('Please select a JSON file first.', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (Array.isArray(imported) && imported.every(m => m.monthName && Array.isArray(m.categories))) {
+        saveStoredData(imported);
+        closeImportModal();
+        showToast('Expense data imported successfully!', 'success');
+      } else {
+        showToast('Invalid backup file structure.', 'error');
+      }
+    } catch (err) {
+      showToast('Failed to parse JSON file.', 'error');
+    }
+  };
+  reader.readAsText(selectedImportFile);
+}
+
+// ---------- PDF ----------
+function exportMonthPDF(month) {
+  showToast('Generating PDF report...', 'info');
+  const opt = {
+    margin: [0.4, 0.4, 0.4, 0.4],
+    filename: `${exportFileName()}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+  };
+  html2pdf().set(opt).from(document.getElementById('detailPrintContainer')).save()
+    .then(() => showToast('PDF downloaded successfully!', 'success'));
+}
+
+function exportSummaryPDF() {
+  const data = getStoredData();
+  if (!data || data.length === 0) { showToast('No months available to export.', 'error'); return; }
+  showToast('Preparing summary PDF report...', 'info');
+
+  const container = document.getElementById('summaryPdfContainer');
+  const sym = data[0]?.currency || '$';
+  document.getElementById('summaryPdfDate').innerText = new Date().toLocaleDateString();
+  document.getElementById('summaryPdfTotalSpend').innerText = formatMoney(data.reduce((a, m) => a + calculateMonthTotal(m), 0), sym);
+
+  document.getElementById('summaryPdfGrid').innerHTML = data.map(m => `
+    <div class="p-4 border border-slate-200 rounded-xl bg-slate-50 space-y-2">
+      <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+        <h4 class="font-bold text-sm text-slate-800">${esc(m.monthName)}</h4>
+        <span class="font-extrabold text-sm text-blue-600">${formatMoney(calculateMonthTotal(m), m.currency)}</span>
+      </div>
+      <div class="flex justify-between text-xs py-1 px-2 bg-white rounded border border-slate-200">
+        <span class="text-pink-600 font-semibold">Flaquita: ${formatMoney(m.flaquitaPaid || 0, m.currency)}</span>
+        <span class="text-cyan-700 font-semibold">Yo Mero: ${formatMoney(m.yoMeroPaid || 0, m.currency)}</span>
+      </div>
+      <div class="space-y-1 text-xs text-slate-600">
+        ${m.categories.map(c => `<div class="flex justify-between"><span>${esc(c.name)}</span><span class="font-medium">${formatMoney(c.amount, m.currency)}</span></div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  container.classList.remove('hidden');
+  const opt = {
+    margin: [0.5, 0.5, 0.5, 0.5],
+    filename: `${exportFileName()}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+  };
+  html2pdf().set(opt).from(container).save().then(() => {
+    container.classList.add('hidden');
+    showToast('Summary PDF downloaded!', 'success');
+  });
+}
+
+// ---------- Debt Split calculator ----------
+let debtLastResults = null;
+let debtRateFetched = false;
+
+const debtFormatMXN = n => n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) + ' MXN';
+
+function openDebtModal() {
+  document.getElementById('debtModal').classList.remove('hidden');
+  if (!debtRateFetched) { debtRateFetched = true; debtFetchLiveRate(); }
+}
+
+function closeDebtModal() {
+  document.getElementById('debtModal').classList.add('hidden');
+}
+
+async function debtFetchLiveRate() {
+  const status = document.getElementById('ds-rate-status');
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    if (!res.ok) throw new Error('Request failed');
+    const data = await res.json();
+    const mxn = data && data.rates && data.rates.MXN;
+    if (!mxn) throw new Error('MXN rate not found');
+    document.getElementById('ds-rate').value = mxn.toFixed(4);
+    status.textContent = `✓ Live rate loaded: ${mxn.toFixed(4)} MXN per USD (you can still edit it)`;
+    status.className = 'text-sm mt-1.5 text-emerald-600';
+    debtUpdateConversions();
+  } catch (err) {
+    debtRateFetched = false; // allow retry next time the modal opens
+    status.textContent = '⚠ Could not fetch live rate — please enter it manually.';
+    status.className = 'text-sm mt-1.5 text-orange-600';
+  }
+}
+
+function debtManualRateEdit() {
+  const status = document.getElementById('ds-rate-status');
+  status.textContent = 'Using manually entered rate.';
+  status.className = 'text-sm mt-1.5 text-slate-500';
+  debtUpdateConversions();
+}
+
+function debtUpdateConversions() {
+  const rate = parseFloat(document.getElementById('ds-rate').value);
+  [['ds-wife-usd', 'ds-wife-mxn'], ['ds-user-usd', 'ds-user-mxn']].forEach(([inId, outId]) => {
+    const usd = parseFloat(document.getElementById(inId).value);
+    document.getElementById(outId).textContent =
+      (!isNaN(rate) && rate > 0 && !isNaN(usd) && usd >= 0) ? debtFormatMXN(usd * rate) : 'MXN —';
+  });
+}
+
+function debtCalculate() {
+  const rate = parseFloat(document.getElementById('ds-rate').value);
+  const debt = parseFloat(document.getElementById('ds-debt').value);
+  const wifeUSD = parseFloat(document.getElementById('ds-wife-usd').value);
+  const userUSD = parseFloat(document.getElementById('ds-user-usd').value);
+  const results = document.getElementById('ds-results');
+  const error = document.getElementById('ds-error');
+
+  const fail = msg => { error.textContent = msg; error.classList.remove('hidden'); results.classList.add('hidden'); };
+
+  if (isNaN(rate) || isNaN(debt) || isNaN(wifeUSD) || isNaN(userUSD) || rate <= 0 || debt < 0 || wifeUSD < 0 || userUSD < 0) {
+    return fail('Please enter valid numbers for all fields (exchange rate must be greater than zero).');
+  }
+  const wifeIncome = wifeUSD * rate, userIncome = userUSD * rate;
+  const totalIncome = wifeIncome + userIncome;
+  if (totalIncome === 0) return fail('Total income must be greater than zero.');
+  error.classList.add('hidden');
+
+  const wifeProp = wifeIncome / totalIncome, userProp = userIncome / totalIncome;
+  const pct = p => `${(p * 100).toFixed(2)}%`;
+
+  debtLastResults = {
+    date: new Date().toLocaleDateString('es-MX'), rate, debt, totalIncome,
+    wifePercent: pct(wifeProp), wifePayment: debt * wifeProp,
+    userPercent: pct(userProp), userPayment: debt * userProp
+  };
+
+  document.getElementById('ds-total-income').textContent = debtFormatMXN(totalIncome);
+  document.getElementById('ds-wife-pct').textContent = pct(wifeProp);
+  document.getElementById('ds-wife-pay').textContent = debtFormatMXN(debt * wifeProp);
+  document.getElementById('ds-user-pct').textContent = pct(userProp);
+  document.getElementById('ds-user-pay').textContent = debtFormatMXN(debt * userProp);
+  results.classList.remove('hidden');
+}
+
+async function debtCopyResults() {
+  if (!debtLastResults) return;
+  const r = debtLastResults, f2 = n => n.toFixed(2);
+  const tsv = [
+    ['Date', r.date],
+    ['Exchange Rate (MXN/USD)', r.rate],
+    ['Total Debt (MXN)', f2(r.debt)],
+    ['Total Income (MXN)', f2(r.totalIncome)],
+    ['Flaquita', r.wifePercent, f2(r.wifePayment)],
+    ['Yo mero', r.userPercent, f2(r.userPayment)]
+  ].map(row => row.join('\t')).join('\n');
+
+  const btn = document.getElementById('ds-copy-btn');
+  try {
+    await navigator.clipboard.writeText(tsv);
+  } catch (err) {
+    const ta = document.createElement('textarea');
+    ta.value = tsv;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+  btn.textContent = '✓ Copied! Paste into Sheets';
+  setTimeout(() => { btn.textContent = '📋 Copy Results for Google Sheets'; }, 2500);
+}
+
+window.onload = renderApp;
+</script>
+</body>
+</html>
