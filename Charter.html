@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Monthly Expense Analytics & PDF Tool</title>
+<title>Aura Expense & PDF</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,7 +28,7 @@
     <div class="flex items-center space-x-3">
       <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20"><i class="fa-solid fa-chart-pie text-lg"></i></div>
       <div>
-        <h1 class="text-lg font-bold text-slate-800 leading-tight">Aura Expenses & PDF</h1>
+        <h1 class="text-lg font-bold text-slate-800 leading-tight">Expense Tracker & PDF Tool</h1>
         <p class="text-xs text-slate-500 hidden sm:block">Monthly Analytics, Local Storage & PDF Exports</p>
       </div>
     </div>
@@ -63,11 +63,14 @@
       <h2 class="text-xl font-bold text-slate-800">Monthly Expense Charts</h2>
       <p class="text-xs text-slate-500">Thumbnail overview of all saved monthly breakdown charts</p>
     </div>
-    <div class="flex items-center space-x-3">
+    <div class="flex flex-wrap items-center gap-3">
       <div class="relative">
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-        <input type="text" id="searchInput" oninput="renderApp()" placeholder="Search month..." class="pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-44">
+        <input type="text" id="searchInput" oninput="renderApp()" placeholder="Search name or year..." class="pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-44">
       </div>
+      <select id="yearFilter" onchange="renderApp()" title="Filter by year" class="px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
+        <option value="all">All Years</option>
+      </select>
       <select id="sortSelect" onchange="renderApp()" class="px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700">
         <option value="newest">Newest First</option>
         <option value="oldest">Oldest First</option>
@@ -177,17 +180,12 @@
       <input type="hidden" id="editMonthId">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Month & Year *</label>
-          <input type="text" id="monthNameInput" required placeholder="e.g. March 2026" class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Name *</label>
+          <input type="text" id="monthNameInput" required placeholder="e.g. March" class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Currency Symbol</label>
-          <select id="currencyInput" class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="$">$ (USD / MXN / CAD)</option>
-            <option value="€">€ (EUR)</option>
-            <option value="£">£ (GBP)</option>
-            <option value="¥">¥ (JPY)</option>
-          </select>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Year *</label>
+          <input type="number" id="yearInput" required min="1900" max="2200" step="1" placeholder="e.g. 2026" class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
       </div>
 
@@ -363,6 +361,13 @@ function saveStoredData(data) {
 }
 
 // ---------- Helpers ----------
+// Year of a record: saved year, else a 4-digit year in the name, else the year it was created
+function getRecordYear(m) {
+  if (m.year) return Number(m.year);
+  const found = String(m.monthName || '').match(/\b(19|20|21)\d{2}\b/);
+  return found ? parseInt(found[0], 10) : new Date(m.createdAt || Date.now()).getFullYear();
+}
+
 // Today's date as Month_day_year, e.g. September_30_2026 (local time)
 function exportFileName() {
   const d = new Date();
@@ -413,19 +418,30 @@ function renderApp() {
   const searchVal = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
   const sortVal = document.getElementById('sortSelect')?.value || 'newest';
 
+  // Year filter: rebuild options from the data, keep the current selection if it still exists
+  const yearSel = document.getElementById('yearFilter');
+  const years = [...new Set(data.map(getRecordYear))].sort((a, b) => b - a);
+  let yearVal = yearSel ? yearSel.value : 'all';
+  if (yearVal !== 'all' && !years.includes(Number(yearVal))) yearVal = 'all';
+  if (yearSel) {
+    yearSel.innerHTML = '<option value="all">All Years</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+    yearSel.value = yearVal;
+  }
+  const yearData = yearVal === 'all' ? data : data.filter(m => getRecordYear(m) === Number(yearVal));
+
   Object.keys(chartInstances).forEach(k => {
     if (k !== 'detail' && chartInstances[k]) chartInstances[k].destroy();
   });
   const detail = chartInstances['detail'];
   chartInstances = detail ? { detail } : {};
 
-  let filtered = data.filter(m => m.monthName.toLowerCase().includes(searchVal));
+  let filtered = yearData.filter(m => `${m.monthName} ${getRecordYear(m)}`.toLowerCase().includes(searchVal));
   if (sortVal === 'newest') filtered.sort((a, b) => b.createdAt - a.createdAt);
   if (sortVal === 'oldest') filtered.sort((a, b) => a.createdAt - b.createdAt);
   if (sortVal === 'highest') filtered.sort((a, b) => calculateMonthTotal(b) - calculateMonthTotal(a));
   if (sortVal === 'lowest') filtered.sort((a, b) => calculateMonthTotal(a) - calculateMonthTotal(b));
 
-  updateDashboardStats(data);
+  updateDashboardStats(yearData);
 
   if (filtered.length === 0) {
     grid.innerHTML = '';
@@ -443,7 +459,7 @@ function renderApp() {
         <div class="p-5 border-b border-slate-100 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-slate-800 text-base">${esc(month.monthName)}</h3>
-            <p class="text-xs text-slate-400 font-medium">${month.categories.length} Categories</p>
+            <p class="text-xs text-slate-400 font-medium">${getRecordYear(month)} · ${month.categories.length} Categories</p>
           </div>
           <div class="text-right">
             <span class="text-xs text-slate-400 font-medium block">Total</span>
@@ -676,7 +692,7 @@ function openAddMonthModal() {
   document.getElementById('addMonthModalTitle').innerText = 'Add Monthly Expense Record';
   document.getElementById('editMonthId').value = '';
   document.getElementById('monthNameInput').value = '';
-  document.getElementById('currencyInput').value = '$';
+  document.getElementById('yearInput').value = new Date().getFullYear();
   document.getElementById('flaquitaPaidInput').value = '';
   document.getElementById('yoMeroPaidInput').value = '';
   document.getElementById('bulkPasteContainer').classList.add('hidden');
@@ -692,7 +708,7 @@ function openEditMonthModal(monthId) {
   document.getElementById('addMonthModalTitle').innerText = 'Edit Monthly Expense Record';
   document.getElementById('editMonthId').value = month.id;
   document.getElementById('monthNameInput').value = month.monthName;
-  document.getElementById('currencyInput').value = month.currency || '$';
+  document.getElementById('yearInput').value = getRecordYear(month);
   document.getElementById('flaquitaPaidInput').value = month.flaquitaPaid || '';
   document.getElementById('yoMeroPaidInput').value = month.yoMeroPaid || '';
   document.getElementById('bulkPasteContainer').classList.add('hidden');
@@ -728,7 +744,7 @@ function handleSaveMonth(e) {
   e.preventDefault();
   const monthId = document.getElementById('editMonthId').value;
   const monthName = document.getElementById('monthNameInput').value.trim();
-  const currency = document.getElementById('currencyInput').value;
+  const year = parseInt(document.getElementById('yearInput').value, 10);
   const flaquitaPaid = parseFloat(document.getElementById('flaquitaPaidInput').value) || 0;
   const yoMeroPaid = parseFloat(document.getElementById('yoMeroPaidInput').value) || 0;
 
@@ -742,12 +758,16 @@ function handleSaveMonth(e) {
 
   if (categories.length === 0) { showToast('Please add at least one valid category row.', 'error'); return; }
 
+  if (isNaN(year)) { showToast('Please enter a valid year.', 'error'); return; }
+
   let data = getStoredData();
+  const existing = data.find(m => m.id === monthId);
+  const currency = (existing && existing.currency) || '$';
   if (monthId) {
-    data = data.map(m => m.id === monthId ? { ...m, monthName, currency, flaquitaPaid, yoMeroPaid, categories } : m);
+    data = data.map(m => m.id === monthId ? { ...m, monthName, year, currency, flaquitaPaid, yoMeroPaid, categories } : m);
     showToast(`Updated record for ${monthName}`, 'success');
   } else {
-    data.unshift({ id: 'month-' + Date.now(), monthName, currency, flaquitaPaid, yoMeroPaid, createdAt: Date.now(), categories });
+    data.unshift({ id: 'month-' + Date.now(), monthName, year, currency, flaquitaPaid, yoMeroPaid, createdAt: Date.now(), categories });
     showToast(`Added new record for ${monthName}`, 'success');
   }
   saveStoredData(data);
