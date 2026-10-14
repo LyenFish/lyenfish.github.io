@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compound Growth & Klar Yield Calculator</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>
         tailwind.config = {
@@ -17,15 +14,8 @@
                 extend: {
                     colors: {
                         brand: {
-                            50: '#ecfdf5',
-                            100: '#d1fae5',
-                            200: '#a7f3d0',
-                            400: '#34d399',
-                            500: '#10b981',
-                            600: '#059669',
-                            700: '#047857',
-                            900: '#064e3b',
-                            accent: '#00e676'
+                            50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 400: '#34d399',
+                            500: '#10b981', 600: '#059669', 700: '#047857', 900: '#064e3b', accent: '#00e676'
                         },
                         darkbg: '#0b0f17',
                         darkcard: '#131b2e',
@@ -36,86 +26,135 @@
         }
     </script>
     <style>
-        /* Custom scrollbar & clean numeric inputs */
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type=number] {
-            -moz-appearance: textfield;
-        }
-        .glass-panel {
-            background: rgba(19, 27, 46, 0.75);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        .glass-panel { background: rgba(19, 27, 46, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
         .accent-gradient-text {
             background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #a7f3d0 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
+        .hidden { display: none !important; }
+        .ctrl-grid, .cards4, .two-col, .klar-layout, .kpi-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
+        .ctrl-grid, .cards4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .kpi-item { border-top: 1px solid #1f293d; padding-top: 1rem; }
+        .kpi-item:first-child { border-top: 0; padding-top: 0; }
+        #panes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+        @media (min-width: 640px) { body.single .two-col { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 768px) {
+            body.single .klar-layout { grid-template-columns: 5fr 7fr; }
+            body.single .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            body.single .kpi-item { border-top: 0; padding-top: 0; border-left: 1px solid #1f293d; padding-left: 1.5rem; }
+            body.single .kpi-item:first-child { border-left: 0; padding-left: 0; }
+        }
+        @media (min-width: 1024px) {
+            body.single .ctrl-grid, body.single .cards4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            body.split #panes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        body.split main { max-width: 1800px; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased selection:bg-emerald-500 selection:text-white">
 
     <header class="bg-slate-950 border-b border-slate-800 sticky top-0 z-30 shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-auto sm:h-16 py-3 sm:py-0 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center space-x-3">
                 <div class="bg-emerald-600 text-white p-2.5 rounded-xl shadow-md">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <h1 class="text-xl font-bold tracking-tight text-white">Compound Growth</h1>
             </div>
-            
-            <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs sm:text-sm font-medium overflow-x-auto max-w-full">
-                <button onclick="switchTab('monthly')" id="tab-monthly" class="px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 text-slate-400 hover:text-white whitespace-nowrap">Monthly Compound</button>
-                <button onclick="switchTab('recurring')" id="tab-recurring" class="px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 text-slate-400 hover:text-white whitespace-nowrap">Recurring Contribution</button>
-                <button onclick="switchTab('yearly')" id="tab-yearly" class="px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 text-slate-400 hover:text-white whitespace-nowrap">Yearly Compound</button>
-                <span class="px-2 text-slate-600 font-bold select-none">/</span>
-                <button onclick="switchTab('klar_flex')" id="tab-klar_flex" class="px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 bg-emerald-600 text-white shadow whitespace-nowrap">KLAR Flex APY</button>
+
+            <div id="headerTabs" class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs sm:text-sm font-medium overflow-x-auto max-w-full"></div>
+
+            <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs sm:text-sm font-medium" title="Choose how many calculators to show">
+                <button type="button" id="layoutSingle" class="px-3 py-2 rounded-lg transition-all whitespace-nowrap">Single</button>
+                <button type="button" id="layoutSplit" class="px-3 py-2 rounded-lg transition-all whitespace-nowrap">Side by Side</button>
             </div>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div id="panes"></div>
+    </main>
 
+    <template id="tplStd">
         <!-- ORIGINAL TOOL CONTAINER VIEW -->
-        <div id="standardToolView" class="space-y-8">
+        <div data-r="standardToolView" class="space-y-8">
             <!-- Control Panel -->
-            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl ctrl-grid gap-6">
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Initial Investment ($)</label>
                     <div class="relative rounded-xl shadow-sm">
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 font-semibold">$</div>
-                        <input type="number" id="initialInvestment" value="1000" min="1" step="100" class="block w-full pl-8 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition">
+                        <input type="number" data-r="initialInvestment" value="1000" min="1" step="100" class="block w-full pl-8 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition">
+                    </div>
+                    <div data-r="stepBtns" class="hidden grid grid-cols-6 gap-1.5 mt-2">
+                        <button type="button" data-step="-1" data-target="initialInvestment" class="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white hover:border-emerald-500 transition">&minus;1</button>
+                        <button type="button" data-step="-10" data-target="initialInvestment" class="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white hover:border-emerald-500 transition">&minus;10</button>
+                        <button type="button" data-step="1" data-target="initialInvestment" class="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white hover:border-emerald-500 transition">+1</button>
+                        <button type="button" data-step="10" data-target="initialInvestment" class="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white hover:border-emerald-500 transition">+10</button>
+                        <button type="button" data-step="50" data-target="initialInvestment" class="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white hover:border-emerald-500 transition">+50</button>
+                        <button type="button" data-step="100" data-target="initialInvestment" class="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white hover:border-emerald-500 transition">+100</button>
                     </div>
                 </div>
 
                 <div>
-                    <label id="rateLabel" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Annual Interest Rate (%)</label>
+                    <label data-r="rateLabel" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Annual Interest Rate (%)</label>
                     <div class="relative rounded-xl shadow-sm">
-                        <input type="number" id="annualRate" value="3.0" min="0.01" step="0.1" class="block w-full pl-4 pr-10 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition">
+                        <input type="number" data-r="annualRate" value="3.0" min="0.01" step="0.1" class="block w-full pl-4 pr-10 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition">
                         <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-500 font-semibold">%</div>
                     </div>
                 </div>
 
-                <div id="recurringAmountContainer" class="hidden">
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Recurring Add ($)</label>
+                <div data-r="recurringAmountContainer" class="hidden">
+                    <label data-r="recurringAmountLabel" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Recurring Add ($)</label>
                     <div class="relative rounded-xl shadow-sm">
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 font-semibold">$</div>
-                        <input type="number" id="recurringAmount" value="50" min="0" step="10" class="block w-full pl-8 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition">
+                        <input type="number" data-r="recurringAmount" value="50" min="0" step="10" class="block w-full pl-8 pr-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition">
+                    </div>
+                    <div data-r="stepBtnsAmt" class="hidden grid grid-cols-6 gap-1.5 mt-2">
+                        <button type="button" data-step="-1" data-target="recurringAmount" class="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white hover:border-emerald-500 transition">&minus;1</button>
+                        <button type="button" data-step="-10" data-target="recurringAmount" class="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white hover:border-emerald-500 transition">&minus;10</button>
+                        <button type="button" data-step="1" data-target="recurringAmount" class="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white hover:border-emerald-500 transition">+1</button>
+                        <button type="button" data-step="10" data-target="recurringAmount" class="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white hover:border-emerald-500 transition">+10</button>
+                        <button type="button" data-step="50" data-target="recurringAmount" class="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white hover:border-emerald-500 transition">+50</button>
+                        <button type="button" data-step="100" data-target="recurringAmount" class="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white hover:border-emerald-500 transition">+100</button>
                     </div>
                 </div>
 
-                <div id="recurringDaysContainer" class="hidden">
+                <div data-r="recurringDaysContainer" class="hidden">
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Frequency (Every X Days)</label>
-                    <input type="number" id="recurringDays" value="30" min="1" max="365" step="1" class="block w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition">
+                    <input type="number" data-r="recurringDays" value="30" min="1" max="365" step="1" class="block w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition">
+                </div>
+            </div>
+
+            <!-- Withdrawal Summary (only visible on Recurring Withdrawal tab) -->
+            <div data-r="withdrawalSummary" class="hidden cards4 gap-4">
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                    <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Withdrawn</div>
+                    <div class="text-2xl font-extrabold text-amber-400 mt-1" data-r="wdTotalWithdrawn">$0.00</div>
+                    <div class="text-xs text-slate-500 mt-1" data-r="wdCountNote">0 withdrawals</div>
+                </div>
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                    <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Interest Earned</div>
+                    <div class="text-2xl font-extrabold text-emerald-400 mt-1" data-r="wdTotalInterest">$0.00</div>
+                    <div class="text-xs text-slate-500 mt-1">Over 365 days</div>
+                </div>
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                    <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Ending Balance</div>
+                    <div class="text-2xl font-extrabold text-white mt-1" data-r="wdEndBalance">$0.00</div>
+                    <div class="text-xs text-slate-500 mt-1" data-r="wdNetNote">vs. initial investment</div>
+                </div>
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                    <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Sustainability</div>
+                    <div class="text-lg font-bold text-white mt-1" data-r="wdStatus">—</div>
+                    <div class="text-xs text-slate-500 mt-1" data-r="wdStatusNote"></div>
                 </div>
             </div>
 
             <!-- Milestone Progress Breakdown -->
-            <div class="space-y-4">
+            <div class="space-y-4" data-r="milestoneSection">
                 <h2 class="text-lg font-bold text-white tracking-tight">Milestone Progress Breakdown</h2>
                 <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
                     <div class="overflow-x-auto">
@@ -128,9 +167,7 @@
                                     <th class="py-3.5 px-6">Total Balance ($)</th>
                                 </tr>
                             </thead>
-                            <tbody id="textMilestonesBody" class="divide-y divide-slate-800/60 text-sm text-slate-300">
-                                <!-- Populated dynamically via JS -->
-                            </tbody>
+                            <tbody data-r="textMilestonesBody" class="divide-y divide-slate-800/60 text-sm text-slate-300"></tbody>
                         </table>
                     </div>
                 </div>
@@ -143,7 +180,7 @@
                         <h2 class="text-lg font-bold text-white tracking-tight">Day-by-Day Growth Ledger</h2>
                         <p class="text-xs text-slate-400 mt-0.5">Complete schedule tracking daily accrued interest and updated compounded balance.</p>
                     </div>
-                    <div class="text-xs bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-emerald-400 font-medium" id="scheduleDurationLabel">
+                    <div class="text-xs bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-emerald-400 font-medium" data-r="scheduleDurationLabel">
                         Duration: 365 Days
                     </div>
                 </div>
@@ -155,11 +192,10 @@
                                 <th class="py-3.5 px-6">Compounded Interest</th>
                                 <th class="py-3.5 px-6">Compounded Balance</th>
                                 <th class="py-3.5 px-6">That Day's Interest</th>
+                                <th class="py-3.5 px-6 hidden" data-r="withdrawnHeader">Withdrawn That Day</th>
                             </tr>
                         </thead>
-                        <tbody id="ledgerTableBody" class="divide-y divide-slate-800/60 text-sm text-slate-300">
-                            <!-- Populated dynamically via JS -->
-                        </tbody>
+                        <tbody data-r="ledgerTableBody" class="divide-y divide-slate-800/60 text-sm text-slate-300"></tbody>
                     </table>
                 </div>
             </div>
@@ -176,15 +212,18 @@
                     </div>
                 </div>
                 <div class="w-full h-80">
-                    <canvas id="growthChart"></canvas>
+                    <canvas data-r="growthChart"></canvas>
                 </div>
             </div>
         </div>
 
+        
+    </template>
+
+    <template id="tplKlar">
         <!-- KLAR FLEXIBLE MAX YIELD CALCULATOR VIEW -->
-        <div id="klarFlexView" class="hidden space-y-8">
-            
-            <!-- Sub-Header / Info Bar -->
+        <div data-r="klarFlexView" class="hidden space-y-8">
+
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-darkcard/80 p-4 rounded-2xl border border-darkborder gap-3">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-brand-400 flex items-center justify-center shadow-lg shadow-brand-500/20">
@@ -204,74 +243,68 @@
                 </div>
             </div>
 
-            <!-- Top Overview Banner -->
             <section class="glass-panel rounded-2xl p-6 relative overflow-hidden border border-brand-500/20">
                 <div class="absolute -right-16 -top-16 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-                    <div class="space-y-1">
+                <div class="kpi-grid gap-6 relative z-10">
+                    <div class="space-y-1 kpi-item">
                         <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Projected Final Balance</span>
-                        <div class="text-3xl sm:text-4xl font-extrabold accent-gradient-text" id="kpiFinalBalance">$0.00</div>
-                        <span class="text-xs text-slate-400 flex items-center gap-1 pt-1" id="kpiPrincipalNote">
+                        <div class="text-3xl sm:text-4xl font-extrabold accent-gradient-text" data-r="kpiFinalBalance">$0.00</div>
+                        <span class="text-xs text-slate-400 flex items-center gap-1 pt-1" data-r="kpiPrincipalNote">
                             <i data-lucide="wallet" class="w-3.5 h-3.5"></i> Initial: $25,000.00 MXN
                         </span>
                     </div>
-                    <div class="space-y-1 border-t md:border-t-0 md:border-l border-darkborder pt-4 md:pt-0 md:pl-6">
+                    <div class="space-y-1 kpi-item">
                         <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Interest Earned</span>
-                        <div class="text-3xl sm:text-4xl font-extrabold text-brand-400" id="kpiTotalInterest">$0.00</div>
-                        <span class="text-xs text-emerald-400/90 flex items-center gap-1 pt-1" id="kpiPercentReturn">
+                        <div class="text-3xl sm:text-4xl font-extrabold text-brand-400" data-r="kpiTotalInterest">$0.00</div>
+                        <span class="text-xs text-emerald-400/90 flex items-center gap-1 pt-1" data-r="kpiPercentReturn">
                             <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i> +0.00% return
                         </span>
                     </div>
-                    <div class="space-y-1 border-t md:border-t-0 md:border-l border-darkborder pt-4 md:pt-0 md:pl-6">
+                    <div class="space-y-1 kpi-item">
                         <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Blended Effective APY</span>
-                        <div class="text-3xl sm:text-4xl font-extrabold text-slate-100" id="kpiEffectiveApy">0.00%</div>
-                        <span class="text-xs text-slate-400 flex items-center gap-1 pt-1" id="kpiApySubtext">
+                        <div class="text-3xl sm:text-4xl font-extrabold text-slate-100" data-r="kpiEffectiveApy">0.00%</div>
+                        <span class="text-xs text-slate-400 flex items-center gap-1 pt-1" data-r="kpiApySubtext">
                             <i data-lucide="percent" class="w-3.5 h-3.5"></i> Weighted return on entire sum
                         </span>
                     </div>
                 </div>
             </section>
 
-            <!-- Main Calculator Layout Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+            <div class="klar-layout gap-8">
 
-                <!-- Left Column: Input Panel -->
-                <div class="md:col-span-5 space-y-6">
+                <div class="min-w-0 space-y-6">
                     <div class="glass-panel rounded-2xl p-6 space-y-6">
                         <div class="flex items-center justify-between border-b border-darkborder pb-4">
                             <h2 class="font-semibold text-lg flex items-center gap-2">
                                 <i data-lucide="sliders" class="w-5 h-5 text-brand-400"></i>
                                 Parameters
                             </h2>
-                            <button id="resetBtn" class="text-xs text-slate-400 hover:text-white transition flex items-center gap-1">
+                            <button data-r="resetBtn" class="text-xs text-slate-400 hover:text-white transition flex items-center gap-1">
                                 <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
                             </button>
                         </div>
 
-                        <!-- Input 1: Principal Balance -->
                         <div class="space-y-2">
                             <div class="flex justify-between items-center text-sm">
-                                <label for="initialBalance" class="font-medium text-slate-200">Total Investment Amount</label>
-                                <span class="text-xs text-brand-400 font-semibold" id="tierSplitBadge">100% in Tier 1</span>
+                                <label class="font-medium text-slate-200">Total Investment Amount</label>
+                                <span class="text-xs text-brand-400 font-semibold" data-r="tierSplitBadge">100% in Tier 1</span>
                             </div>
                             <div class="relative">
                                 <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-medium">$</span>
-                                <input type="number" id="initialBalance" value="25000" min="100" step="500" 
+                                <input type="number" data-r="initialBalance" value="25000" min="100" step="500"
                                     class="w-full pl-8 pr-16 py-2.5 bg-darkbg border border-darkborder rounded-xl text-white font-semibold focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
                                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-semibold">MXN</span>
                             </div>
-                            <!-- Range Slider -->
-                            <input type="range" id="initialBalanceSlider" min="1000" max="100000" step="1000" value="25000" 
+                            <input type="range" data-r="initialBalanceSlider" min="1000" max="100000" step="1000" value="25000"
                                 class="w-full accent-brand-500 bg-darkbg h-1.5 rounded-lg appearance-none cursor-pointer">
                         </div>
 
-                        <!-- Input 2: Duration & Unit -->
                         <div class="space-y-2">
                             <label class="font-medium text-sm text-slate-200">Time Horizon</label>
                             <div class="grid grid-cols-7 gap-2">
-                                <input type="number" id="timeDuration" value="12" min="1" max="365" 
+                                <input type="number" data-r="timeDuration" value="12" min="1" max="365"
                                     class="col-span-3 px-3 py-2.5 bg-darkbg border border-darkborder rounded-xl text-white font-semibold focus:outline-none focus:border-brand-500 transition">
-                                <select id="timeUnit" 
+                                <select data-r="timeUnit"
                                     class="col-span-4 px-3 py-2.5 bg-darkbg border border-darkborder rounded-xl text-white font-medium focus:outline-none focus:border-brand-500 transition cursor-pointer">
                                     <option value="days">Days</option>
                                     <option value="weeks">Weeks</option>
@@ -281,39 +314,37 @@
                             </div>
                         </div>
 
-                        <!-- Input 3: Compounding Mode -->
                         <div class="space-y-2">
                             <label class="font-medium text-sm text-slate-200 flex items-center justify-between">
                                 <span>Payout & Compounding</span>
                                 <i data-lucide="info" class="w-4 h-4 text-slate-400" title="Klar credits Flexible yields every Monday."></i>
                             </label>
                             <div class="grid grid-cols-2 gap-2 p-1 bg-darkbg rounded-xl border border-darkborder">
-                                <button type="button" id="compoundWeeklyBtn" class="py-2 text-xs font-semibold rounded-lg bg-brand-600 text-white shadow transition">
+                                <button type="button" data-r="compoundWeeklyBtn" class="py-2 text-xs font-semibold rounded-lg bg-brand-600 text-white shadow transition">
                                     Weekly Reinvest
                                 </button>
-                                <button type="button" id="compoundSimpleBtn" class="py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">
+                                <button type="button" data-r="compoundSimpleBtn" class="py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">
                                     Simple Interest
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Collapsible Advanced Rate Tweaks -->
                         <div class="border-t border-darkborder pt-4">
-                            <button id="toggleRatesBtn" class="w-full flex justify-between items-center text-xs font-semibold text-slate-400 hover:text-slate-200">
+                            <button data-r="toggleRatesBtn" class="w-full flex justify-between items-center text-xs font-semibold text-slate-400 hover:text-slate-200">
                                 <span class="flex items-center gap-1.5">
                                     <i data-lucide="settings-2" class="w-4 h-4 text-brand-400"></i> Custom Yield Rates (Advanced)
                                 </span>
-                                <i data-lucide="chevron-down" id="ratesChevron" class="w-4 h-4 transition-transform duration-200"></i>
+                                <i data-lucide="chevron-down" data-r="ratesChevron" class="w-4 h-4 transition-transform duration-200"></i>
                             </button>
-                            
-                            <div id="ratesPanel" class="hidden space-y-4 pt-4">
+
+                            <div data-r="ratesPanel" class="hidden space-y-4 pt-4">
                                 <div class="space-y-1">
                                     <div class="flex justify-between text-xs text-slate-300">
                                         <span>Tier 1 Rate (&le; $25,000 MXN)</span>
-                                        <span class="font-semibold text-brand-400" id="tier1RateDisplay">15.0% APY</span>
+                                        <span class="font-semibold text-brand-400" data-r="tier1RateDisplay">15.0% APY</span>
                                     </div>
                                     <div class="relative">
-                                        <input type="number" id="tier1Rate" value="15.0" step="0.1" min="0" max="30"
+                                        <input type="number" data-r="tier1Rate" value="15.0" step="0.1" min="0" max="30"
                                             class="w-full pl-3 pr-8 py-2 bg-darkbg border border-darkborder rounded-lg text-xs text-white focus:outline-none focus:border-brand-500">
                                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">%</span>
                                     </div>
@@ -321,10 +352,10 @@
                                 <div class="space-y-1">
                                     <div class="flex justify-between text-xs text-slate-300">
                                         <span>Tier 2 Overflow (&gt; $25,000 MXN)</span>
-                                        <span class="font-semibold text-slate-400" id="tier2RateDisplay">8.0% APY</span>
+                                        <span class="font-semibold text-slate-400" data-r="tier2RateDisplay">8.0% APY</span>
                                     </div>
                                     <div class="relative">
-                                        <input type="number" id="tier2Rate" value="8.0" step="0.1" min="0" max="30"
+                                        <input type="number" data-r="tier2Rate" value="8.0" step="0.1" min="0" max="30"
                                             class="w-full pl-3 pr-8 py-2 bg-darkbg border border-darkborder rounded-lg text-xs text-white focus:outline-none focus:border-brand-500">
                                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">%</span>
                                     </div>
@@ -335,10 +366,8 @@
                     </div>
                 </div>
 
-                <!-- Right Column: Prominent Earnings Breakdown -->
-                <div class="md:col-span-7 space-y-6">
+                <div class="min-w-0 space-y-6">
 
-                    <!-- Split Allocation & EARNINGS Card -->
                     <div class="glass-panel rounded-2xl p-6 space-y-6">
                         <div class="flex items-center justify-between border-b border-darkborder pb-4">
                             <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
@@ -347,37 +376,31 @@
                             </h3>
                             <span class="text-xs text-slate-400">Flexible Max vs Spillover</span>
                         </div>
-                        
-                        <!-- Progress bar -->
+
                         <div class="h-3.5 w-full bg-darkbg rounded-full overflow-hidden flex border border-darkborder">
-                            <div id="tier1Bar" class="bg-brand-500 h-full transition-all duration-300" style="width: 100%"></div>
-                            <div id="tier2Bar" class="bg-indigo-500 h-full transition-all duration-300" style="width: 0%"></div>
+                            <div data-r="tier1Bar" class="bg-brand-500 h-full transition-all duration-300" style="width: 100%"></div>
+                            <div data-r="tier2Bar" class="bg-indigo-500 h-full transition-all duration-300" style="width: 0%"></div>
                         </div>
 
-                        <!-- Hero Tier Earnings Display -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <!-- Tier 1 Card -->
+                        <div class="two-col gap-4">
                             <div class="p-5 bg-darkbg/90 rounded-2xl border border-brand-500/30 space-y-3 relative overflow-hidden">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-2 text-brand-400 font-semibold text-sm">
                                         <span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span>
                                         Tier 1 (Flexible Max @ 15.0%)
                                     </div>
-                                    <span class="text-xs bg-brand-500/10 text-brand-400 px-2 py-0.5 rounded border border-brand-500/20 font-medium" id="tier1CapStatus">Up to $25k</span>
+                                    <span class="text-xs bg-brand-500/10 text-brand-400 px-2 py-0.5 rounded border border-brand-500/20 font-medium" data-r="tier1CapStatus">Up to $25k</span>
                                 </div>
-
                                 <div class="pt-1">
                                     <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Interest Earned</div>
-                                    <div class="text-3xl font-black text-brand-400 mt-1" id="tier1Earnings">$0.00</div>
+                                    <div class="text-3xl font-black text-brand-400 mt-1" data-r="tier1Earnings">$0.00</div>
                                 </div>
-
                                 <div class="pt-2 border-t border-darkborder/60 flex justify-between items-center text-xs text-slate-400">
                                     <span>Invested Principal:</span>
-                                    <span class="font-bold text-slate-200" id="tier1Amount">$25,000.00</span>
+                                    <span class="font-bold text-slate-200" data-r="tier1Amount">$25,000.00</span>
                                 </div>
                             </div>
 
-                            <!-- Tier 2 Card -->
                             <div class="p-5 bg-darkbg/90 rounded-2xl border border-indigo-500/30 space-y-3 relative overflow-hidden">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-2 text-indigo-400 font-semibold text-sm">
@@ -386,47 +409,43 @@
                                     </div>
                                     <span class="text-xs bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20 font-medium">Above $25k</span>
                                 </div>
-
                                 <div class="pt-1">
                                     <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Interest Earned</div>
-                                    <div class="text-3xl font-black text-indigo-400 mt-1" id="tier2Earnings">$0.00</div>
+                                    <div class="text-3xl font-black text-indigo-400 mt-1" data-r="tier2Earnings">$0.00</div>
                                 </div>
-
                                 <div class="pt-2 border-t border-darkborder/60 flex justify-between items-center text-xs text-slate-400">
                                     <span>Overflow Principal:</span>
-                                    <span class="font-bold text-slate-200" id="tier2Amount">$0.00</span>
+                                    <span class="font-bold text-slate-200" data-r="tier2Amount">$0.00</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Time Horizon Yield Breakdown -->
                     <div class="glass-panel rounded-2xl p-6 space-y-4">
                         <h3 class="font-semibold text-md text-slate-200 flex items-center gap-2">
                             <i data-lucide="calendar" class="w-4 h-4 text-brand-400"></i>
                             Periodic Returns Summary
                         </h3>
 
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="cards4 gap-3">
                             <div class="p-3.5 bg-darkbg rounded-xl border border-darkborder space-y-1 text-center">
                                 <span class="text-xs text-slate-400">Daily Average</span>
-                                <div class="font-bold text-lg text-slate-100" id="tableDaily">$10.27</div>
+                                <div class="font-bold text-lg text-slate-100" data-r="tableDaily">$10.27</div>
                             </div>
                             <div class="p-3.5 bg-darkbg rounded-xl border border-brand-500/20 space-y-1 text-center">
                                 <span class="text-xs text-slate-400">Weekly Payout</span>
-                                <div class="font-bold text-lg text-brand-400" id="tableWeekly">$71.92</div>
+                                <div class="font-bold text-lg text-brand-400" data-r="tableWeekly">$71.92</div>
                             </div>
                             <div class="p-3.5 bg-darkbg rounded-xl border border-darkborder space-y-1 text-center">
                                 <span class="text-xs text-slate-400">Monthly Yield</span>
-                                <div class="font-bold text-lg text-slate-100" id="tableMonthly">$308.22</div>
+                                <div class="font-bold text-lg text-slate-100" data-r="tableMonthly">$308.22</div>
                             </div>
                             <div class="p-3.5 bg-darkbg rounded-xl border border-darkborder space-y-1 text-center">
                                 <span class="text-xs text-slate-400">Annual Return</span>
-                                <div class="font-bold text-lg text-slate-100" id="tableAnnual">$3,750.00</div>
+                                <div class="font-bold text-lg text-slate-100" data-r="tableAnnual">$3,750.00</div>
                             </div>
                         </div>
 
-                        <!-- Important Disclaimer Note -->
                         <div class="p-3.5 bg-brand-500/10 border border-brand-500/20 rounded-xl text-xs text-brand-200/90 flex items-start gap-2.5">
                             <i data-lucide="lightbulb" class="w-4 h-4 text-brand-400 shrink-0 mt-0.5"></i>
                             <div>
@@ -436,479 +455,447 @@
                     </div>
 
                 </div>
-
             </div>
-
         </div>
 
-    </main>
+    
+    </template>
 
     <script>
-        let currentTab = 'monthly';
-        let chartInstance = null;
+        const TABS = [
+            { id: 'monthly', label: 'Monthly Compound' },
+            { id: 'recurring', label: 'Recurring Contribution' },
+            { id: 'withdrawal', label: 'Recurring Withdrawal' },
+            { sep: true },
+            { id: 'yearly', label: 'Yearly Compound' },
+            { sep: true },
+            { id: 'klar_flex', label: 'KLAR Flex APY' }
+        ];
+        const TAB_ON = "px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 bg-emerald-600 text-white shadow whitespace-nowrap";
+        const TAB_OFF = "px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 text-slate-400 hover:text-white whitespace-nowrap";
+        const TIER_1_CAP = 25000;
 
-        function switchTab(tab) {
-            currentTab = tab;
-            document.querySelectorAll('header button[id^="tab-"]').forEach(btn => {
-                btn.className = "px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 text-slate-400 hover:text-white whitespace-nowrap";
-            });
-            document.getElementById(`tab-${tab}`).className = "px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 bg-emerald-600 text-white shadow whitespace-nowrap";
+        const fmtUSD = v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const fmtMXN = amount => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
 
-            const standardToolView = document.getElementById('standardToolView');
-            const klarFlexView = document.getElementById('klarFlexView');
+        class Pane {
+            constructor(label, defaultTab, headerTabsEl) {
+                this.label = label;
+                this.tab = defaultTab;
+                this.chart = null;
+                this.weekly = true;
 
-            if (tab === 'klar_flex') {
-                standardToolView.classList.add('hidden');
-                klarFlexView.classList.remove('hidden');
-                calculateYields();
-                lucide.createIcons();
-                return;
-            } else {
-                standardToolView.classList.remove('hidden');
-                klarFlexView.classList.add('hidden');
+                this.root = document.createElement('section');
+                this.root.className = 'min-w-0 space-y-6';
+                this.root.innerHTML = '<div data-r="paneTabs" class="flex flex-wrap items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs font-medium"></div>';
+                this.root.appendChild(document.getElementById('tplStd').content.cloneNode(true));
+                this.root.appendChild(document.getElementById('tplKlar').content.cloneNode(true));
+
+                this.el = {};
+                this.root.querySelectorAll('[data-r]').forEach(e => { this.el[e.dataset.r] = e; });
+                this.tabBars = headerTabsEl ? [headerTabsEl, this.el.paneTabs] : [this.el.paneTabs];
+                this.bind();
             }
 
-            const recAmountCont = document.getElementById('recurringAmountContainer');
-            const recDaysCont = document.getElementById('recurringDaysContainer');
-
-            if (tab === 'recurring') {
-                recAmountCont.classList.remove('hidden');
-                recDaysCont.classList.remove('hidden');
-            } else {
-                recAmountCont.classList.add('hidden');
-                recDaysCont.classList.add('hidden');
-            }
-
-            const rateLabel = document.getElementById('rateLabel');
-
-            if (tab === 'monthly' || tab === 'recurring') {
-                rateLabel.innerText = 'Monthly Interest Rate (%)';
-            } else {
-                rateLabel.innerText = 'Annual Interest Rate (%)';
-            }
-
-            calculate();
-        }
-
-        function formatCurrencyOriginal(val) {
-            return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-
-        function calculate() {
-            const initialInvestment = parseFloat(document.getElementById('initialInvestment').value) || 1000;
-            const rateInput = parseFloat(document.getElementById('annualRate').value) || 3.0;
-            const recurringAmount = parseFloat(document.getElementById('recurringAmount').value) || 0;
-            const recurringDays = parseInt(document.getElementById('recurringDays').value) || 30;
-
-            let totalDays = 365;
-
-            document.getElementById('scheduleDurationLabel').innerText = `Duration: ${totalDays} Days`;
-
-            let activeDailyRate;
-            if (currentTab === 'monthly' || currentTab === 'recurring') {
-                activeDailyRate = ((rateInput / 100) * 12) / 365;
-            } else {
-                activeDailyRate = (rateInput / 100) / 365;
-            }
-
-            let balance = initialInvestment;
-            let totalInterest = 0;
-            let ledger = [];
-            let chartLabels = [];
-            let chartData = [];
-
-            for (let day = 1; day <= totalDays; day++) {
-                if (currentTab === 'recurring' && recurringDays > 0 && (day % recurringDays === 0)) {
-                    balance += recurringAmount;
-                }
-
-                const startBalance = balance;
-                const cumulativeBeforeToday = totalInterest;
-
-                const dayInterest = balance * activeDailyRate;
-                totalInterest += dayInterest;
-                balance += dayInterest;
-
-                ledger.push({
-                    day: day,
-                    dailyInterest: dayInterest,
-                    totalInterest: cumulativeBeforeToday,
-                    balance: startBalance
+            renderTabs() {
+                this.tabBars.forEach(bar => {
+                    bar.innerHTML = '';
+                    if (bar === this.el.paneTabs) {
+                        const chip = document.createElement('span');
+                        chip.className = 'px-2.5 py-1.5 rounded-md bg-slate-800 text-emerald-400 font-bold';
+                        chip.textContent = 'View ' + this.label;
+                        bar.appendChild(chip);
+                    }
+                    TABS.forEach(t => {
+                        if (t.sep) {
+                            const s = document.createElement('span');
+                            s.className = 'px-2 text-slate-600 font-bold select-none';
+                            s.textContent = '/';
+                            bar.appendChild(s);
+                            return;
+                        }
+                        const b = document.createElement('button');
+                        b.type = 'button';
+                        b.textContent = t.label;
+                        b.className = t.id === this.tab ? TAB_ON : TAB_OFF;
+                        b.addEventListener('click', () => this.setTab(t.id));
+                        bar.appendChild(b);
+                    });
                 });
+            }
 
-                if (currentTab === 'recurring') {
-                    if (day % 15 === 0 || day === totalDays) {
-                        chartLabels.push(`Day ${day}`);
-                        chartData.push(balance);
+            setTab(tab) {
+                this.tab = tab;
+                this.renderTabs();
+                const e = this.el;
+
+                if (tab === 'klar_flex') {
+                    e.standardToolView.classList.add('hidden');
+                    e.klarFlexView.classList.remove('hidden');
+                    this.calculateYields();
+                    return;
+                }
+                e.standardToolView.classList.remove('hidden');
+                e.klarFlexView.classList.add('hidden');
+
+                const isRecurringType = (tab === 'recurring' || tab === 'withdrawal');
+                e.recurringAmountContainer.classList.toggle('hidden', !isRecurringType);
+                e.recurringDaysContainer.classList.toggle('hidden', !isRecurringType);
+                e.recurringAmountLabel.innerText = tab === 'withdrawal' ? 'Recurring Withdrawal ($)' : 'Recurring Add ($)';
+
+                e.withdrawalSummary.classList.toggle('hidden', tab !== 'withdrawal');
+                e.withdrawnHeader.classList.toggle('hidden', tab !== 'withdrawal');
+                e.stepBtns.classList.toggle('hidden', tab !== 'withdrawal');
+                e.stepBtnsAmt.classList.toggle('hidden', tab !== 'withdrawal');
+
+                e.rateLabel.innerText = (tab === 'monthly' || isRecurringType) ? 'Monthly Interest Rate (%)' : 'Annual Interest Rate (%)';
+                this.calculate();
+            }
+
+            // ---------- Standard calculators ----------
+            calculate() {
+                const e = this.el;
+                const initialInvestment = parseFloat(e.initialInvestment.value) || 1000;
+                const rateInput = parseFloat(e.annualRate.value) || 3.0;
+                const recurringAmount = parseFloat(e.recurringAmount.value) || 0;
+                const recurringDays = parseInt(e.recurringDays.value) || 30;
+                const tab = this.tab;
+                const totalDays = 365;
+
+                e.scheduleDurationLabel.innerText = `Duration: ${totalDays} Days`;
+
+                const monthlyType = (tab === 'monthly' || tab === 'recurring' || tab === 'withdrawal');
+                const dailyRate = monthlyType ? ((rateInput / 100) * 12) / 365 : (rateInput / 100) / 365;
+
+                let balance = initialInvestment, totalInterest = 0, totalWithdrawn = 0, withdrawalCount = 0, depletedDay = null;
+                const ledger = [], chartLabels = [], chartData = [];
+
+                for (let day = 1; day <= totalDays; day++) {
+                    let withdrawnToday = 0;
+
+                    if (tab === 'recurring' && recurringDays > 0 && day % recurringDays === 0) {
+                        balance += recurringAmount;
                     }
+                    if (tab === 'withdrawal' && recurringDays > 0 && day % recurringDays === 0 && balance > 0) {
+                        withdrawnToday = Math.min(recurringAmount, balance);
+                        balance -= withdrawnToday;
+                        totalWithdrawn += withdrawnToday;
+                        if (withdrawnToday > 0) withdrawalCount++;
+                        if (balance <= 0.005 && depletedDay === null) { balance = 0; depletedDay = day; }
+                    }
+
+                    const startBalance = balance;
+                    const cumulativeBeforeToday = totalInterest;
+                    const dayInterest = balance * dailyRate;
+                    totalInterest += dayInterest;
+                    balance += dayInterest;
+
+                    ledger.push({ day, dailyInterest: dayInterest, totalInterest: cumulativeBeforeToday, balance: startBalance, withdrawn: withdrawnToday });
+
+                    if (tab === 'recurring' || tab === 'withdrawal') {
+                        if (day % 15 === 0 || day === totalDays) { chartLabels.push(`Day ${day}`); chartData.push(balance); }
+                    } else if (totalDays <= 31 || day % Math.ceil(totalDays / 30) === 0 || day === totalDays) {
+                        chartLabels.push(`Day ${day}`); chartData.push(balance);
+                    }
+                }
+
+                if (tab === 'withdrawal') {
+                    this.renderWithdrawalSummary({ initialInvestment, totalWithdrawn, withdrawalCount, totalInterest, endBalance: balance, depletedDay });
+                }
+                this.renderMilestones(ledger, totalDays, totalInterest, balance);
+                this.renderTable(ledger);
+                this.renderChart(chartLabels, chartData);
+                alignPanes();
+            }
+
+            renderWithdrawalSummary(s) {
+                const e = this.el;
+                e.wdTotalWithdrawn.innerText = fmtUSD(s.totalWithdrawn);
+                e.wdCountNote.innerText = `${s.withdrawalCount} withdrawal${s.withdrawalCount === 1 ? '' : 's'}`;
+                e.wdTotalInterest.innerText = fmtUSD(s.totalInterest);
+                e.wdEndBalance.innerText = fmtUSD(s.endBalance);
+
+                const diff = s.endBalance - s.initialInvestment;
+                e.wdNetNote.innerText = `${diff >= 0 ? '+' : '-'}${fmtUSD(Math.abs(diff))} vs. initial investment`;
+                e.wdNetNote.className = 'text-xs mt-1 ' + (diff >= 0 ? 'text-emerald-400' : 'text-amber-400');
+
+                if (s.depletedDay !== null) {
+                    e.wdStatus.innerText = 'Depleted';
+                    e.wdStatus.className = 'text-lg font-bold text-red-400 mt-1';
+                    e.wdStatusNote.innerText = `Balance runs out on day ${s.depletedDay}`;
+                } else if (diff >= 0) {
+                    e.wdStatus.innerText = 'Sustainable';
+                    e.wdStatus.className = 'text-lg font-bold text-emerald-400 mt-1';
+                    e.wdStatusNote.innerText = 'Interest covers your withdrawals';
                 } else {
-                    if (totalDays <= 31 || day % Math.ceil(totalDays / 30) === 0 || day === totalDays) {
-                        chartLabels.push(`Day ${day}`);
-                        chartData.push(balance);
-                    }
+                    e.wdStatus.innerText = 'Drawing down';
+                    e.wdStatus.className = 'text-lg font-bold text-amber-400 mt-1';
+                    e.wdStatusNote.innerText = 'Principal shrinks but lasts the year';
                 }
             }
 
-            renderMilestones(ledger, totalDays, totalInterest, balance);
-            renderTable(ledger);
-            renderChart(chartLabels, chartData);
-        }
-
-        function renderMilestones(ledger, totalDays, finalTotalInterest, finalBalance) {
-            let milestones = [];
-            if (totalDays <= 30) {
-                milestones = [
-                    { label: '3 Days', day: Math.min(3, totalDays) },
-                    { label: '1 Week', day: Math.min(7, totalDays) },
-                    { label: '2 Weeks', day: Math.min(14, totalDays) },
-                    { label: '3 Weeks', day: Math.min(21, totalDays) },
-                    { label: `End (${totalDays} days)`, day: totalDays }
-                ];
-            } else {
-                milestones = [
+            renderMilestones(ledger, totalDays, finalTotalInterest, finalBalance) {
+                const milestones = [
                     { label: '1 Week', day: 7 },
                     { label: '1 Month (~30 days)', day: 30 },
                     { label: '1 Quarter (90 days)', day: Math.min(90, totalDays) },
                     { label: 'Half Year (180 days)', day: Math.min(180, totalDays) },
                     { label: `Full Year (${totalDays} days)`, day: totalDays }
                 ];
+                const tbody = this.el.textMilestonesBody;
+                tbody.innerHTML = '';
+                milestones.forEach(m => {
+                    let interestAt, balanceAt;
+                    if (m.day >= totalDays) { interestAt = finalTotalInterest; balanceAt = finalBalance; }
+                    else {
+                        const item = ledger.find(l => l.day === m.day + 1);
+                        interestAt = item ? item.totalInterest : finalTotalInterest;
+                        balanceAt = item ? item.balance : finalBalance;
+                    }
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-900/50 transition-colors";
+                    tr.innerHTML = `
+                        <td class="py-3.5 px-6 font-semibold text-emerald-400">${m.label}</td>
+                        <td class="py-3.5 px-6 font-medium text-white">${m.day}</td>
+                        <td class="py-3.5 px-6 font-semibold text-white">$${interestAt.toFixed(2)}</td>
+                        <td class="py-3.5 px-6 font-semibold text-emerald-300">${fmtUSD(balanceAt)}</td>`;
+                    tbody.appendChild(tr);
+                });
             }
 
-            const tbody = document.getElementById('textMilestonesBody');
-            tbody.innerHTML = '';
+            renderTable(ledger) {
+                const tbody = this.el.ledgerTableBody;
+                const showW = this.tab === 'withdrawal';
+                tbody.innerHTML = '';
+                ledger.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-900/50 transition-colors";
+                    const wd = showW
+                        ? `<td class="py-3.5 px-6 ${row.withdrawn > 0 ? 'text-amber-400 font-semibold' : 'text-slate-600'}">${row.withdrawn > 0 ? '-' + fmtUSD(row.withdrawn) : '—'}</td>` : '';
+                    tr.innerHTML = `
+                        <td class="py-3.5 px-6 font-medium text-white">${row.day}</td>
+                        <td class="py-3.5 px-6 text-slate-300">${fmtUSD(row.totalInterest)}</td>
+                        <td class="py-3.5 px-6 font-semibold text-white">${fmtUSD(row.balance)}</td>
+                        <td class="py-3.5 px-6 text-emerald-400">${fmtUSD(row.dailyInterest)}</td>${wd}`;
+                    tbody.appendChild(tr);
+                });
+            }
 
-            milestones.forEach(m => {
-                let totalInterestAtDay, balanceAtDay;
-                if (m.day >= totalDays) {
-                    totalInterestAtDay = finalTotalInterest;
-                    balanceAtDay = finalBalance;
-                } else {
-                    const item = ledger.find(l => l.day === m.day + 1);
-                    totalInterestAtDay = item ? item.totalInterest : finalTotalInterest;
-                    balanceAtDay = item ? item.balance : finalBalance;
+            renderChart(labels, data) {
+                const ctx = this.el.growthChart.getContext('2d');
+                const gradient = ctx.createLinearGradient(0, 0, 0, 320);
+                gradient.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+                gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+                if (this.chart) {
+                    this.chart.data.labels = labels;
+                    this.chart.data.datasets[0].data = data;
+                    this.chart.data.datasets[0].backgroundColor = gradient;
+                    this.chart.update();
+                    return;
                 }
-
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-900/50 transition-colors";
-                tr.innerHTML = `
-                    <td class="py-3.5 px-6 font-semibold text-emerald-400">${m.label}</td>
-                    <td class="py-3.5 px-6 font-medium text-white">${m.day}</td>
-                    <td class="py-3.5 px-6 font-semibold text-white">$${totalInterestAtDay.toFixed(2)}</td>
-                    <td class="py-3.5 px-6 font-semibold text-emerald-300">${formatCurrencyOriginal(balanceAtDay)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function renderTable(ledger) {
-            const tbody = document.getElementById('ledgerTableBody');
-            tbody.innerHTML = '';
-
-            ledger.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-900/50 transition-colors";
-                tr.innerHTML = `
-                    <td class="py-3.5 px-6 font-medium text-white">${row.day}</td>
-                    <td class="py-3.5 px-6 text-slate-300">${formatCurrencyOriginal(row.totalInterest)}</td>
-                    <td class="py-3.5 px-6 font-semibold text-white">${formatCurrencyOriginal(row.balance)}</td>
-                    <td class="py-3.5 px-6 text-emerald-400">${formatCurrencyOriginal(row.dailyInterest)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function renderChart(labels, data) {
-            const canvas = document.getElementById('growthChart');
-            const ctx = canvas.getContext('2d');
-
-            const gradient = ctx.createLinearGradient(0, 0, 0, 320);
-            gradient.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
-            gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
-
-            if (chartInstance) {
-                chartInstance.data.labels = labels;
-                chartInstance.data.datasets[0].data = data;
-                chartInstance.data.datasets[0].backgroundColor = gradient;
-                chartInstance.update();
-                return;
-            }
-
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Compounded Balance ($)',
-                        data: data,
-                        borderColor: '#34d399',
-                        backgroundColor: gradient,
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.3,
-                        cubicInterpolationMode: 'monotone',
-                        pointRadius: 3,
-                        pointBackgroundColor: '#34d399',
-                        pointBorderColor: '#0f172a',
-                        pointBorderWidth: 1.5,
-                        pointHoverRadius: 5,
-                        pointHoverBackgroundColor: '#10b981',
-                        pointHoverBorderColor: '#ffffff',
-                        pointHoverBorderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: {
-                        duration: 300
+                this.chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Compounded Balance ($)', data,
+                            borderColor: '#34d399', backgroundColor: gradient, borderWidth: 2, fill: true,
+                            tension: 0.3, cubicInterpolationMode: 'monotone',
+                            pointRadius: 3, pointBackgroundColor: '#34d399', pointBorderColor: '#0f172a', pointBorderWidth: 1.5,
+                            pointHoverRadius: 5, pointHoverBackgroundColor: '#10b981', pointHoverBorderColor: '#ffffff', pointHoverBorderWidth: 2
+                        }]
                     },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: '#020617',
-                            titleColor: '#ffffff',
-                            bodyColor: '#34d399',
-                            borderColor: '#334155',
-                            borderWidth: 1.5,
-                            padding: 12,
-                            displayColors: false,
-                            callbacks: {
-                                label: function(context) {
-                                    return 'Balance: ' + formatCurrencyOriginal(context.parsed.y);
-                                }
+                    options: {
+                        responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: '#020617', titleColor: '#ffffff', bodyColor: '#34d399',
+                                borderColor: '#334155', borderWidth: 1.5, padding: 12, displayColors: false,
+                                callbacks: { label: c => 'Balance: ' + fmtUSD(c.parsed.y) }
                             }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: 'rgba(51, 65, 85, 0.4)', borderColor: '#334155' },
-                            ticks: { color: '#94a3b8', font: { family: 'Inter', size: 12, weight: '500' } }
                         },
-                        y: {
-                            grid: { color: 'rgba(51, 65, 85, 0.4)', borderColor: '#334155' },
-                            ticks: {
-                                color: '#94a3b8',
-                                font: { family: 'Inter', size: 12, weight: '500' },
-                                callback: function(value) { return '$' + value.toLocaleString(); }
+                        scales: {
+                            x: { grid: { color: 'rgba(51, 65, 85, 0.4)' }, ticks: { color: '#94a3b8', font: { family: 'Inter', size: 12, weight: '500' } } },
+                            y: {
+                                grid: { color: 'rgba(51, 65, 85, 0.4)' },
+                                ticks: { color: '#94a3b8', font: { family: 'Inter', size: 12, weight: '500' }, callback: v => '$' + v.toLocaleString() }
                             }
                         }
                     }
-                }
-            });
-        }
-
-        // DOM Elements for Klar Yield Tool
-        const initialBalanceInput = document.getElementById('initialBalance');
-        const initialBalanceSlider = document.getElementById('initialBalanceSlider');
-        const timeDurationInput = document.getElementById('timeDuration');
-        const timeUnitSelect = document.getElementById('timeUnit');
-        const tier1RateInput = document.getElementById('tier1Rate');
-        const tier2RateInput = document.getElementById('tier2Rate');
-        
-        const compoundWeeklyBtn = document.getElementById('compoundWeeklyBtn');
-        const compoundSimpleBtn = document.getElementById('compoundSimpleBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        
-        const toggleRatesBtn = document.getElementById('toggleRatesBtn');
-        const ratesPanel = document.getElementById('ratesPanel');
-        const ratesChevron = document.getElementById('ratesChevron');
-
-        // Dynamic KPI Displays
-        const kpiFinalBalance = document.getElementById('kpiFinalBalance');
-        const kpiTotalInterest = document.getElementById('kpiTotalInterest');
-        const kpiPercentReturn = document.getElementById('kpiPercentReturn');
-        const kpiEffectiveApy = document.getElementById('kpiEffectiveApy');
-        const kpiPrincipalNote = document.getElementById('kpiPrincipalNote');
-
-        const tierSplitBadge = document.getElementById('tierSplitBadge');
-        const tier1Bar = document.getElementById('tier1Bar');
-        const tier2Bar = document.getElementById('tier2Bar');
-        const tier1Amount = document.getElementById('tier1Amount');
-        const tier2Amount = document.getElementById('tier2Amount');
-        const tier1Earnings = document.getElementById('tier1Earnings');
-        const tier2Earnings = document.getElementById('tier2Earnings');
-
-        const tableDaily = document.getElementById('tableDaily');
-        const tableWeekly = document.getElementById('tableWeekly');
-        const tableMonthly = document.getElementById('tableMonthly');
-        const tableAnnual = document.getElementById('tableAnnual');
-
-        // Calculation state
-        let isWeeklyCompounding = true;
-        const TIER_1_CAP = 25000;
-
-        // Currency Formatter
-        const formatCurrencyKlar = (amount) => {
-            return new Intl.NumberFormat('es-MX', {
-                style: 'currency',
-                currency: 'MXN',
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }).format(amount);
-        };
-
-        // Main Yield Calculation Engine for Klar Tool
-        function calculateYields() {
-            const principal = parseFloat(initialBalanceInput.value) || 0;
-            const duration = parseInt(timeDurationInput.value) || 1;
-            const unit = timeUnitSelect.value;
-            const r1 = (parseFloat(tier1RateInput.value) || 15.0) / 100;
-            const r2 = (parseFloat(tier2RateInput.value) || 8.0) / 100;
-
-            // Update rate display labels
-            document.getElementById('tier1RateDisplay').innerText = `${(r1 * 100).toFixed(1)}% APY`;
-            document.getElementById('tier2RateDisplay').innerText = `${(r2 * 100).toFixed(1)}% APY`;
-
-            // Convert total duration into days
-            let totalDays = duration;
-            if (unit === 'weeks') totalDays = duration * 7;
-            if (unit === 'months') totalDays = Math.round(duration * 30.4375);
-            if (unit === 'years') totalDays = Math.round(duration * 365);
-
-            // Tier Split for Initial Principal
-            const p1 = Math.min(principal, TIER_1_CAP);
-            const p2 = Math.max(0, principal - TIER_1_CAP);
-
-            // Calculate Effective Annual Yield (Blended)
-            const blendedApy = principal > 0 ? ((p1 * r1) + (p2 * r2)) / principal : 0;
-
-            // Simulation loop for tracking balance over time
-            let currentP1 = p1;
-            let currentP2 = p2;
-            let totalTier1Interest = 0;
-            let totalTier2Interest = 0;
-
-            for (let day = 1; day <= totalDays; day++) {
-                const d1 = r1 / 365;
-                const d2 = r2 / 365;
-
-                const dayInterestP1 = currentP1 * d1;
-                const dayInterestP2 = currentP2 * d2;
-
-                totalTier1Interest += dayInterestP1;
-                totalTier2Interest += dayInterestP2;
-
-                // Reinvestment trigger (Weekly compounding every 7 days)
-                if (isWeeklyCompounding && day % 7 === 0) {
-                    const weeklyP1 = (currentP1 * Math.pow(1 + d1, 7)) - currentP1;
-                    const weeklyP2 = (currentP2 * Math.pow(1 + d2, 7)) - currentP2;
-                    
-                    let newTotal = currentP1 + currentP2 + weeklyP1 + weeklyP2;
-                    currentP1 = Math.min(newTotal, TIER_1_CAP);
-                    currentP2 = Math.max(0, newTotal - TIER_1_CAP);
-                }
+                });
             }
 
-            const totalInterest = totalTier1Interest + totalTier2Interest;
-            const finalBalance = principal + totalInterest;
-            const totalReturnPercent = principal > 0 ? (totalInterest / principal) * 100 : 0;
+            // ---------- Klar calculator ----------
+            calculateYields() {
+                const e = this.el;
+                const principal = parseFloat(e.initialBalance.value) || 0;
+                const duration = parseInt(e.timeDuration.value) || 1;
+                const unit = e.timeUnit.value;
+                const r1 = (parseFloat(e.tier1Rate.value) || 15.0) / 100;
+                const r2 = (parseFloat(e.tier2Rate.value) || 8.0) / 100;
 
-            // Update UI KPIs
-            kpiFinalBalance.textContent = formatCurrencyKlar(finalBalance);
-            kpiTotalInterest.textContent = `+${formatCurrencyKlar(totalInterest)}`;
-            kpiPercentReturn.innerHTML = `<i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i> +${totalReturnPercent.toFixed(2)}% return over ${duration} ${unit}`;
-            kpiEffectiveApy.textContent = `${(blendedApy * 100).toFixed(2)}%`;
-            kpiPrincipalNote.innerHTML = `<i data-lucide="wallet" class="w-3.5 h-3.5"></i> Initial Principal: ${formatCurrencyKlar(principal)}`;
+                e.tier1RateDisplay.innerText = `${(r1 * 100).toFixed(1)}% APY`;
+                e.tier2RateDisplay.innerText = `${(r2 * 100).toFixed(1)}% APY`;
 
-            // Update Tier Split UI
-            const tier1Percent = principal > 0 ? Math.min(100, (p1 / principal) * 100) : 0;
-            const tier2Percent = 100 - tier1Percent;
+                let totalDays = duration;
+                if (unit === 'weeks') totalDays = duration * 7;
+                if (unit === 'months') totalDays = Math.round(duration * 30.4375);
+                if (unit === 'years') totalDays = Math.round(duration * 365);
 
-            tier1Bar.style.width = `${tier1Percent}%`;
-            tier2Bar.style.width = `${tier2Percent}%`;
+                const p1 = Math.min(principal, TIER_1_CAP);
+                const p2 = Math.max(0, principal - TIER_1_CAP);
+                const blendedApy = principal > 0 ? ((p1 * r1) + (p2 * r2)) / principal : 0;
 
-            tier1Amount.textContent = formatCurrencyKlar(p1);
-            tier2Amount.textContent = formatCurrencyKlar(p2);
+                let cP1 = p1, cP2 = p2, t1Int = 0, t2Int = 0;
+                for (let day = 1; day <= totalDays; day++) {
+                    const d1 = r1 / 365, d2 = r2 / 365;
+                    t1Int += cP1 * d1;
+                    t2Int += cP2 * d2;
+                    if (this.weekly && day % 7 === 0) {
+                        const w1 = (cP1 * Math.pow(1 + d1, 7)) - cP1;
+                        const w2 = (cP2 * Math.pow(1 + d2, 7)) - cP2;
+                        const newTotal = cP1 + cP2 + w1 + w2;
+                        cP1 = Math.min(newTotal, TIER_1_CAP);
+                        cP2 = Math.max(0, newTotal - TIER_1_CAP);
+                    }
+                }
 
-            // Prominent Hero Interest Displays
-            tier1Earnings.textContent = formatCurrencyKlar(totalTier1Interest);
-            tier2Earnings.textContent = formatCurrencyKlar(totalTier2Interest);
+                const totalInterest = t1Int + t2Int;
+                const finalBalance = principal + totalInterest;
+                const retPct = principal > 0 ? (totalInterest / principal) * 100 : 0;
 
-            if (p2 > 0) {
-                tierSplitBadge.textContent = `${tier1Percent.toFixed(0)}% T1 / ${tier2Percent.toFixed(0)}% T2`;
-                tierSplitBadge.className = "text-xs text-indigo-400 font-semibold";
-            } else {
-                tierSplitBadge.textContent = "100% in Tier 1 (15%)";
-                tierSplitBadge.className = "text-xs text-brand-400 font-semibold";
+                e.kpiFinalBalance.textContent = fmtMXN(finalBalance);
+                e.kpiTotalInterest.textContent = `+${fmtMXN(totalInterest)}`;
+                e.kpiPercentReturn.innerHTML = `<i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i> +${retPct.toFixed(2)}% return over ${duration} ${unit}`;
+                e.kpiEffectiveApy.textContent = `${(blendedApy * 100).toFixed(2)}%`;
+                e.kpiPrincipalNote.innerHTML = `<i data-lucide="wallet" class="w-3.5 h-3.5"></i> Initial Principal: ${fmtMXN(principal)}`;
+
+                const t1Pct = principal > 0 ? Math.min(100, (p1 / principal) * 100) : 0;
+                const t2Pct = 100 - t1Pct;
+                e.tier1Bar.style.width = `${t1Pct}%`;
+                e.tier2Bar.style.width = `${t2Pct}%`;
+                e.tier1Amount.textContent = fmtMXN(p1);
+                e.tier2Amount.textContent = fmtMXN(p2);
+                e.tier1Earnings.textContent = fmtMXN(t1Int);
+                e.tier2Earnings.textContent = fmtMXN(t2Int);
+
+                if (p2 > 0) {
+                    e.tierSplitBadge.textContent = `${t1Pct.toFixed(0)}% T1 / ${t2Pct.toFixed(0)}% T2`;
+                    e.tierSplitBadge.className = "text-xs text-indigo-400 font-semibold";
+                } else {
+                    e.tierSplitBadge.textContent = "100% in Tier 1 (15%)";
+                    e.tierSplitBadge.className = "text-xs text-brand-400 font-semibold";
+                }
+
+                const dailyEst = (p1 * (r1 / 365)) + (p2 * (r2 / 365));
+                e.tableDaily.textContent = fmtMXN(dailyEst);
+                e.tableWeekly.textContent = fmtMXN(dailyEst * 7);
+                e.tableMonthly.textContent = fmtMXN(dailyEst * 30.4375);
+                e.tableAnnual.textContent = fmtMXN((p1 * r1) + (p2 * r2));
+
+                if (window.lucide) lucide.createIcons();
+                alignPanes();
             }
 
-            // Periodic Payout Cards Calculation
-            const dailyEst = (p1 * (r1 / 365)) + (p2 * (r2 / 365));
-            tableDaily.textContent = formatCurrencyKlar(dailyEst);
-            tableWeekly.textContent = formatCurrencyKlar(dailyEst * 7);
-            tableMonthly.textContent = formatCurrencyKlar(dailyEst * 30.4375);
-            tableAnnual.textContent = formatCurrencyKlar((p1 * r1) + (p2 * r2));
+            setWeekly(on) {
+                this.weekly = on;
+                this.el.compoundWeeklyBtn.className = on
+                    ? "py-2 text-xs font-semibold rounded-lg bg-brand-600 text-white shadow transition"
+                    : "py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition";
+                this.el.compoundSimpleBtn.className = on
+                    ? "py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition"
+                    : "py-2 text-xs font-semibold rounded-lg bg-brand-600 text-white shadow transition";
+                this.calculateYields();
+            }
 
-            // Re-initialize Lucide Icons for dynamic content
-            if (window.lucide) {
-                lucide.createIcons();
+            bind() {
+                const e = this.el;
+                ['initialInvestment', 'annualRate', 'recurringAmount', 'recurringDays'].forEach(k =>
+                    e[k].addEventListener('input', () => this.calculate()));
+
+                // Quick adjust buttons (Initial Investment min 1, Withdrawal amount min 0)
+                this.root.querySelectorAll('[data-step]').forEach(b => b.addEventListener('click', () => {
+                    const inp = e[b.dataset.target];
+                    const floor = b.dataset.target === 'initialInvestment' ? 1 : 0;
+                    const cur = parseFloat(inp.value) || 0;
+                    inp.value = Math.max(floor, Math.round((cur + parseFloat(b.dataset.step)) * 100) / 100);
+                    this.calculate();
+                }));
+
+                e.initialBalance.addEventListener('input', ev => { e.initialBalanceSlider.value = ev.target.value; this.calculateYields(); });
+                e.initialBalanceSlider.addEventListener('input', ev => { e.initialBalance.value = ev.target.value; this.calculateYields(); });
+                e.timeDuration.addEventListener('input', () => this.calculateYields());
+                e.timeUnit.addEventListener('change', () => this.calculateYields());
+                e.tier1Rate.addEventListener('input', () => this.calculateYields());
+                e.tier2Rate.addEventListener('input', () => this.calculateYields());
+                e.compoundWeeklyBtn.addEventListener('click', () => this.setWeekly(true));
+                e.compoundSimpleBtn.addEventListener('click', () => this.setWeekly(false));
+
+                e.toggleRatesBtn.addEventListener('click', () => {
+                    const hidden = e.ratesPanel.classList.toggle('hidden');
+                    e.ratesChevron.classList.toggle('rotate-180', !hidden);
+                });
+
+                e.resetBtn.addEventListener('click', () => {
+                    e.initialBalance.value = 25000;
+                    e.initialBalanceSlider.value = 25000;
+                    e.timeDuration.value = 12;
+                    e.timeUnit.value = 'months';
+                    e.tier1Rate.value = 15.0;
+                    e.tier2Rate.value = 8.0;
+                    this.setWeekly(true);
+                });
             }
         }
 
-        // Event Listeners for Klar Yield Tool
-        initialBalanceInput.addEventListener('input', (e) => {
-            initialBalanceSlider.value = e.target.value;
-            calculateYields();
-        });
+        // ---------- Layout (single / side by side) ----------
+        const headerTabs = document.getElementById('headerTabs');
+        const panesEl = document.getElementById('panes');
+        const paneA = new Pane('A', 'monthly', headerTabs);
+        const paneB = new Pane('B', 'recurring', null);
+        panesEl.appendChild(paneA.root);
+        panesEl.appendChild(paneB.root);
 
-        initialBalanceSlider.addEventListener('input', (e) => {
-            initialBalanceInput.value = e.target.value;
-            calculateYields();
-        });
+        const LAYOUT_ON = "px-3 py-2 rounded-lg transition-all whitespace-nowrap bg-emerald-600 text-white shadow";
+        const LAYOUT_OFF = "px-3 py-2 rounded-lg transition-all whitespace-nowrap text-slate-400 hover:text-white";
 
-        timeDurationInput.addEventListener('input', calculateYields);
-        timeUnitSelect.addEventListener('change', calculateYields);
-        tier1RateInput.addEventListener('input', calculateYields);
-        tier2RateInput.addEventListener('input', calculateYields);
+        // In side-by-side mode, push the shorter view's "Milestone Progress Breakdown" down
+        // so both milestone sections start at the same height.
+        function alignPanes() {
+            const secs = [paneA, paneB].map(p => p.el.milestoneSection);
+            secs.forEach(sec => { sec.style.paddingTop = ''; });
+            if (!document.body.classList.contains('split') || window.innerWidth < 1024) return;
+            if ([paneA, paneB].some(p => p.tab === 'klar_flex')) return;
+            const diff = secs[0].getBoundingClientRect().top - secs[1].getBoundingClientRect().top;
+            if (Math.abs(diff) < 1) return;
+            (diff > 0 ? secs[1] : secs[0]).style.paddingTop = Math.abs(diff) + 'px';
+        }
+        window.addEventListener('resize', alignPanes);
 
-        // Compounding Mode Toggles
-        compoundWeeklyBtn.addEventListener('click', () => {
-            isWeeklyCompounding = true;
-            compoundWeeklyBtn.className = "py-2 text-xs font-semibold rounded-lg bg-brand-600 text-white shadow transition";
-            compoundSimpleBtn.className = "py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition";
-            calculateYields();
-        });
+        function applyLayout(mode) {
+            const split = mode === 'split';
+            document.body.classList.toggle('split', split);
+            document.body.classList.toggle('single', !split);
+            paneB.root.classList.toggle('hidden', !split);
+            headerTabs.classList.toggle('hidden', split);
+            paneA.el.paneTabs.classList.toggle('hidden', !split);
+            document.getElementById('layoutSingle').className = split ? LAYOUT_OFF : LAYOUT_ON;
+            document.getElementById('layoutSplit').className = split ? LAYOUT_ON : LAYOUT_OFF;
+            alignPanes();
+            requestAnimationFrame(() => { [paneA, paneB].forEach(p => p.chart && p.chart.resize()); alignPanes(); });
+        }
 
-        compoundSimpleBtn.addEventListener('click', () => {
-            isWeeklyCompounding = false;
-            compoundSimpleBtn.className = "py-2 text-xs font-semibold rounded-lg bg-brand-600 text-white shadow transition";
-            compoundWeeklyBtn.className = "py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition";
-            calculateYields();
-        });
+        document.getElementById('layoutSingle').addEventListener('click', () => applyLayout('single'));
+        document.getElementById('layoutSplit').addEventListener('click', () => applyLayout('split'));
 
-        // Advanced Panel Toggle
-        toggleRatesBtn.addEventListener('click', () => {
-            const isHidden = ratesPanel.classList.contains('hidden');
-            if (isHidden) {
-                ratesPanel.classList.remove('hidden');
-                ratesChevron.classList.add('rotate-180');
-            } else {
-                ratesPanel.classList.add('hidden');
-                ratesChevron.classList.remove('rotate-180');
-            }
-        });
-
-        // Reset
-        resetBtn.addEventListener('click', () => {
-            initialBalanceInput.value = 25000;
-            initialBalanceSlider.value = 25000;
-            timeDurationInput.value = 12;
-            timeUnitSelect.value = 'months';
-            tier1RateInput.value = 15.0;
-            tier2RateInput.value = 8.0;
-            isWeeklyCompounding = true;
-            compoundWeeklyBtn.click();
-            calculateYields();
-        });
-
-        window.onload = function() {
-            ['initialInvestment', 'annualRate', 'recurringAmount', 'recurringDays'].forEach(id => {
-                document.getElementById(id).addEventListener('input', calculate);
-            });
-            if (window.lucide) {
-                lucide.createIcons();
-            }
-            switchTab('monthly');
+        window.onload = function () {
+            paneA.setTab('monthly');
+            paneB.setTab('recurring');
+            applyLayout('single');
+            if (window.lucide) lucide.createIcons();
+            setTimeout(alignPanes, 150);
         };
     </script>
 </body>
