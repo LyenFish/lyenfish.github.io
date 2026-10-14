@@ -4,12 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-Currency Converter Duo</title>
-    <!-- Favicon link using the requested emoji -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💵</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        :root {
+            /* Default theme: "Midnight" (darker than the original) */
+            --bg1: #020617;
+            --bg2: #0f1f5c;
+            --accent: #3b82f6;
+            --accent-dark: #2563eb;
+            --card: #bcc8e4;
+        }
         body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 100%);
+            background-attachment: fixed;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -18,92 +26,207 @@
             padding: 20px;
         }
         .glass-card {
-            background: rgba(255, 255, 255, 0.98);
+            background: var(--card);
             backdrop-filter: blur(10px);
             border-radius: 40px;
-            box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 40px 80px -15px rgba(0, 0, 0, 0.7);
         }
         input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .flag-icon {
-            width: 42px;
-            height: 30px;
-            object-fit: cover;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 42px; height: 30px; object-fit: cover;
+            border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .currency-card {
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
+        .currency-card { transition: all 0.2s ease; cursor: pointer; }
+        .inner-card { background: color-mix(in srgb, var(--card) 55%, white); border: 2px solid color-mix(in srgb, var(--card) 80%, black); }
+        .divider { border-top: 1px solid color-mix(in srgb, var(--card) 80%, black); }
         .currency-card:hover {
             transform: translateY(-2px);
-            background-color: white;
-            border-color: #3b82f6;
+            background-color: var(--card);
+            border-color: var(--accent);
         }
+        /* Theme-aware helpers */
+        .accent-label { color: var(--accent-dark); }
+        .accent-amount { color: var(--accent-dark); }
+        .input-wrap {
+            border: 4px solid color-mix(in srgb, var(--accent) 22%, var(--card));
+            background: color-mix(in srgb, var(--accent) 6%, var(--card));
+            transition: all .2s ease;
+        }
+        .input-wrap:focus-within { border-color: var(--accent); }
+
+        /* Title words are the (invisible) buttons */
+        .title-btn { font: inherit; color: inherit; letter-spacing: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: default; outline: none; }
+
+        /* Modals */
+        .overlay {
+            position: fixed; inset: 0; z-index: 50; display: none;
+            align-items: center; justify-content: center; padding: 20px;
+            background: rgba(2, 6, 23, .65); backdrop-filter: blur(4px);
+        }
+        .overlay.open { display: flex; }
+        .modal-card {
+            background: #fff; border-radius: 28px; width: 100%; max-width: 560px;
+            max-height: 85vh; display: flex; flex-direction: column;
+            box-shadow: 0 30px 70px rgba(0,0,0,.5);
+        }
+        .pick-item {
+            display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+            border: 2px solid #f1f5f9; border-radius: 16px; text-align: left; transition: all .15s ease;
+        }
+        .pick-item:hover { border-color: var(--accent); }
+        .pick-item.on { background: color-mix(in srgb, var(--accent) 10%, white); border-color: var(--accent); }
+        .swatch {
+            width: 100%; height: 64px; border-radius: 16px; border: 3px solid transparent;
+            transition: transform .15s ease;
+        }
+        .swatch:hover { transform: translateY(-2px); }
+        .swatch.on { border-color: #111827; }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
     <div class="w-full max-w-6xl">
         <div class="text-center mb-10">
-            <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-2 tracking-tight">Currency Converter</h1>
+            <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight whitespace-nowrap">
+                <button id="open-currencies" class="title-btn" aria-label="Add or remove currencies">Currency</button>
+                <button id="open-themes" class="title-btn" aria-label="Choose color theme">Converter</button>
+            </h1>
         </div>
 
-        <!-- Grid Container for Side-by-Side Calculators -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            
-            <!-- Calculator 1 -->
             <div class="glass-card p-8 md:p-10" id="calc-1">
                 <div class="space-y-8">
                     <div id="base-container-1" class="relative"></div>
-                    <div class="pt-4 border-t border-gray-100">
+                    <div class="pt-4 divider">
                         <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-2">Conversions</h2>
                         <div id="conversion-list-1" class="grid grid-cols-1 gap-4"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Calculator 2 -->
             <div class="glass-card p-8 md:p-10" id="calc-2">
                 <div class="space-y-8">
                     <div id="base-container-2" class="relative"></div>
-                    <div class="pt-4 border-t border-gray-100">
+                    <div class="pt-4 divider">
                         <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-2">Conversions</h2>
                         <div id="conversion-list-2" class="grid grid-cols-1 gap-4"></div>
                     </div>
                 </div>
             </div>
-
         </div>
 
-        <!-- Global Status Info -->
         <div class="mt-8 bg-white/10 backdrop-blur-md rounded-2xl p-4 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-white/70 max-w-2xl mx-auto">
             <span id="last-update">Syncing with market...</span>
             <button id="refresh-btn" class="text-blue-300 hover:text-white transition-colors">Update Global Rates</button>
         </div>
     </div>
 
+    <!-- Currency picker -->
+    <div id="currency-overlay" class="overlay">
+        <div class="modal-card">
+            <div class="p-6 pb-3 flex items-center justify-between">
+                <div>
+                    <h3 class="text-xl font-extrabold text-gray-800">Currencies</h3>
+                    <p class="text-xs text-gray-400 font-semibold mt-1">Tap to add or remove. Changes apply to both calculators.</p>
+                </div>
+                <button id="close-currencies" class="text-gray-400 hover:text-gray-800 text-2xl leading-none px-2" aria-label="Close">×</button>
+            </div>
+            <div class="px-6 pb-3">
+                <input id="currency-search" type="text" placeholder="Search currency or code…"
+                    class="w-full border-2 border-gray-100 rounded-2xl px-4 py-3 outline-none text-gray-800 font-semibold focus:border-blue-400">
+            </div>
+            <div id="currency-list" class="px-6 pb-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+        </div>
+    </div>
+
+    <!-- Theme picker -->
+    <div id="theme-overlay" class="overlay">
+        <div class="modal-card" style="max-width:480px">
+            <div class="p-6 pb-3 flex items-center justify-between">
+                <h3 class="text-xl font-extrabold text-gray-800">Color theme</h3>
+                <button id="close-themes" class="text-gray-400 hover:text-gray-800 text-2xl leading-none px-2" aria-label="Close">×</button>
+            </div>
+            <div id="theme-list" class="px-6 pb-6 grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
+        </div>
+    </div>
+
     <script>
+        // ---------- Data ----------
         const currencyData = {
-            USD: { name: "US Dollar", flag: "us" },
-            MXN: { name: "Mexican Peso", flag: "mx" },
-            EUR: { name: "Euro", flag: "eu" },
-            HKD: { name: "Hong Kong Dollar", flag: "hk" },
-            AED: { name: "UAE Dirham", flag: "ae" }
+            USD: { name: "US Dollar", flag: "us", sym: "$" },
+            MXN: { name: "Mexican Peso", flag: "mx", sym: "$" },
+            EUR: { name: "Euro", flag: "eu", sym: "€" },
+            HKD: { name: "Hong Kong Dollar", flag: "hk", sym: "$" },
+            AED: { name: "UAE Dirham", flag: "ae", sym: "د.إ" },
+            GBP: { name: "British Pound", flag: "gb", sym: "£" },
+            CAD: { name: "Canadian Dollar", flag: "ca", sym: "$" },
+            AUD: { name: "Australian Dollar", flag: "au", sym: "$" },
+            NZD: { name: "New Zealand Dollar", flag: "nz", sym: "$" },
+            JPY: { name: "Japanese Yen", flag: "jp", sym: "¥" },
+            CNY: { name: "Chinese Yuan", flag: "cn", sym: "¥" },
+            KRW: { name: "South Korean Won", flag: "kr", sym: "₩" },
+            INR: { name: "Indian Rupee", flag: "in", sym: "₹" },
+            CHF: { name: "Swiss Franc", flag: "ch", sym: "Fr" },
+            SEK: { name: "Swedish Krona", flag: "se", sym: "kr" },
+            NOK: { name: "Norwegian Krone", flag: "no", sym: "kr" },
+            DKK: { name: "Danish Krone", flag: "dk", sym: "kr" },
+            PLN: { name: "Polish Złoty", flag: "pl", sym: "zł" },
+            CZK: { name: "Czech Koruna", flag: "cz", sym: "Kč" },
+            HUF: { name: "Hungarian Forint", flag: "hu", sym: "Ft" },
+            TRY: { name: "Turkish Lira", flag: "tr", sym: "₺" },
+            ILS: { name: "Israeli Shekel", flag: "il", sym: "₪" },
+            SAR: { name: "Saudi Riyal", flag: "sa", sym: "﷼" },
+            EGP: { name: "Egyptian Pound", flag: "eg", sym: "E£" },
+            ZAR: { name: "South African Rand", flag: "za", sym: "R" },
+            NGN: { name: "Nigerian Naira", flag: "ng", sym: "₦" },
+            SGD: { name: "Singapore Dollar", flag: "sg", sym: "$" },
+            THB: { name: "Thai Baht", flag: "th", sym: "฿" },
+            MYR: { name: "Malaysian Ringgit", flag: "my", sym: "RM" },
+            IDR: { name: "Indonesian Rupiah", flag: "id", sym: "Rp" },
+            PHP: { name: "Philippine Peso", flag: "ph", sym: "₱" },
+            VND: { name: "Vietnamese Dong", flag: "vn", sym: "₫" },
+            TWD: { name: "New Taiwan Dollar", flag: "tw", sym: "$" },
+            BRL: { name: "Brazilian Real", flag: "br", sym: "R$" },
+            ARS: { name: "Argentine Peso", flag: "ar", sym: "$" },
+            CLP: { name: "Chilean Peso", flag: "cl", sym: "$" },
+            COP: { name: "Colombian Peso", flag: "co", sym: "$" },
+            PEN: { name: "Peruvian Sol", flag: "pe", sym: "S/" },
+            CRC: { name: "Costa Rican Colón", flag: "cr", sym: "₡" },
+            DOP: { name: "Dominican Peso", flag: "do", sym: "$" },
+            GTQ: { name: "Guatemalan Quetzal", flag: "gt", sym: "Q" }
         };
 
-        // State for two independent calculators - Both starting on USD
+        const themes = {
+            midnight: { name: "Midnight", bg1: "#020617", bg2: "#0f1f5c", accent: "#3b82f6", dark: "#2563eb", card: "#bcc8e4" },
+            ocean:    { name: "Ocean",    bg1: "#04141f", bg2: "#0b4a6f", accent: "#06b6d4", dark: "#0891b2", card: "#b3d9e5" },
+            emerald:  { name: "Emerald",  bg1: "#021a12", bg2: "#0b5d3f", accent: "#10b981", dark: "#059669", card: "#b5dfc8" },
+            violet:   { name: "Violet",   bg1: "#0d0620", bg2: "#3b1a7a", accent: "#8b5cf6", dark: "#7c3aed", card: "#cdbfee" },
+            sunset:   { name: "Sunset",   bg1: "#1c0a05", bg2: "#8a2f12", accent: "#f97316", dark: "#ea580c", card: "#f0caae" },
+            rose:     { name: "Rose",     bg1: "#1a0510", bg2: "#7a1241", accent: "#f43f5e", dark: "#e11d48", card: "#f0b8c8" },
+            graphite: { name: "Graphite", bg1: "#09090b", bg2: "#2f3340", accent: "#64748b", dark: "#475569", card: "#bfc4cd" },
+            classic:  { name: "Classic (original)", bg1: "#0f172a", bg2: "#1e3a8a", accent: "#3b82f6", dark: "#2563eb", card: "#ffffff" }
+        };
+
+        // ---------- Persistence (safe) ----------
+        const store = {
+            get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+            set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+        };
+
+        // ---------- State ----------
+        let activeCodes = (store.get('cc_active') || ['USD', 'MXN', 'EUR', 'HKD', 'AED']).filter(c => currencyData[c]);
+        if (activeCodes.length < 2) activeCodes = ['USD', 'MXN', 'EUR', 'HKD', 'AED'];
+        let themeId = store.get('cc_theme');
+        if (!themes[themeId]) themeId = 'midnight';
+
         let state = {
-            calc1: { base: "USD", amount: 1.00 },
-            calc2: { base: "USD", amount: 1.00 }
+            calc1: { base: activeCodes[0], amount: 1.00 },
+            calc2: { base: activeCodes[0], amount: 1.00 }
         };
-
         let rates = {};
 
+        // ---------- Rates ----------
         async function fetchRates() {
             document.getElementById('last-update').innerText = "Refreshing...";
             try {
@@ -114,13 +237,9 @@
                     document.getElementById('last-update').innerText = `Rates Updated: ${new Date().toLocaleTimeString()}`;
                     renderUI('1');
                     renderUI('2');
-                    
-                    // After rendering both, focus and select the first calculator's input
+                    renderCurrencyList();
                     const firstInput = document.getElementById('input-amount-1');
-                    if (firstInput) {
-                        firstInput.focus();
-                        firstInput.select();
-                    }
+                    if (firstInput) { firstInput.focus(); firstInput.select(); }
                 }
             } catch (error) {
                 document.getElementById('last-update').innerText = "Connection Error";
@@ -128,53 +247,49 @@
             }
         }
 
-        function setBase(calcId, code) {
-            const key = `calc${calcId}`;
-            const rateToNewBase = rates[code] / rates[state[key].base];
-            state[key].amount = state[key].amount * rateToNewBase;
+        function convertBase(key, code) {
+            const r = rates[code] / rates[state[key].base];
+            state[key].amount = state[key].amount * r;
             state[key].base = code;
-            renderUI(calcId);
-            
-            // Re-focus the current input after a re-render
-            const currentInput = document.getElementById(`input-amount-${calcId}`);
-            if (currentInput) {
-                currentInput.focus();
-                currentInput.select();
-            }
         }
 
+        function setBase(calcId, code) {
+            convertBase(`calc${calcId}`, code);
+            renderUI(calcId);
+            const currentInput = document.getElementById(`input-amount-${calcId}`);
+            if (currentInput) { currentInput.focus(); currentInput.select(); }
+        }
+
+        // ---------- Calculator rendering ----------
         function renderUI(calcId) {
             const key = `calc${calcId}`;
             const baseInfo = currencyData[state[key].base];
             const baseContainer = document.getElementById(`base-container-${calcId}`);
             const conversionList = document.getElementById(`conversion-list-${calcId}`);
 
-            // 1. Render Base Input
             baseContainer.innerHTML = `
-                <label class="block text-xs font-black text-blue-600 uppercase tracking-widest mb-3 ml-2">From (${state[key].base})</label>
-                <div class="flex items-center border-4 border-blue-100 rounded-3xl p-6 focus-within:border-blue-500 transition-all bg-blue-50/30">
+                <label class="accent-label block text-xs font-black uppercase tracking-widest mb-3 ml-2">From (${state[key].base})</label>
+                <div class="input-wrap flex items-center rounded-3xl p-6">
                     <img src="https://flagcdn.com/${baseInfo.flag}.svg" alt="${state[key].base}" class="flag-icon mr-4">
-                    <span class="text-3xl font-bold text-blue-500 mr-2">${getSymbol(state[key].base)}</span>
+                    <span class="accent-label text-3xl font-bold mr-2">${getSymbol(state[key].base)}</span>
                     <input type="number" id="input-amount-${calcId}" value="${state[key].amount.toFixed(2)}" step="0.01"
                         class="w-full text-4xl font-black outline-none bg-transparent text-gray-800">
                 </div>
             `;
 
             const inputAmount = document.getElementById(`input-amount-${calcId}`);
-            inputAmount.addEventListener('focus', function() { this.select(); });
+            inputAmount.addEventListener('focus', function () { this.select(); });
             inputAmount.addEventListener('input', (e) => {
                 state[key].amount = parseFloat(e.target.value) || 0;
                 updateConversions(calcId);
             });
 
-            // 2. Render Conversion List
             conversionList.innerHTML = '';
-            Object.keys(currencyData).forEach(code => {
+            activeCodes.forEach(code => {
                 if (code === state[key].base) return;
-                
                 const info = currencyData[code];
                 const card = document.createElement('div');
-                card.className = "currency-card flex items-center justify-between bg-gray-50 p-5 rounded-2xl border-2 border-gray-100";
+                card.className = "currency-card flex items-center justify-between inner-card p-5 rounded-2xl";
                 card.onclick = () => setBase(calcId, code);
                 card.innerHTML = `
                     <div class="flex items-center gap-4">
@@ -185,7 +300,7 @@
                         </div>
                     </div>
                     <div class="text-right">
-                        <span class="text-2xl font-black text-blue-600" id="output-${calcId}-${code}">0.00</span>
+                        <span class="accent-amount text-2xl font-black" id="output-${calcId}-${code}">0.00</span>
                     </div>
                 `;
                 conversionList.appendChild(card);
@@ -196,25 +311,113 @@
 
         function updateConversions(calcId) {
             const key = `calc${calcId}`;
-            Object.keys(currencyData).forEach(code => {
+            activeCodes.forEach(code => {
                 if (code === state[key].base) return;
                 const output = document.getElementById(`output-${calcId}-${code}`);
                 if (!output) return;
-
                 const converted = (state[key].amount / rates[state[key].base]) * rates[code];
-                output.innerText = converted.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                });
+                output.innerText = isFinite(converted)
+                    ? converted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    : "—";
             });
         }
 
-        function getSymbol(code) {
-            const symbols = { USD: '$', MXN: '$', EUR: '€', HKD: '$', AED: 'د.إ' };
-            return symbols[code] || '';
+        function getSymbol(code) { return (currencyData[code] && currencyData[code].sym) || ''; }
+
+        // ---------- Currency picker ----------
+        function toggleCurrency(code) {
+            if (activeCodes.includes(code)) {
+                if (activeCodes.length <= 2) return; // keep at least two currencies
+                activeCodes = activeCodes.filter(c => c !== code);
+                ['1', '2'].forEach(id => {
+                    const key = `calc${id}`;
+                    if (state[key].base === code) convertBase(key, activeCodes[0]);
+                });
+            } else {
+                activeCodes.push(code);
+            }
+            store.set('cc_active', activeCodes);
+            renderUI('1');
+            renderUI('2');
+            renderCurrencyList();
         }
 
+        function renderCurrencyList() {
+            const q = document.getElementById('currency-search').value.trim().toLowerCase();
+            const list = document.getElementById('currency-list');
+            list.innerHTML = '';
+            Object.keys(currencyData)
+                .filter(code => !Object.keys(rates).length || rates[code])
+                .filter(code => !q || code.toLowerCase().includes(q) || currencyData[code].name.toLowerCase().includes(q))
+                .forEach(code => {
+                    const info = currencyData[code];
+                    const on = activeCodes.includes(code);
+                    const btn = document.createElement('button');
+                    btn.className = 'pick-item' + (on ? ' on' : '');
+                    btn.innerHTML = `
+                        <img src="https://flagcdn.com/${info.flag}.svg" alt="" class="flag-icon" style="width:36px;height:26px">
+                        <span class="flex-1">
+                            <span class="block text-[11px] font-bold text-gray-400 uppercase">${code}</span>
+                            <span class="block text-sm font-bold text-gray-800 leading-tight">${info.name}</span>
+                        </span>
+                        <span class="accent-label font-black">${on ? '✓' : '+'}</span>
+                    `;
+                    btn.onclick = () => toggleCurrency(code);
+                    list.appendChild(btn);
+                });
+        }
+
+        // ---------- Themes ----------
+        function applyTheme(id) {
+            const t = themes[id];
+            const r = document.documentElement.style;
+            r.setProperty('--bg1', t.bg1);
+            r.setProperty('--bg2', t.bg2);
+            r.setProperty('--accent', t.accent);
+            r.setProperty('--accent-dark', t.dark);
+            r.setProperty('--card', t.card);
+            themeId = id;
+            store.set('cc_theme', id);
+            renderThemeList();
+        }
+
+        function renderThemeList() {
+            const list = document.getElementById('theme-list');
+            list.innerHTML = '';
+            Object.entries(themes).forEach(([id, t]) => {
+                const wrap = document.createElement('button');
+                wrap.className = 'text-center';
+                wrap.innerHTML = `
+                    <div class="swatch ${id === themeId ? 'on' : ''}" style="background: linear-gradient(135deg, ${t.bg1}, ${t.bg2}); box-shadow: inset -28px -28px 0 -10px ${t.accent}"></div>
+                    <span class="block text-xs font-bold text-gray-600 mt-2">${t.name}</span>
+                `;
+                wrap.onclick = () => applyTheme(id);
+                list.appendChild(wrap);
+            });
+        }
+
+        // ---------- Modal wiring ----------
+        const currencyOverlay = document.getElementById('currency-overlay');
+        const themeOverlay = document.getElementById('theme-overlay');
+
+        function openModal(el) { el.classList.add('open'); }
+        function closeModals() { currencyOverlay.classList.remove('open'); themeOverlay.classList.remove('open'); }
+
+        document.getElementById('open-currencies').addEventListener('click', () => {
+            document.getElementById('currency-search').value = '';
+            renderCurrencyList();
+            openModal(currencyOverlay);
+        });
+        document.getElementById('open-themes').addEventListener('click', () => { renderThemeList(); openModal(themeOverlay); });
+        document.getElementById('close-currencies').addEventListener('click', closeModals);
+        document.getElementById('close-themes').addEventListener('click', closeModals);
+        [currencyOverlay, themeOverlay].forEach(o => o.addEventListener('click', e => { if (e.target === o) closeModals(); }));
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(); });
+        document.getElementById('currency-search').addEventListener('input', renderCurrencyList);
+
         document.getElementById('refresh-btn').addEventListener('click', fetchRates);
+
+        applyTheme(themeId);
         window.onload = fetchRates;
     </script>
 </body>
