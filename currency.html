@@ -87,14 +87,20 @@
 <body class="p-4 md:p-8">
 
     <div class="w-full max-w-6xl">
-        <div class="text-center mb-10">
+        <div class="relative text-center mb-10">
             <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-tight whitespace-nowrap">
                 <button id="open-currencies" class="title-btn" aria-label="Add or remove currencies">Currency</button>
                 <button id="open-themes" class="title-btn" aria-label="Choose color theme">Converter</button>
             </h1>
+            <div class="absolute right-0 top-1/2 -translate-y-1/2">
+                <button id="add-calc-btn" class="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-full font-bold text-sm backdrop-blur-md transition-all border border-white/20 shadow-lg" aria-label="Add calculator instance">
+                    <span class="text-xl leading-none">+</span>
+                    <span class="hidden sm:inline">Add Calc</span>
+                </button>
+            </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div id="calculators-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div class="glass-card p-8 md:p-10" id="calc-1">
                 <div class="space-y-8">
                     <div id="base-container-1" class="relative"></div>
@@ -128,7 +134,7 @@
             <div class="p-6 pb-3 flex items-center justify-between">
                 <div>
                     <h3 class="text-xl font-extrabold text-gray-800">Currencies</h3>
-                    <p class="text-xs text-gray-400 font-semibold mt-1">Tap to add or remove. Changes apply to both calculators.</p>
+                    <p class="text-xs text-gray-400 font-semibold mt-1">Tap to add or remove. Changes apply to all calculators.</p>
                 </div>
                 <button id="close-currencies" class="text-gray-400 hover:text-gray-800 text-2xl leading-none px-2" aria-label="Close">×</button>
             </div>
@@ -220,6 +226,7 @@
         let themeId = store.get('cc_theme');
         if (!themes[themeId]) themeId = 'midnight';
 
+        let calcIds = ['1', '2'];
         let state = {
             calc1: { base: activeCodes[0], amount: 1.00 },
             calc2: { base: activeCodes[0], amount: 1.00 }
@@ -235,11 +242,10 @@
                 if (data && data.rates) {
                     rates = data.rates;
                     document.getElementById('last-update').innerText = `Rates Updated: ${new Date().toLocaleTimeString()}`;
-                    renderUI('1');
-                    renderUI('2');
+                    calcIds.forEach(id => renderUI(id));
                     renderCurrencyList();
                     const firstInput = document.getElementById('input-amount-1');
-                    if (firstInput) { firstInput.focus(); firstInput.select(); }
+                    if (firstInput && document.activeElement !== firstInput) { firstInput.focus(); firstInput.select(); }
                 }
             } catch (error) {
                 document.getElementById('last-update').innerText = "Connection Error";
@@ -260,9 +266,67 @@
             if (currentInput) { currentInput.focus(); currentInput.select(); }
         }
 
+        // Dynamic Layout update logic
+        function updateGridCols() {
+            const grid = document.getElementById('calculators-grid');
+            grid.className = 'grid gap-8 ';
+            if (calcIds.length <= 2) {
+                grid.className += 'grid-cols-1 lg:grid-cols-2';
+            } else {
+                grid.className += 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3';
+            }
+        }
+
+        function addCalculator() {
+            const newId = String(Date.now());
+            calcIds.push(newId);
+            state[`calc${newId}`] = { base: activeCodes[0], amount: 1.00 };
+
+            const container = document.getElementById('calculators-grid');
+            const newCard = document.createElement('div');
+            newCard.className = 'glass-card p-8 md:p-10 relative';
+            newCard.id = `calc-${newId}`;
+            newCard.innerHTML = `
+                <button onclick="removeCalculator('${newId}')" class="absolute top-4 right-4 text-gray-500 hover:text-red-500 font-bold text-lg leading-none p-2 transition-colors" aria-label="Remove calculator">✕</button>
+                <div class="space-y-8">
+                    <div id="base-container-${newId}" class="relative"></div>
+                    <div class="pt-4 divider">
+                        <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-2">Conversions</h2>
+                        <div id="conversion-list-${newId}" class="grid grid-cols-1 gap-4"></div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(newCard);
+            updateGridCols();
+            renderUI(newId);
+        }
+
+        function removeCalculator(id) {
+            if (calcIds.length <= 1) return;
+            calcIds = calcIds.filter(i => i !== id);
+            delete state[`calc${id}`];
+            const el = document.getElementById(`calc-${id}`);
+            if (el) el.remove();
+            updateGridCols();
+        }
+
         // ---------- Calculator rendering ----------
+        function evaluateMathExpression(expr) {
+            try {
+                // Allow numbers, basic arithmetic operators, decimals, spaces, and parentheses
+                const sanitized = expr.replace(/[^0-9+\-*/.() ]/g, '');
+                if (!sanitized.trim()) return NaN;
+                // Evaluate mathematical expression safely
+                const result = Function(`"use strict"; return (${sanitized})`)();
+                return typeof result === 'number' && !isNaN(result) && isFinite(result) ? result : NaN;
+            } catch (e) {
+                return NaN;
+            }
+        }
+
         function renderUI(calcId) {
             const key = `calc${calcId}`;
+            if (!state[key]) return;
             const baseInfo = currencyData[state[key].base];
             const baseContainer = document.getElementById(`base-container-${calcId}`);
             const conversionList = document.getElementById(`conversion-list-${calcId}`);
@@ -272,16 +336,35 @@
                 <div class="input-wrap flex items-center rounded-3xl p-6">
                     <img src="https://flagcdn.com/${baseInfo.flag}.svg" alt="${state[key].base}" class="flag-icon mr-4">
                     <span class="accent-label text-3xl font-bold mr-2">${getSymbol(state[key].base)}</span>
-                    <input type="number" id="input-amount-${calcId}" value="${state[key].amount.toFixed(2)}" step="0.01"
-                        class="w-full text-4xl font-black outline-none bg-transparent text-gray-800">
+                    <input type="text" inputmode="decimal" id="input-amount-${calcId}" value="${state[key].amount.toFixed(2)}"
+                        class="w-full text-4xl font-black outline-none bg-transparent text-gray-800" placeholder="0.00">
                 </div>
             `;
 
             const inputAmount = document.getElementById(`input-amount-${calcId}`);
             inputAmount.addEventListener('focus', function () { this.select(); });
+            
+            inputAmount.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const evalResult = evaluateMathExpression(inputAmount.value);
+                    if (!isNaN(evalResult)) {
+                        state[key].amount = Math.max(0, evalResult);
+                        inputAmount.value = state[key].amount.toFixed(2);
+                    } else {
+                        inputAmount.value = state[key].amount.toFixed(2);
+                    }
+                    updateConversions(calcId);
+                    inputAmount.blur();
+                }
+            });
+
             inputAmount.addEventListener('input', (e) => {
-                state[key].amount = parseFloat(e.target.value) || 0;
-                updateConversions(calcId);
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val)) {
+                    state[key].amount = val;
+                    updateConversions(calcId);
+                }
             });
 
             conversionList.innerHTML = '';
@@ -311,6 +394,7 @@
 
         function updateConversions(calcId) {
             const key = `calc${calcId}`;
+            if (!state[key]) return;
             activeCodes.forEach(code => {
                 if (code === state[key].base) return;
                 const output = document.getElementById(`output-${calcId}-${code}`);
@@ -329,7 +413,7 @@
             if (activeCodes.includes(code)) {
                 if (activeCodes.length <= 2) return; // keep at least two currencies
                 activeCodes = activeCodes.filter(c => c !== code);
-                ['1', '2'].forEach(id => {
+                calcIds.forEach(id => {
                     const key = `calc${id}`;
                     if (state[key].base === code) convertBase(key, activeCodes[0]);
                 });
@@ -337,8 +421,7 @@
                 activeCodes.push(code);
             }
             store.set('cc_active', activeCodes);
-            renderUI('1');
-            renderUI('2');
+            calcIds.forEach(id => renderUI(id));
             renderCurrencyList();
         }
 
@@ -415,6 +498,7 @@
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(); });
         document.getElementById('currency-search').addEventListener('input', renderCurrencyList);
 
+        document.getElementById('add-calc-btn').addEventListener('click', addCalculator);
         document.getElementById('refresh-btn').addEventListener('click', fetchRates);
 
         applyTheme(themeId);
