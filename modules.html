@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parts Bin / Module DB (v3)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0d110e;
+      color: #e2e8f0;
+      font-size: 15px;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-6 md:p-10">
+
+  <!-- Main Container -->
+  <div class="max-w-7xl mx-auto">
+    
+    <!-- Top Navigation Header -->
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pb-5 border-b border-slate-800/80">
+      <div>
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl font-bold tracking-tight text-slate-100 font-mono">Parts Bin <span class="text-slate-500 font-normal text-base">/ module db</span></h1>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Google Sheet Synced · v3
+          </span>
+        </div>
+      </div>
+
+      <!-- Controls & Search Bar -->
+      <div class="flex items-center gap-4 w-full md:w-auto">
+        <div class="relative flex-1 md:w-96">
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Search by name, category, or spec..." 
+            oninput="handleSearch()"
+            class="w-full bg-[#131a16] border border-slate-800 rounded-md py-2.5 pl-4 pr-10 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
+          >
+          <span class="absolute right-3 top-3 text-slate-500 text-sm">🔍</span>
+        </div>
+
+        <button 
+          onclick="openModal('addModal')" 
+          class="bg-[#d99b26] hover:bg-[#c48a1f] text-slate-950 font-bold text-sm px-5 py-2.5 rounded-md transition-colors flex items-center gap-2 shrink-0 shadow-sm"
+        >
+          <span>+</span> Add module
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats & Filters bar -->
+    <div class="flex justify-between items-center mb-6 text-sm text-slate-400">
+      <span id="moduleCount" class="font-mono">0 modules</span>
+      <div id="categoryFilters" class="flex gap-2 overflow-x-auto pb-1 max-w-xl">
+        <!-- Category tags dynamically rendered -->
+      </div>
+    </div>
+
+    <!-- Modules Grid (Larger Cards) -->
+    <div id="moduleGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+      <!-- Loading Skeleton -->
+      <div class="col-span-full py-20 text-center text-slate-500 text-sm font-mono">
+        Loading module database...
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Detail Modal Overlay -->
+  <div id="detailModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50" onclick="handleOverlayClick(event, 'detailModal')">
+    <div class="bg-[#131a16] border border-slate-800 rounded-lg max-w-xl w-full overflow-hidden shadow-2xl relative">
+      <button onclick="closeModal('detailModal')" class="absolute top-3 right-3 z-10 bg-slate-900/80 hover:bg-slate-800 text-slate-400 w-8 h-8 rounded-full flex items-center justify-center text-base">&times;</button>
+      
+      <!-- Module Image Banner -->
+      <div class="h-64 bg-[#0d110e] border-b border-slate-800/80 relative flex items-center justify-center overflow-hidden">
+        <img id="detailImg" src="" alt="" class="w-full h-full object-contain">
+        <div id="detailFallback" class="hidden text-5xl font-mono text-slate-700 font-bold items-center justify-center w-full h-full bg-[#18221c]">
+          <span id="detailFallbackText">MB</span>
+        </div>
+        <span id="detailQtyBadge" class="absolute top-3 left-3 bg-slate-950/80 border border-slate-700/60 text-amber-400 font-mono text-xs px-2.5 py-1 rounded font-semibold">
+          ×<span id="detailQty">1</span>
+        </span>
+      </div>
+
+      <!-- Specs Content -->
+      <div class="p-6">
+        <div class="mb-5">
+          <span id="detailCategory" class="text-xs font-mono text-[#3dbda7] uppercase tracking-wider font-semibold block mb-1">CATEGORY</span>
+          <h2 id="detailTitle" class="text-xl font-bold text-slate-100">Module Name</h2>
+        </div>
+
+        <div id="detailFields" class="grid grid-cols-2 gap-4 mb-5 text-sm text-slate-300">
+          <div>
+            <span class="text-slate-500 block text-xs">Stock</span>
+            <span id="detailStock" class="font-medium text-amber-400"></span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-xs">Voltage</span>
+            <span id="detailVoltage" class="font-medium"></span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-xs">Current</span>
+            <span id="detailCurrent" class="font-medium"></span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-xs">Price</span>
+            <span id="detailPrice" class="font-medium text-emerald-400"></span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-xs">Purchased On</span>
+            <span id="detailPurchaseDate" class="font-medium"></span>
+          </div>
+        </div>
+
+        <div class="mb-6">
+          <span class="text-slate-500 text-xs block mb-1.5">Pinout / Technical Notes</span>
+          <p id="detailNotes" class="text-sm bg-[#0d110e] border border-slate-800/80 p-4 rounded text-slate-300 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto font-mono"></p>
+        </div>
+
+        <div class="flex justify-between items-center pt-4 border-t border-slate-800/80">
+          <button onclick="deleteSelectedModule()" class="text-red-400 hover:text-red-300 text-xs font-mono flex items-center gap-1.5">
+            <span>🗑️</span> Delete module
+          </button>
+          
+          <div class="flex items-center gap-3">
+            <button onclick="openEditModal()" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/40 text-xs px-4 py-2 rounded flex items-center gap-1.5 font-medium">
+              <span>✏️</span> Edit
+            </button>
+            <button onclick="closeModal('detailModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-4 py-2 rounded">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Module Modal Overlay -->
+  <div id="addModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50" onclick="handleOverlayClick(event, 'addModal')">
+    <div class="bg-[#131a16] border border-slate-800 rounded-lg max-w-2xl w-full p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      <button onclick="closeModal('addModal')" class="absolute top-5 right-5 text-slate-400 hover:text-slate-200 text-xl">&times;</button>
+      <h2 id="modalHeaderTitle" class="text-xl font-bold text-slate-100 mb-6 font-mono">Add New Module</h2>
+
+      <form id="addForm" class="space-y-4">
+        <input type="hidden" id="editModuleId" value="">
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Module Name *</label>
+          <input type="text" id="name" required placeholder="e.g. XL6019 Buck-Boost Module" class="w-full bg-[#0d110e] border border-slate-800 rounded p-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Category</label>
+            <input type="text" id="category" placeholder="e.g. Power / Step-Up" class="w-full bg-[#0d110e] border border-slate-800 rounded p-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Quantity in Stock</label>
+            <input type="number" id="quantity" value="1" min="0" class="w-full bg-[#0d110e] border border-slate-800 rounded p-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Operating Voltage</label>
+            <input type="text" id="voltage" placeholder="e.g. 5V - 32V" class="w-full bg-[#0d110e] border border-slate-800 rounded p-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Max Current</label>
+            <input type="text" id="current" placeholder="e.g. 4A" class="w-full bg-[#0d110e] border border-slate-800 rounded p-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Price</label>
+            <input type="text" id="price" placeholder="e.g. $1.85" class="w-full bg-[#0d110e] border border-slate-800 rounded p-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Purchased On</label>
+            <input type="date" id="purchaseDate" class="w-full bg-[#0d110e] border border-slate-800 rounded p-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Photo</label>
+          <div id="dropZone" class="border-2 border-dashed border-slate-700 rounded-md p-5 text-center text-sm text-slate-400 cursor-pointer hover:border-amber-500/60 transition-colors mb-3">
+            <div id="dropZoneText">Drag &amp; drop an image here, click to choose, or paste (Ctrl+V)</div>
+          </div>
+          <input type="file" id="fileInput" accept="image/*" class="hidden">
+          <label class="block text-xs text-slate-500 mb-1">…or use an image link</label>
+          <input type="url" id="photoUrlInput" oninput="handleUrlPreview(this.value)" placeholder="https://example.com/photo.jpg" class="w-full bg-[#0d110e] border border-slate-800 rounded p-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+          
+          <!-- Image URL Preview -->
+          <div id="urlPreviewContainer" class="hidden mt-3 flex-col items-center justify-center gap-2 p-3 bg-[#0d110e] border border-slate-800 rounded">
+            <img id="urlPreviewImg" src="" class="h-36 max-w-full rounded border border-slate-700 object-contain">
+            <span class="text-xs text-emerald-400 font-mono">Image link detected</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Notes / Pinouts</label>
+          <textarea id="notes" rows="4" placeholder="Pinout notes, IC details, specs..." class="w-full bg-[#0d110e] border border-slate-800 rounded p-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500 resize-none font-mono"></textarea>
+        </div>
+
+        <div class="pt-3">
+          <button type="submit" id="saveSubmitBtn" class="w-full bg-[#d99b26] hover:bg-[#c48a1f] text-slate-950 font-bold py-3 rounded text-sm transition-colors">
+            Save Module
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbyaNaXe_klBz1E_bYjTXW400XK_NJSfYm-fM63utaLQydZTciXMujAtYleJ8ErEzBCc/exec";
+
+    let modulesData = [];
+    let selectedModuleId = null;
+    let selectedCategory = null;
+
+    async function loadModules() {
+      try {
+        const res = await fetch(API_URL);
+        modulesData = await res.json();
+        renderGrid();
+        renderCategoryFilters();
+      } catch (err) {
+        document.getElementById('moduleGrid').innerHTML = `
+          <div class="col-span-full py-16 text-center text-red-400 text-sm">
+            Failed to load modules from Google Sheet. Check API connection.
+          </div>`;
+      }
+    }
+
+    function getInitials(name) {
+      if (!name) return 'MB';
+      const parts = name.trim().split(' ');
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return name.substring(0, 2).toUpperCase();
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('moduleGrid');
+      const searchVal = document.getElementById('searchInput').value.toLowerCase();
+
+      const filtered = modulesData.filter(m => {
+        const matchesSearch = (m.name || '').toLowerCase().includes(searchVal) ||
+                              (m.category || '').toLowerCase().includes(searchVal) ||
+                              (m.notes || '').toLowerCase().includes(searchVal) ||
+                              (m.voltage || '').toLowerCase().includes(searchVal);
+        const matchesCat = !selectedCategory || m.category === selectedCategory;
+        return matchesSearch && matchesCat;
+      });
+
+      document.getElementById('moduleCount').textContent = `${filtered.length} modules`;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-16 text-center text-slate-500 text-sm font-mono">
+            No modules found.
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map((item) => {
+        const globalIdx = modulesData.findIndex(m => m.id === item.id);
+        const initials = getInitials(item.name);
+        
+        return `
+          <div onclick="showDetails(${globalIdx})" class="bg-[#131a16] border border-slate-800/90 rounded-lg overflow-hidden cursor-pointer hover:border-slate-700 transition-all flex flex-col group relative shadow-md">
+            
+            <!-- Card Image Box (Enlarged) -->
+            <div class="h-56 bg-[#0d110e] border-b border-slate-800/80 flex items-center justify-center relative overflow-hidden">
+              ${item.photoUrl ? `
+                <img src="${item.photoUrl}" alt="${item.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" loading="lazy">
+              ` : `
+                <div class="text-4xl font-mono text-slate-700 font-bold select-none">${initials}</div>
+              `}
+              
+              <span class="absolute top-3 right-3 bg-slate-950/80 border border-slate-800 text-amber-400 font-mono text-xs px-2 py-0.5 rounded font-semibold">
+                ×${item.quantity || 1}
+              </span>
+            </div>
+
+            <!-- Card Body (Enlarged padding and text) -->
+            <div class="p-4 flex flex-col flex-1 justify-between">
+              <div>
+                <span class="text-xs font-mono text-[#3dbda7] uppercase tracking-wider font-semibold block mb-1.5">
+                  ${item.category || 'UNCATEGORIZED'}
+                </span>
+                <h3 class="text-base font-semibold text-slate-100 line-clamp-1 group-hover:text-amber-400 transition-colors">
+                  ${item.name}
+                </h3>
+              </div>
+
+              <div class="mt-3 pt-3 border-t border-slate-800/60 flex justify-between items-center text-xs text-slate-400 font-mono">
+                <span>${item.voltage || 'N/A'}</span>
+                <span>${item.current || ''}</span>
+              </div>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderCategoryFilters() {
+      const container = document.getElementById('categoryFilters');
+      const categories = [...new Set(modulesData.map(m => m.category).filter(Boolean))];
+
+      container.innerHTML = `
+        <button onclick="filterCategory(null)" class="px-3 py-1 rounded text-xs font-mono transition-colors shrink-0 ${!selectedCategory ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/60 font-semibold' : 'bg-[#131a16] text-slate-400 border border-slate-800 hover:text-slate-200'}">
+          All
+        </button>
+        ${categories.map(cat => `
+          <button onclick="filterCategory('${cat}')" class="px-3 py-1 rounded text-xs font-mono transition-colors shrink-0 ${selectedCategory === cat ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/60 font-semibold' : 'bg-[#131a16] text-slate-400 border border-slate-800 hover:text-slate-200'}">
+            ${cat}
+          </button>
+        `).join('')}
+      `;
+    }
+
+    function filterCategory(cat) {
+      selectedCategory = cat;
+      renderCategoryFilters();
+      renderGrid();
+    }
+
+    function handleSearch() {
+      renderGrid();
+    }
+
+    function showDetails(index) {
+      const item = modulesData[index];
+      selectedModuleId = item.id;
+
+      if (item.photoUrl) {
+        document.getElementById('detailImg').src = item.photoUrl;
+        document.getElementById('detailImg').style.display = 'block';
+        document.getElementById('detailFallback').style.display = 'none';
+      } else {
+        document.getElementById('detailImg').style.display = 'none';
+        document.getElementById('detailFallback').style.display = 'flex';
+        document.getElementById('detailFallbackText').textContent = getInitials(item.name);
+      }
+
+      document.getElementById('detailTitle').textContent = item.name;
+      document.getElementById('detailCategory').textContent = item.category || 'Uncategorized';
+      document.getElementById('detailQty').textContent = item.quantity || '1';
+      document.getElementById('detailStock').textContent = `${item.quantity || 1} units`;
+      document.getElementById('detailVoltage').textContent = item.voltage || 'N/A';
+      document.getElementById('detailCurrent').textContent = item.current || 'N/A';
+      document.getElementById('detailPrice').textContent = item.price || 'N/A';
+      document.getElementById('detailPurchaseDate').textContent = item.purchaseDate || 'N/A';
+      document.getElementById('detailNotes').textContent = item.notes || 'No notes available.';
+
+      openModal('detailModal');
+    }
+
+    function openEditModal() {
+      const item = modulesData.find(m => m.id === selectedModuleId);
+      if (!item) return;
+
+      closeModal('detailModal');
+      resetAddForm();
+
+      document.getElementById('modalHeaderTitle').textContent = "Edit Module";
+      document.getElementById('editModuleId').value = item.id;
+      document.getElementById('name').value = item.name || '';
+      document.getElementById('category').value = item.category || '';
+      document.getElementById('quantity').value = item.quantity || 1;
+      document.getElementById('voltage').value = item.voltage || '';
+      document.getElementById('current').value = item.current || '';
+      document.getElementById('price').value = item.price || '';
+      document.getElementById('purchaseDate').value = item.purchaseDate || '';
+      document.getElementById('notes').value = item.notes || '';
+      document.getElementById('photoUrlInput').value = item.photoUrl || '';
+
+      if (item.photoUrl) {
+        handleUrlPreview(item.photoUrl);
+      }
+
+      openModal('addModal');
+    }
+
+    function handleUrlPreview(url) {
+      const container = document.getElementById('urlPreviewContainer');
+      const img = document.getElementById('urlPreviewImg');
+      if (url && url.trim().startsWith('http')) {
+        img.src = url.trim();
+        container.classList.remove('hidden');
+        container.classList.add('flex');
+      } else {
+        container.classList.add('hidden');
+        container.classList.remove('flex');
+        img.src = '';
+      }
+    }
+
+    async function deleteSelectedModule() {
+      if (!selectedModuleId || !confirm('Are you sure you want to delete this module?')) return;
+
+      try {
+        await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'delete', id: selectedModuleId })
+        });
+        closeModal('detailModal');
+        loadModules();
+      } catch (err) {
+        alert('Failed to delete module.');
+      }
+    }
+
+    function resetAddForm() {
+      addForm.reset();
+      const dz = document.getElementById('dropZoneText');
+      if (dz) dz.textContent = 'Drag & drop an image here, click to choose, or paste (Ctrl+V)';
+      document.getElementById('editModuleId').value = '';
+      document.getElementById('modalHeaderTitle').textContent = "Add New Module";
+      document.getElementById('urlPreviewContainer').classList.add('hidden');
+      document.getElementById('urlPreviewContainer').classList.remove('flex');
+      document.getElementById('urlPreviewImg').src = '';
+    }
+
+    const addForm = document.getElementById('addForm');
+    addForm.onsubmit = async (e) => {
+      e.preventDefault();
+
+      const submitBtn = document.getElementById('saveSubmitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving...';
+
+      const editId = document.getElementById('editModuleId').value;
+      const photoUrlValue = document.getElementById('photoUrlInput').value.trim();
+
+      const payload = {
+        action: editId ? 'edit' : 'add',
+        id: editId,
+        name: document.getElementById('name').value,
+        category: document.getElementById('category').value,
+        quantity: document.getElementById('quantity').value,
+        voltage: document.getElementById('voltage').value,
+        current: document.getElementById('current').value,
+        price: document.getElementById('price').value,
+        purchaseDate: document.getElementById('purchaseDate').value,
+        notes: document.getElementById('notes').value,
+        photoUrl: photoUrlValue,
+        existingPhotoUrl: photoUrlValue
+      };
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        let result = null;
+        try { result = await res.json(); } catch (readErr) { /* response not readable */ }
+
+        closeModal('addModal');
+        resetAddForm();
+
+        if (result && result.status === 'success') {
+          showToast('Saved ✓  photoUrl in sheet: ' + (result.photoUrl ? result.photoUrl : '(empty)'), !!result.photoUrl);
+          loadModules();
+        } else if (result) {
+          showToast('Script error: ' + (result.message || 'unknown'), false);
+        } else {
+          showToast('Sent, but could not read the script response. Check the sheet.', false);
+          setTimeout(loadModules, 1500);
+        }
+
+      } catch (err) {
+        alert('Failed to save module. Check network connection or Apps Script permissions.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save Module';
+      }
+    };
+
+    function showToast(msg, ok) {
+      const old = document.getElementById('toast');
+      if (old) old.remove();
+      const t = document.createElement('div');
+      t.id = 'toast';
+      t.textContent = msg;
+      t.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] max-w-[90vw] break-all px-4 py-3 rounded-md text-xs font-mono shadow-xl border ' +
+        (ok ? 'bg-emerald-950 text-emerald-300 border-emerald-700' : 'bg-red-950 text-red-300 border-red-700');
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 9000);
+    }
+
+    function openModal(id) {
+      if (id === 'addModal' && !document.getElementById('editModuleId').value) {
+        resetAddForm();
+      }
+      const el = document.getElementById(id);
+      el.classList.remove('hidden');
+      el.classList.add('flex');
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      el.classList.add('hidden');
+      el.classList.remove('flex');
+    }
+
+    function handleOverlayClick(e, id) {
+      if (e.target.id === id) closeModal(id);
+    }
+
+    // ---------- Photo upload (drag & drop / click / paste) ----------
+    const DROP_TEXT = 'Drag & drop an image here, click to choose, or paste (Ctrl+V)';
+    const dropZone = document.getElementById('dropZone');
+    const dropZoneText = document.getElementById('dropZoneText');
+    const fileInput = document.getElementById('fileInput');
+    const HILITE = ['border-amber-500', 'bg-amber-500/5'];
+
+    ['dragenter', 'dragover'].forEach(ev => dropZone.addEventListener(ev, e => {
+      e.preventDefault();
+      dropZone.classList.add(...HILITE);
+    }));
+    ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, e => {
+      e.preventDefault();
+      dropZone.classList.remove(...HILITE);
+    }));
+    dropZone.addEventListener('drop', e => {
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) handleImageFile(f);
+    });
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) handleImageFile(fileInput.files[0]);
+      fileInput.value = '';
+    });
+
+    // Stop the browser from opening an image that is dropped outside the zone
+    window.addEventListener('dragover', e => e.preventDefault());
+    window.addEventListener('drop', e => e.preventDefault());
+
+    // Paste an image from the clipboard while the add/edit window is open
+    document.addEventListener('paste', e => {
+      if (document.getElementById('addModal').classList.contains('hidden')) return;
+      const files = e.clipboardData && e.clipboardData.files;
+      if (files && files[0] && files[0].type.startsWith('image/')) {
+        e.preventDefault();
+        handleImageFile(files[0]);
+      }
+    });
+
+    function compressImage(file, maxSize = 1200, quality = 0.82) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          URL.revokeObjectURL(url);
+          resolve(canvas.toDataURL('image/jpeg', quality).split(',')[1]);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error('Could not read that image (try JPG or PNG)'));
+        };
+        img.src = url;
+      });
+    }
+
+    function setUploading(on) {
+      const btn = document.getElementById('saveSubmitBtn');
+      btn.disabled = on;
+      btn.textContent = on ? 'Uploading photo...' : 'Save Module';
+      dropZoneText.textContent = on ? 'Uploading photo...' : DROP_TEXT;
+    }
+
+    async function handleImageFile(file) {
+      if (!file.type.startsWith('image/')) {
+        showToast('That file is not an image.', false);
+        return;
+      }
+      setUploading(true);
+      try {
+        const data = await compressImage(file);
+        const baseName = (file.name || 'photo').replace(/\.[^.]+$/, '');
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'upload', filename: baseName + '.jpg', mimeType: 'image/jpeg', data })
+        });
+        const result = await res.json();
+        if (result.status !== 'success') throw new Error(result.message || 'Upload failed');
+
+        document.getElementById('photoUrlInput').value = result.photoUrl;
+        handleUrlPreview(result.photoUrl);
+        setUploading(false);
+        dropZoneText.textContent = 'Uploaded ✓  Drop another image to replace it';
+      } catch (err) {
+        setUploading(false);
+        showToast('Upload failed: ' + err.message, false);
+      }
+    }
+
+    loadModules();
+  </script>
+</body>
+</html>
