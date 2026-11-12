@@ -155,9 +155,9 @@
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
-                <th class="py-3 px-4 font-semibold">Category</th>
-                <th class="py-3 px-4 font-semibold text-right">Amount</th>
-                <th class="py-3 px-4 font-semibold text-right">Percentage</th>
+                <th class="py-3 px-4 font-semibold cursor-pointer select-none hover:text-slate-800" onclick="sortDetailTable('name')">Category <i class="fa-solid fa-sort ml-1 text-[10px]" data-sort-icon="name"></i></th>
+                <th class="py-3 px-4 font-semibold text-right cursor-pointer select-none hover:text-slate-800" onclick="sortDetailTable('amount')">Amount <i class="fa-solid fa-sort ml-1 text-[10px]" data-sort-icon="amount"></i></th>
+                <th class="py-3 px-4 font-semibold text-right cursor-pointer select-none hover:text-slate-800" onclick="sortDetailTable('pct')">Percentage <i class="fa-solid fa-sort ml-1 text-[10px]" data-sort-icon="pct"></i></th>
               </tr>
             </thead>
             <tbody id="detailTableBody" class="divide-y divide-slate-100 text-sm text-slate-700"></tbody>
@@ -668,16 +668,9 @@ function openDetailModal(monthId) {
   document.getElementById('detailYoMeroPaid').innerText = formatMoney(month.yoMeroPaid || 0, month.currency);
   document.getElementById('detailTopCategoryBadge').innerText = topCat ? `${topCat.name} (${formatMoney(topCat.amount, month.currency)})` : 'N/A';
 
-  document.getElementById('detailTableBody').innerHTML = month.categories.map((c, i) => {
-    const pct = total > 0 ? ((c.amount / total) * 100).toFixed(1) : '0.0';
-    const color = c.color || DEFAULT_COLORS[i % DEFAULT_COLORS.length];
-    return `
-      <tr class="hover:bg-slate-50">
-        <td class="py-3 px-4"><div class="flex items-center space-x-2.5"><span class="w-3 h-3 rounded-full inline-block" style="background-color:${esc(color)}"></span><span class="font-semibold text-slate-800">${esc(c.name)}</span></div></td>
-        <td class="py-3 px-4 text-right font-medium text-slate-800">${formatMoney(c.amount, month.currency)}</td>
-        <td class="py-3 px-4 text-right font-bold text-blue-600">${pct}%</td>
-      </tr>`;
-  }).join('');
+  detailMonthRef = month;
+  detailSort = { key: null, dir: 'asc' };
+  renderDetailTable();
 
   document.getElementById('detailCategoryProgressBar').innerHTML = sorted.slice(0, 4).map((c, i) => {
     const pct = total > 0 ? ((c.amount / total) * 100).toFixed(1) : '0.0';
@@ -721,6 +714,46 @@ function openDetailModal(monthId) {
       }
     });
   }, 50);
+}
+
+// ---------- Sortable Itemized Category Breakdown ----------
+let detailMonthRef = null;
+let detailSort = { key: null, dir: 'asc' };
+
+function sortDetailTable(key) {
+  detailSort = { key, dir: (detailSort.key === key && detailSort.dir === 'asc') ? 'desc' : 'asc' };
+  renderDetailTable();
+}
+
+function renderDetailTable() {
+  const month = detailMonthRef;
+  if (!month) return;
+  const total = calculateMonthTotal(month);
+  const rows = month.categories.map((c, i) => ({ c, i, pct: total > 0 ? (c.amount / total) * 100 : 0 }));
+
+  if (detailSort.key) {
+    const dir = detailSort.dir === 'asc' ? 1 : -1;
+    rows.sort((a, b) => {
+      if (detailSort.key === 'name') return dir * a.c.name.localeCompare(b.c.name, undefined, { sensitivity: 'base' });
+      if (detailSort.key === 'amount') return dir * (Number(a.c.amount) - Number(b.c.amount));
+      return dir * (a.pct - b.pct);
+    });
+  }
+
+  document.getElementById('detailTableBody').innerHTML = rows.map(({ c, i, pct }) => {
+    const color = c.color || DEFAULT_COLORS[i % DEFAULT_COLORS.length];
+    return `
+      <tr class="hover:bg-slate-50">
+        <td class="py-3 px-4"><div class="flex items-center space-x-2.5"><span class="w-3 h-3 rounded-full inline-block" style="background-color:${esc(color)}"></span><span class="font-semibold text-slate-800">${esc(c.name)}</span></div></td>
+        <td class="py-3 px-4 text-right font-medium text-slate-800">${formatMoney(c.amount, month.currency)}</td>
+        <td class="py-3 px-4 text-right font-bold text-blue-600">${pct.toFixed(1)}%</td>
+      </tr>`;
+  }).join('');
+
+  document.querySelectorAll('[data-sort-icon]').forEach(icon => {
+    const active = icon.dataset.sortIcon === detailSort.key;
+    icon.className = 'fa-solid ml-1 text-[10px] ' + (active ? (detailSort.dir === 'asc' ? 'fa-sort-up text-blue-600' : 'fa-sort-down text-blue-600') : 'fa-sort');
+  });
 }
 
 function closeDetailModal() {
