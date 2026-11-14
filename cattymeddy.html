@@ -234,15 +234,30 @@
                             </div>
                             <div>
                                 <label for="interval-hours" class="block text-xs font-semibold text-slate-600 mb-1">Every (Hours)</label>
-                                <select id="interval-hours"
+                                <select id="interval-hours" onchange="onIntervalChange()"
                                     class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
                                     <option value="24">Once a day (24h)</option>
                                     <option value="12" selected>Every 12 hours</option>
                                     <option value="8">Every 8 hours</option>
                                     <option value="6">Every 6 hours</option>
                                     <option value="4">Every 4 hours</option>
+                                    <option value="custom">Specific times (irregular)</option>
                                 </select>
                             </div>
+                        </div>
+                        <div id="custom-times-panel" class="hidden bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-slate-700">Specific times each day</span>
+                                <span class="text-[11px] text-slate-400">Pick a time, then press Add time</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="time" id="custom-time-input" value="07:00"
+                                    class="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <button type="button" onclick="addCustomTime()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-sm transition cursor-pointer">
+                                    <i class="fa-solid fa-plus mr-1"></i> Add time
+                                </button>
+                            </div>
+                            <div id="custom-times-chips" class="flex flex-wrap gap-1.5"></div>
                         </div>
 
                         <div>
@@ -470,6 +485,31 @@ function doGet(e) {
 
         function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 
+        // 12-hour display ("7:30 AM"); times are still stored internally as 24-hour "HH:MM"
+        function fmtMins(mins) {
+            mins = ((Math.round(mins) % 1440) + 1440) % 1440;
+            const h = Math.floor(mins / 60), m = mins % 60;
+            return `${h % 12 === 0 ? 12 : h % 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}`;
+        }
+        function fmtHM(str) {
+            const m = /^(\d{1,2}):(\d{2})/.exec(String(str || ''));
+            return m ? fmtMins(+m[1] * 60 + +m[2]) : String(str || '');
+        }
+
+        // Minutes-after-midnight of every dose in a day, in dose order (set times or every-N-hours)
+        function doseMinutes(item) {
+            const offset = item.offsetMinutes || 0;
+            const wrap = (n) => ((n % 1440) + 1440) % 1440;
+            if (Array.isArray(item.times) && item.times.length) {
+                return item.times.map(t => { const [h, m] = t.split(':').map(Number); return wrap(h * 60 + m + offset); });
+            }
+            const [h, m] = item.startTime.split(':').map(Number);
+            const base = h * 60 + m + offset;
+            const step = Math.max(1, item.intervalHours) * 60;
+            const count = Math.max(1, Math.floor(24 / Math.max(1, item.intervalHours)));
+            return Array.from({ length: count }, (_, i) => wrap(base + i * step));
+        }
+
         // ==========================================
         // STATE + VALIDATION
         // ==========================================
@@ -510,6 +550,15 @@ function doGet(e) {
             return todayKey();
         }
 
+        function cleanTimes(v) {
+            if (!Array.isArray(v)) return null;
+            const out = [...new Set(v.map(t => {
+                const m = /^(\d{1,2}):(\d{2})$/.exec(String(t || ''));
+                return (m && +m[1] <= 23 && +m[2] <= 59) ? `${pad(+m[1])}:${m[2]}` : null;
+            }).filter(Boolean))].sort().slice(0, 12);
+            return out.length ? out : null;
+        }
+
         function cleanDuration(v) {
             const n = Math.round(Number(v));
             return (v !== '' && v != null && Number.isFinite(n) && n >= 1) ? Math.min(n, 365) : null;
@@ -534,7 +583,8 @@ function doGet(e) {
                 intervalHours: interval,
                 offsetMinutes: clamp(offset, -720, 720),
                 startDate: cleanDate(it.startDate),
-                durationDays: cleanDuration(it.durationDays)
+                durationDays: cleanDuration(it.durationDays),
+                times: cleanTimes(it.times)
             };
         }
 
@@ -666,7 +716,38 @@ function doGet(e) {
             });
         });
 
+        let formCustomTimes = [];
+
+        function onIntervalChange() {
+            const custom = $('interval-hours').value === 'custom';
+            $('custom-times-panel').classList.toggle('hidden', !custom);
+            $('start-time').parentElement.classList.toggle('hidden', custom);
+            $('interval-hours').parentElement.classList.toggle('col-span-2', custom);
+        }
+
+        function addCustomTime() {
+            const v = $('custom-time-input').value;
+            if (!/^\d{2}:\d{2}$/.test(v)) return;
+            if (formCustomTimes.length >= 12 && !formCustomTimes.includes(v)) { showToast("12 times per item is the maximum.", "warning"); return; }
+            if (!formCustomTimes.includes(v)) formCustomTimes.push(v);
+            formCustomTimes.sort();
+            renderCustomTimeChips();
+        }
+
+        function removeCustomTime(t) {
+            formCustomTimes = formCustomTimes.filter(x => x !== t);
+            renderCustomTimeChips();
+        }
+
+        function renderCustomTimeChips() {
+            $('custom-times-chips').innerHTML = formCustomTimes.length
+                ? formCustomTimes.map(t => `<span class="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-lg bg-indigo-100 text-indigo-800 text-xs font-bold">${escapeHtml(fmtHM(t))}<button type="button" onclick="removeCustomTime('${t}')" title="Remove" class="w-4 h-4 rounded hover:bg-indigo-200 flex items-center justify-center cursor-pointer"><i class="fa-solid fa-xmark text-[10px]"></i></button></span>`).join('')
+                : '<span class="text-[11px] text-slate-400">No times added yet</span>';
+        }
+
         function setupEventListeners() {
+            renderCustomTimeChips();
+            $('custom-time-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomTime(); } });
             $('note-time').addEventListener('input', () => { noteTimeTouched = true; });
 
             $('cat-name-input').addEventListener('input', (e) => {
@@ -682,12 +763,15 @@ function doGet(e) {
                 e.preventDefault();
                 const patient = getActivePatient();
                 if (!patient) return;
+                const custom = $('interval-hours').value === 'custom';
+                if (custom && !formCustomTimes.length) { showToast("Add at least one time first (press Add time).", "warning"); return; }
                 const item = sanitizeRegimenItem({
                     id: 'item-' + Date.now(),
                     type: $('item-type').value,
                     name: $('item-name').value,
-                    startTime: $('start-time').value,
-                    intervalHours: $('interval-hours').value,
+                    startTime: custom ? formCustomTimes[0] : $('start-time').value,
+                    intervalHours: custom ? 24 : $('interval-hours').value,
+                    times: custom ? formCustomTimes : null,
                     startDate: todayKey(),
                     durationDays: $('duration-days').value,
                     offsetMinutes: formOffsetMinutes
@@ -697,6 +781,8 @@ function doGet(e) {
                 patient.regimen.push(item);
                 $('item-name').value = '';
                 $('duration-days').value = '';
+                formCustomTimes = [];
+                renderCustomTimeChips();
                 resetFormOffset();
                 renderAll();
                 showToast(`Added "${item.name}" to ${patient.name}'s timeline!`, "success");
@@ -899,14 +985,11 @@ function doGet(e) {
 
             patient.regimen.forEach(item => {
                 if (!isItemActiveToday(item)) return;
-                const [baseH, baseM] = item.startTime.split(':').map(Number);
-                const baseTotalMins = (baseH * 60) + baseM + (item.offsetMinutes || 0);
-                const stepMins = Math.max(1, item.intervalHours) * 60;
-                const count = Math.max(1, Math.floor(24 / Math.max(1, item.intervalHours)));
+                const dayMins = doseMinutes(item);
+                const count = dayMins.length;
 
                 for (let i = 0; i < count; i++) {
-                    let minsInDay = (baseTotalMins + (i * stepMins)) % 1440;
-                    if (minsInDay < 0) minsInDay += 1440;
+                    const minsInDay = dayMins[i];
                     const occId = `${item.id}_dose_${i}`;
                     occurrences.push({
                         occId,
@@ -914,7 +997,7 @@ function doGet(e) {
                         type: item.type,
                         name: item.name,
                         minutesFromMidnight: minsInDay,
-                        timeFormatted: `${pad(Math.floor(minsInDay / 60))}:${pad(minsInDay % 60)}`,
+                        timeFormatted: fmtMins(minsInDay),
                         doseIndex: i + 1,
                         totalDoses: count,
                         completed: !!patient.completedDoses[doneKey(occId)]
@@ -954,7 +1037,7 @@ function doGet(e) {
             el.innerHTML = '';
             for (let i = 0; i <= 8; i++) {
                 const s = document.createElement('span');
-                s.textContent = `${pad(i * 3)}:00`;
+                s.textContent = fmtMins(i * 180).replace(':00 ', ' ');
                 s.className = 'absolute';
                 s.style.left = `${i * 12.5}%`;
                 s.style.transform = i === 0 ? 'none' : (i === 8 ? 'translateX(-100%)' : 'translateX(-50%)');
@@ -1050,7 +1133,7 @@ function doGet(e) {
             notes.map(n => {
                 const d = new Date(n.ts);
                 const mins = d.getHours() * 60 + d.getMinutes();
-                return { n, mins, time: `${pad(d.getHours())}:${pad(d.getMinutes())}`, x: (mins / 1440) * W };
+                return { n, mins, time: fmtMins(mins), x: (mins / 1440) * W };
             }).sort((a, b) => a.mins - b.mins).forEach(({ n, mins, time, x }) => {
                 let lane = laneRight.findIndex(r => x - HALF >= r + GAP_X);
                 if (lane < 0) { lane = laneRight.length; laneRight.push(0); }
@@ -1118,15 +1201,7 @@ function doGet(e) {
             // One column per dose slot, ordered by time of day
             const cols = [];
             patient.regimen.forEach(item => {
-                const [h, m] = item.startTime.split(':').map(Number);
-                const base = h * 60 + m + (item.offsetMinutes || 0);
-                const step = item.intervalHours * 60;
-                const count = Math.max(1, Math.floor(24 / item.intervalHours));
-                for (let i = 0; i < count; i++) {
-                    let mins = (base + i * step) % 1440;
-                    if (mins < 0) mins += 1440;
-                    cols.push({ item, occId: `${item.id}_dose_${i}`, mins, time: `${pad(Math.floor(mins / 60))}:${pad(mins % 60)}` });
-                }
+                doseMinutes(item).forEach((mins, i) => cols.push({ item, occId: `${item.id}_dose_${i}`, mins, time: fmtMins(mins) }));
             });
             cols.sort((a, b) => a.mins - b.mins);
 
@@ -1243,8 +1318,9 @@ function doGet(e) {
                         <div>
                             <div class="font-bold text-sm text-slate-900">${escapeHtml(item.name)}</div>
                             <div class="text-xs text-slate-500 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                                <span>Starts <strong>${escapeHtml(item.startTime)}</strong></span><span>•</span>
-                                <span>Every <strong>${Number(item.intervalHours)}h</strong></span><span>•</span>
+                                ${item.times && item.times.length
+                                    ? `<span>At <strong>${item.times.map(t => escapeHtml(fmtHM(t))).join(', ')}</strong></span><span>•</span>`
+                                    : `<span>Starts <strong>${escapeHtml(fmtHM(item.startTime))}</strong></span><span>•</span><span>Every <strong>${Number(item.intervalHours)}h</strong></span><span>•</span>`}
                                 ${offsetBadge}<span>•</span>${courseBadge}
                             </div>
                         </div>
@@ -1341,7 +1417,7 @@ function doGet(e) {
         // LIVE PLAYHEAD & "NEXT UP" / OVERDUE
         // ==========================================
         function updateLiveClockText() {
-            $('live-clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            $('live-clock').textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
         }
 
         function updateClockAndTimeline() {
@@ -1353,7 +1429,7 @@ function doGet(e) {
             $('timeline-now-head').style.left = `${percent}%`;
 
             const badge = $('now-time-badge');
-            badge.textContent = `NOW ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+            badge.textContent = `NOW ${fmtMins(now.getHours() * 60 + now.getMinutes())}`;
             // Keep the badge inside the track at the extremes
             badge.style.left = percent > 94 ? 'auto' : (percent < 6 ? '0' : '50%');
             badge.style.right = percent > 94 ? '-6px' : 'auto';
@@ -1451,7 +1527,7 @@ function doGet(e) {
         function formatNoteTime(note) {
             if (!note.ts) return note.timestamp || '';
             const d = new Date(note.ts);
-            const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            const time = fmtMins(d.getHours() * 60 + d.getMinutes());
             const key = todayKey(d);
             if (key === todayKey()) return `Today, ${time}`;
             if (key === todayKey(new Date(Date.now() - 86400000))) return `Yesterday, ${time}`;
@@ -1470,7 +1546,7 @@ function doGet(e) {
             textarea.value = '';
             renderAll();
             resetNoteTime();
-            showToast(`Observation logged for ${patient.name}${chosen.yesterday ? ` (yesterday, ${chosen.time})` : ` at ${chosen.time}`}.`, "success");
+            showToast(`Observation logged for ${patient.name}${chosen.yesterday ? ` (yesterday, ${fmtHM(chosen.time)})` : ` at ${fmtHM(chosen.time)}`}.`, "success");
         }
 
         function deleteNote(noteId) {
@@ -1543,7 +1619,7 @@ function doGet(e) {
         function updateLastSyncText() {
             const el = $('last-sync-text');
             if (!el) return;
-            el.textContent = appState.lastSynced ? `Last confirmed sync: ${new Date(appState.lastSynced).toLocaleString()}` : '';
+            el.textContent = appState.lastSynced ? `Last confirmed sync: ${new Date(appState.lastSynced).toLocaleString([], { hour12: true })}` : '';
         }
 
         // ==========================================
@@ -1781,15 +1857,7 @@ function doGet(e) {
         function buildDoseColumns(patient) {
             const cols = [];
             patient.regimen.forEach(item => {
-                const [h, m] = item.startTime.split(':').map(Number);
-                const base = h * 60 + m + (item.offsetMinutes || 0);
-                const step = item.intervalHours * 60;
-                const count = Math.max(1, Math.floor(24 / item.intervalHours));
-                for (let i = 0; i < count; i++) {
-                    let mins = (base + i * step) % 1440;
-                    if (mins < 0) mins += 1440;
-                    cols.push({ item, occId: `${item.id}_dose_${i}`, mins, time: `${pad(Math.floor(mins / 60))}:${pad(mins % 60)}` });
-                }
+                doseMinutes(item).forEach((mins, i) => cols.push({ item, occId: `${item.id}_dose_${i}`, mins, time: fmtMins(mins) }));
             });
             return cols.sort((a, b) => a.mins - b.mins);
         }
@@ -1850,7 +1918,7 @@ function doGet(e) {
             doc.text('Catty Meddy', M, 36);
             doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
             doc.text('Care report', M, 56);
-            doc.text(T(now.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })), PW - M, 56, { align: 'right' });
+            doc.text(T(now.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short', hour12: true })), PW - M, 56, { align: 'right' });
 
             doc.setTextColor(...INK);
             doc.setFont('helvetica', 'bold'); doc.setFontSize(22);
@@ -1898,8 +1966,8 @@ function doGet(e) {
                 const order = { active: 0, ongoing: 0, upcoming: 1, ended: 2 };
                 const sorted = infos.slice().sort((a, b) => order[a.c.status] - order[b.c.status]);
                 const body = sorted.map(({ it, c }) => {
-                    const times = cols.filter(x => x.item === it).map(x => x.time).sort().join(', ');
-                    const freq = it.intervalHours === 24 ? 'Once daily' : `Every ${it.intervalHours} h (${Math.floor(24 / it.intervalHours)}x/day)`;
+                    const times = cols.filter(x => x.item === it).map(x => x.time).join(', ');
+                    const freq = (it.times && it.times.length) ? `Set times (${it.times.length}x/day)` : it.intervalHours === 24 ? 'Once daily' : `Every ${it.intervalHours} h (${Math.floor(24 / it.intervalHours)}x/day)`;
                     let course;
                     if (c.status === 'ongoing') course = `Ongoing (since ${mdLabel(it.startDate)})`;
                     else if (c.status === 'active') course = `Day ${c.day} of ${c.total}, ends ${courseEndLabel(it)}`;
