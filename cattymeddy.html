@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catty Meddy — Cat Medication & Feeding Timeline</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🐱%3C/text%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.85); opacity: 0.8; }
+            70% { transform: scale(1.6); opacity: 0; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+        .playhead-pulse::before {
+            content: ''; position: absolute; inset: -4px; border-radius: 50%;
+            background-color: #ef4444; animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-indigo-100 selection:text-indigo-900">
+
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+                    <i class="fa-solid fa-cat text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight text-slate-900">Catty Meddy</h1>
+                    <p class="text-xs text-slate-500 hidden sm:block">24-Hour Feline Meds & Feeding Timeline</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-3">
+                <div class="hidden md:flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+                    <i class="fa-regular fa-clock text-indigo-600 text-sm"></i>
+                    <span id="live-clock" class="text-sm font-semibold tabular-nums text-slate-700">--:--:--</span>
+                </div>
+                <button onclick="openSheetsModal()" id="sheets-status-btn" class="flex items-center gap-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition cursor-pointer">
+                    <i class="fa-solid fa-table"></i>
+                    <span id="sheets-btn-text">Google Sheets</span>
+                    <span id="sync-dot" class="w-2 h-2 rounded-full bg-amber-400" title="Not connected yet"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+        <div id="toast-container" class="fixed bottom-4 right-4 z-[70] flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+            <div class="flex items-center justify-between gap-2 pb-4 mb-5 border-b border-slate-100">
+                <div id="patient-tabs-list" class="flex items-center gap-2 overflow-x-auto pb-1"></div>
+                <button type="button" onclick="openAddPatientModal()"
+                    class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200/70 transition flex items-center gap-1.5 shrink-0 cursor-pointer">
+                    <i class="fa-solid fa-plus"></i> Add Patient
+                </button>
+            </div>
+
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <label for="cat-name-input" class="text-xs font-semibold uppercase tracking-wider text-slate-400">Patient:</label>
+                    <div class="relative flex items-center">
+                        <i class="fa-solid fa-paw text-indigo-500 absolute left-3 text-sm"></i>
+                        <input type="text" id="cat-name-input" value="Mochi" maxlength="60" placeholder="Enter cat's name..."
+                            class="pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition w-48 sm:w-56">
+                    </div>
+                    <button type="button" id="delete-patient-btn" onclick="deleteCurrentPatient()" title="Remove this patient"
+                        class="hidden px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition cursor-pointer">
+                        <i class="fa-solid fa-trash-can mr-1"></i> Remove
+                    </button>
+                </div>
+
+                <div id="next-event-banner" class="flex items-center gap-3 bg-indigo-50 border border-indigo-100 px-4 py-2.5 rounded-xl">
+                    <div id="next-event-iconbox" class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                        <i id="next-event-icon" class="fa-solid fa-pills text-sm"></i>
+                    </div>
+                    <div>
+                        <div id="next-event-label" class="text-[11px] font-semibold uppercase tracking-wider text-indigo-600">Next Up</div>
+                        <div id="next-event-text" class="text-sm font-bold text-slate-900">Calculating schedule...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-2 select-none">
+                <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 mb-3">
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-600 inline-block"></span> Medicine</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Food / Meal</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Done</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span> Overdue / Now</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-teal-500 inline-block"></span> Note</span>
+                    </div>
+                    <span class="text-slate-400 hidden sm:inline">Tap a pin to mark it done</span>
+                </div>
+
+                <div class="overflow-x-auto pb-2 pt-4 px-4" id="timeline-scroll-area">
+                    <div class="min-w-[900px] relative">
+                        <div id="timeline-markers-layer" class="relative w-full mb-1" style="height:36px"></div>
+
+                        <div id="timeline-track" class="relative h-4 bg-slate-200 rounded-full w-full shadow-inner overflow-visible">
+                            <div id="timeline-progress-fill" class="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-l-full transition-all duration-500" style="width: 0%;"></div>
+                            <div class="absolute inset-0 flex justify-between pointer-events-none px-[1px]">
+                                <span class="w-px h-full bg-white/60"></span><span class="w-px h-full bg-white/60"></span><span class="w-px h-full bg-white/60"></span>
+                                <span class="w-px h-full bg-white/60"></span><span class="w-px h-full bg-white/60"></span><span class="w-px h-full bg-white/60"></span>
+                                <span class="w-px h-full bg-white/60"></span><span class="w-px h-full bg-white/60"></span><span class="w-px h-full bg-white/60"></span>
+                            </div>
+                            <div id="timeline-now-head" class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 transition-all duration-500 pointer-events-none" style="left: 0%;">
+                                <div class="w-5 h-5 rounded-full bg-red-500 border-2 border-white shadow-md playhead-pulse relative"></div>
+                                <div id="now-time-badge" class="absolute top-6 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow whitespace-nowrap">NOW</div>
+                            </div>
+                        </div>
+
+                        <div id="hour-labels" class="relative h-4 mt-10 text-[11px] font-medium text-slate-400 tabular-nums"></div>
+
+                        <div id="note-markers-layer" class="relative w-full mt-3" style="height:0"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <div class="lg:col-span-5 space-y-6">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-list text-emerald-600"></i> Notes & Observations
+                        </h2>
+                        <span class="text-[11px] text-slate-400">Appetite, mood, symptoms</span>
+                    </div>
+                    <div class="space-y-3">
+                        <textarea id="note-input" rows="3" maxlength="2000" placeholder="e.g., Ate full breakfast enthusiastically, no nausea after antibiotic..."
+                            class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition resize-none"></textarea>
+
+                        <div class="flex items-center gap-2 flex-wrap text-xs text-slate-600">
+                            <label for="note-time" class="font-semibold">Time</label>
+                            <input type="time" id="note-time"
+                                class="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                            <button type="button" onclick="resetNoteTime()" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition cursor-pointer">Now</button>
+                            <span class="text-[11px] text-slate-400">Defaults to the current time</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex gap-1.5 flex-wrap">
+                                <button type="button" onclick="appendQuickTag('Ate well 🍽️')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg transition cursor-pointer">+ Ate well</button>
+                                <button type="button" onclick="appendQuickTag('Took pill easily 💊')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg transition cursor-pointer">+ Took pill easily</button>
+                                <button type="button" onclick="appendQuickTag('Sleepy 😴')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg transition cursor-pointer">+ Sleepy</button>
+                            </div>
+                            <button type="button" onclick="addObservation()"
+                                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition shrink-0 cursor-pointer">Save Note</button>
+                        </div>
+                    </div>
+                    <div id="notes-list" class="mt-4 space-y-2 max-h-56 overflow-y-auto pr-1"></div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-7 space-y-6">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-indigo-600"></i> Today's Chronological Dose Log
+                        </h2>
+                        <button onclick="resetAllCompleted()" class="text-xs text-slate-500 hover:text-indigo-600 font-medium cursor-pointer">Reset Checkmarks</button>
+                    </div>
+                    <div id="chronological-list" class="divide-y divide-slate-100"></div>
+                </div>
+            </div>
+        </div>
+
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-table-cells text-indigo-600"></i> Course Matrix
+                    </h2>
+                    <p class="text-xs text-slate-500">Every day of every course at a glance. Checkmarks are saved permanently, and a new day never clears them.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                    <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-emerald-500 inline-block"></span> Given</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded border-2 border-red-300 bg-red-50 inline-block"></span> Missed / overdue</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded border-2 border-slate-300 bg-white inline-block"></span> Still to give</span>
+                </div>
+            </div>
+            <div id="matrix-scroll" class="relative overflow-auto max-h-[28rem] border border-slate-200 rounded-xl">
+                <div id="matrix-holder"></div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-5">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+                    <h2 class="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-plus-circle text-indigo-600"></i> Add Medicine or Feeding
+                    </h2>
+
+                    <form id="add-schedule-form" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+                            <button type="button" id="type-btn-med" onclick="setFormType('medicine')"
+                                class="py-2 px-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 bg-white text-indigo-600 shadow-sm transition cursor-pointer">
+                                <i class="fa-solid fa-pills"></i> Medicine
+                            </button>
+                            <button type="button" id="type-btn-food" onclick="setFormType('food')"
+                                class="py-2 px-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900 transition cursor-pointer">
+                                <i class="fa-solid fa-bowl-food"></i> Food / Meal
+                            </button>
+                        </div>
+                        <input type="hidden" id="item-type" value="medicine">
+
+                        <div>
+                            <label id="item-name-label" for="item-name" class="block text-xs font-semibold text-slate-600 mb-1">Medicine Name</label>
+                            <input type="text" id="item-name" required maxlength="80" placeholder="e.g., Gabapentin 50mg or Eye Drops"
+                                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label for="start-time" class="block text-xs font-semibold text-slate-600 mb-1">First Time Today</label>
+                                <input type="time" id="start-time" value="08:00" required
+                                    class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                            </div>
+                            <div>
+                                <label for="interval-hours" class="block text-xs font-semibold text-slate-600 mb-1">Every (Hours)</label>
+                                <select id="interval-hours"
+                                    class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                                    <option value="24">Once a day (24h)</option>
+                                    <option value="12" selected>Every 12 hours</option>
+                                    <option value="8">Every 8 hours</option>
+                                    <option value="6">Every 6 hours</option>
+                                    <option value="4">Every 4 hours</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="duration-days" class="block text-xs font-semibold text-slate-600 mb-1">For how many days? <span class="font-normal text-slate-400">(leave blank = ongoing)</span></label>
+                            <input type="number" id="duration-days" min="1" max="365" step="1" inputmode="numeric" placeholder="e.g., 10"
+                                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                        </div>
+
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-semibold text-slate-700">Spacing Offset (10-min blocks)</span>
+                                <span id="offset-display" class="text-xs font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-700">0 min</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mb-2.5">Shift all doses earlier or later to prevent medicine interactions.</p>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="adjustFormOffset(-10)"
+                                    class="flex-1 py-2 px-3 bg-white border border-slate-200 hover:bg-slate-100 active:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 shadow-sm transition cursor-pointer">
+                                    <i class="fa-solid fa-minus mr-1"></i> 10 min
+                                </button>
+                                <button type="button" onclick="resetFormOffset()"
+                                    class="py-2 px-3 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-xs font-medium text-slate-500 transition cursor-pointer">Reset</button>
+                                <button type="button" onclick="adjustFormOffset(10)"
+                                    class="flex-1 py-2 px-3 bg-white border border-slate-200 hover:bg-slate-100 active:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 shadow-sm transition cursor-pointer">
+                                    <i class="fa-solid fa-plus mr-1"></i> 10 min
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit"
+                            class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
+                            <i class="fa-solid fa-calendar-plus"></i> Add to Timeline
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="lg:col-span-7">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <div>
+                            <h2 class="text-base font-bold text-slate-900">Active Regimen & Spacing</h2>
+                            <p class="text-xs text-slate-500">Adjust ±10 min blocks anytime to separate medications from food or other meds.</p>
+                        </div>
+                        <button onclick="syncToGoogleSheets()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Sync to Sheet
+                        </button>
+                    </div>
+                    <div id="regimen-list" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ADD PATIENT MODAL -->
+    <div id="add-patient-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center"><i class="fa-solid fa-cat"></i></div>
+                    <h3 class="font-bold text-slate-900 text-base">Add Another Patient</h3>
+                </div>
+                <button type="button" onclick="closeAddPatientModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 flex items-center justify-center transition cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form id="add-patient-form" class="p-6 space-y-4">
+                <div>
+                    <label for="new-patient-name" class="block text-xs font-semibold text-slate-600 mb-1.5">Cat's Name</label>
+                    <input type="text" id="new-patient-name" required maxlength="60" placeholder="e.g., Luna, Oliver, Bella..."
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                </div>
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeAddPatientModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition cursor-pointer">Create Patient</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CONFIRM MODAL -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full shadow-xl border border-slate-200 p-6">
+            <h3 id="confirm-title" class="font-bold text-slate-900 text-base mb-1.5">Are you sure?</h3>
+            <p id="confirm-message" class="text-sm text-slate-600 mb-5"></p>
+            <div class="flex items-center justify-end gap-2">
+                <button type="button" onclick="resolveConfirm(false)" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer">Cancel</button>
+                <button type="button" id="confirm-ok" onclick="resolveConfirm(true)" class="px-4 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white shadow-sm transition cursor-pointer">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GOOGLE SHEETS MODAL -->
+    <div id="sheets-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-xl w-full shadow-xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center"><i class="fa-solid fa-file-excel"></i></div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">Google Sheets Connection</h3>
+                        <p class="text-xs text-slate-500">Store & load schedules directly in your Google Sheet</p>
+                    </div>
+                </div>
+                <button onclick="closeSheetsModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 flex items-center justify-center transition cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-5 text-sm">
+                <div>
+                    <label for="sheets-webhook-url" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">Google Apps Script Web App URL</label>
+                    <input type="url" id="sheets-webhook-url" placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white">
+                    <p class="text-xs text-slate-500 mt-1.5">Paste your deployed Google Apps Script URL above to enable 2-way saving and loading.</p>
+                    <p id="last-sync-text" class="text-xs text-slate-400 mt-1"></p>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="saveSheetsUrl()" class="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs transition cursor-pointer">Save & Connect</button>
+                    <button onclick="loadFromGoogleSheets()" class="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl text-xs transition cursor-pointer">
+                        <i class="fa-solid fa-cloud-arrow-down mr-1"></i> Pull from Sheet
+                    </button>
+                    <button onclick="syncToGoogleSheets()" class="py-2.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs transition cursor-pointer">
+                        <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Push to Sheet
+                    </button>
+                </div>
+
+                <label class="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer">
+                    <input type="checkbox" id="auto-sync-toggle" onchange="toggleAutoSync(this.checked)"
+                        class="mt-0.5 w-5 h-5 rounded-md border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0">
+                    <span>
+                        <span class="block text-xs font-bold text-slate-800">Auto-sync changes</span>
+                        <span class="block text-[11px] text-slate-500 mt-0.5">Saves every change to the sheet a few seconds after you make it, and loads newer data from other devices when you open the app. If the sheet was changed somewhere else while you have unsent changes, it pauses and asks you to Pull.</span>
+                    </span>
+                </label>
+
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-xs text-slate-800"><i class="fa-solid fa-code text-emerald-600 mr-1.5"></i>1-Minute Google Sheet Setup</span>
+                        <button onclick="copyAppsScript()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2.5 py-1 rounded-lg transition cursor-pointer">
+                            <i class="fa-regular fa-copy mr-1"></i> Copy Code
+                        </button>
+                    </div>
+                    <ol class="text-xs text-slate-600 space-y-1.5 list-decimal list-inside">
+                        <li>Open a Google Sheet and go to <strong>Extensions &gt; Apps Script</strong>.</li>
+                        <li>Paste the code below (replace any older version), click <strong>Deploy &gt; New deployment &gt; Web app</strong>.</li>
+                        <li>Set <em>"Who has access"</em> to <strong>Anyone</strong>, authorize, and paste the URL above.</li>
+                    </ol>
+                    <pre id="apps-script-code" class="bg-slate-900 text-emerald-300 p-3 rounded-xl text-[11px] overflow-x-auto leading-relaxed font-mono">var CHUNK = 40000; // Sheets cells hold max 50,000 characters
+
+function doPost(e) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var payload = JSON.parse(e.postData.contents);
+    var json = JSON.stringify(payload);
+
+    // 1. Full app state, split across rows so it never hits the cell limit
+    var stateSheet = ss.getSheetByName("AppState") || ss.insertSheet("AppState");
+    stateSheet.clear();
+    var rows = [];
+    for (var i = 0; i &lt; json.length; i += CHUNK) {
+      rows.push([json.substring(i, i + CHUNK)]);
+    }
+    stateSheet.getRange(1, 1, rows.length, 1).setValues(rows);
+
+    // 2. Human-readable summary: one row per cat, rewritten on each sync
+    var logSheet = ss.getSheetByName("CareLog") || ss.insertSheet("CareLog");
+    logSheet.clear();
+    logSheet.appendRow(["Last synced", "Cat Name", "Active Items", "Latest Note"]);
+    var patients = payload.patients || [];
+    patients.forEach(function(p) {
+      var items = (p.regimen || []).map(function(r) {
+        return r.name + " (every " + r.intervalHours + "h, offset " + r.offsetMinutes + "m)";
+      }).join("; ");
+      var note = (p.notes &amp;&amp; p.notes.length) ? p.notes[0].text : "";
+      logSheet.appendRow([new Date(), p.name, items, note]);
+    });
+
+    return ContentService.createTextOutput(JSON.stringify({status: "success"}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({status: "error", message: String(err)}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var stateSheet = ss.getSheetByName("AppState");
+  var data = "{}";
+  if (stateSheet &amp;&amp; stateSheet.getLastRow() &gt; 0) {
+    data = stateSheet.getRange(1, 1, stateSheet.getLastRow(), 1).getValues()
+      .map(function(r) { return r[0]; }).join("");
+  }
+  return ContentService.createTextOutput(data)
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // HELPERS
+        // ==========================================
+        const $ = (id) => document.getElementById(id);
+        const pad = (n) => String(n).padStart(2, '0');
+        const todayKey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const doneKey = (occId) => `${todayKey()}|${occId}`;
+        const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function fmtDur(mins) {
+            const h = Math.floor(mins / 60), m = mins % 60;
+            return h > 0 ? `${h}h ${m}m` : `${m}m`;
+        }
+
+        function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
+        // ==========================================
+        // STATE + VALIDATION
+        // ==========================================
+        let appState = {
+            sheetsUrl: "",
+            lastSynced: "",
+            activePatientId: "patient-1",
+            patients: [{
+                id: "patient-1",
+                name: "Mochi",
+                regimen: [
+                    { id: "item-1", type: "food", name: "Morning & Evening Wet Food", startTime: "07:30", intervalHours: 12, offsetMinutes: 0 },
+                    { id: "item-2", type: "medicine", name: "Antibiotic (Clavamox)", startTime: "08:00", intervalHours: 12, offsetMinutes: 0 },
+                    { id: "item-3", type: "medicine", name: "Probiotic Powder", startTime: "08:00", intervalHours: 12, offsetMinutes: 30 }
+                ],
+                completedDoses: {},
+                notes: [{ id: "note-1", ts: new Date().toISOString(), text: "Ate full breakfast enthusiastically, took morning antibiotic with zero fuss." }]
+            }]
+        };
+
+        let formOffsetMinutes = 0;
+        let currentDay = todayKey();
+        let lastMinute = -1;
+
+        function cleanId(v, fallback) {
+            const s = String(v == null ? '' : v).replace(/[^\w-]/g, '').slice(0, 60);
+            return s || fallback;
+        }
+
+        function cleanDate(v) {
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v || ''));
+            if (m) {
+                const d = new Date(+m[1], +m[2] - 1, +m[3]);
+                if (d.getFullYear() === +m[1] && d.getMonth() === +m[2] - 1 && d.getDate() === +m[3]) return m[0];
+            }
+            return todayKey();
+        }
+
+        function cleanDuration(v) {
+            const n = Math.round(Number(v));
+            return (v !== '' && v != null && Number.isFinite(n) && n >= 1) ? Math.min(n, 365) : null;
+        }
+
+        function sanitizeRegimenItem(it, idx) {
+            if (!it || typeof it !== 'object') return null;
+            const name = String(it.name || '').trim().slice(0, 80);
+            if (!name) return null;
+            const m = /^(\d{1,2}):(\d{2})$/.exec(String(it.startTime || ''));
+            if (!m || +m[1] > 23 || +m[2] > 59) return null;
+            let interval = Math.round(Number(it.intervalHours));
+            if (!Number.isFinite(interval)) interval = 24;
+            interval = clamp(interval, 1, 24);
+            let offset = Math.round(Number(it.offsetMinutes));
+            if (!Number.isFinite(offset)) offset = 0;
+            return {
+                id: cleanId(it.id, 'item-' + Date.now() + '-' + idx),
+                type: it.type === 'food' ? 'food' : 'medicine',
+                name,
+                startTime: `${pad(+m[1])}:${m[2]}`,
+                intervalHours: interval,
+                offsetMinutes: clamp(offset, -720, 720),
+                startDate: cleanDate(it.startDate),
+                durationDays: cleanDuration(it.durationDays)
+            };
+        }
+
+        function sanitizeNote(n, idx) {
+            if (!n || typeof n !== 'object') return null;
+            const text = String(n.text || '').slice(0, 2000);
+            if (!text.trim()) return null;
+            const note = { id: cleanId(n.id, 'note-' + Date.now() + '-' + idx), text };
+            if (n.ts && !isNaN(new Date(n.ts).getTime())) note.ts = new Date(n.ts).toISOString();
+            else if (n.timestamp) note.timestamp = String(n.timestamp).slice(0, 40);
+            return note;
+        }
+
+        function sanitizePatient(p, idx) {
+            if (!p || typeof p !== 'object') return null;
+            
+            const completed = {};
+            if (p.completedDoses && typeof p.completedDoses === 'object') {
+                Object.keys(p.completedDoses).forEach(k => {
+                    // Keys look like "YYYY-MM-DD|itemId_dose_N"; legacy undated keys are dropped
+                    if (p.completedDoses[k] && /^\d{4}-\d{2}-\d{2}\|[\w|-]{1,140}$/.test(k)) completed[k] = true;
+                });
+            }
+            return {
+                id: cleanId(p.id, 'patient-' + Date.now() + '-' + idx),
+                name: String(p.name || p.catName || 'My Cat').trim().slice(0, 60) || 'My Cat',
+                regimen: (Array.isArray(p.regimen) ? p.regimen : []).slice(0, 60).map(sanitizeRegimenItem).filter(Boolean),
+                completedDoses: completed,
+                notes: (Array.isArray(p.notes) ? p.notes : []).slice(0, 2000).map(sanitizeNote).filter(Boolean)
+            };
+        }
+
+        // Returns { patients, activePatientId } or null when nothing valid
+        function sanitizeState(raw) {
+            if (!raw || typeof raw !== 'object') return null;
+            let list = Array.isArray(raw.patients) ? raw.patients : (raw.catName || raw.regimen ? [{ ...raw, id: 'patient-1' }] : []);
+            const patients = list.slice(0, 30).map(sanitizePatient).filter(Boolean);
+            if (!patients.length) return null;
+            const ids = new Set();
+            patients.forEach(p => { while (ids.has(p.id)) p.id += 'x'; ids.add(p.id); });
+            const active = cleanId(raw.activePatientId, '');
+            return { patients, activePatientId: ids.has(active) ? active : patients[0].id };
+        }
+
+        function getActivePatient() {
+            let p = appState.patients.find(item => item.id === appState.activePatientId);
+            if (!p && appState.patients.length > 0) {
+                appState.activePatientId = appState.patients[0].id;
+                p = appState.patients[0];
+            }
+            return p;
+        }
+
+        function loadLocalState() {
+            try {
+                let saved = localStorage.getItem('purrScheduleState_v2');
+                let source = saved ? JSON.parse(saved) : null;
+                if (!source) {
+                    const legacy = localStorage.getItem('purrScheduleState_v1');
+                    if (legacy) source = JSON.parse(legacy);
+                }
+                if (source) {
+                    const clean = sanitizeState(source);
+                    if (clean) {
+                        appState.patients = clean.patients;
+                        appState.activePatientId = clean.activePatientId;
+                    }
+                    if (typeof source.sheetsUrl === 'string' && /^https:\/\//.test(source.sheetsUrl)) appState.sheetsUrl = source.sheetsUrl;
+                    if (typeof source.lastSynced === 'string') appState.lastSynced = source.lastSynced;
+                    appState.autoSync = source.autoSync === true;
+                    appState.sheetStamp = String(source.sheetStamp || '');
+                    appState.syncedFp = String(source.syncedFp || '');
+                }
+                const patient = getActivePatient();
+                if (patient) $('cat-name-input').value = patient.name;
+                if (appState.sheetsUrl) {
+                    $('sheets-webhook-url').value = appState.sheetsUrl;
+                    updateSheetsBadge(true);
+                }
+                updateLastSyncText();
+            } catch (e) {
+                console.error("Failed to load local storage:", e);
+            }
+        }
+
+        function persistRaw() {
+            try { localStorage.setItem('purrScheduleState_v2', JSON.stringify(appState)); }
+            catch (e) { console.error("Failed to save local storage:", e); }
+        }
+
+        function saveLocalState() {
+            persistRaw();
+            scheduleAutoSync();
+        }
+
+        // ==========================================
+        // INITIALIZATION
+        // ==========================================
+        window.addEventListener('DOMContentLoaded', () => {
+            buildHourLabels();
+            loadLocalState();
+            setupEventListeners();
+            renderAll();
+            scrollTimelineToNow();
+            initAutoSync();
+
+            // Playhead every 15s; full list/marker refresh whenever the minute (or day) changes
+            setInterval(() => {
+                if (todayKey() !== currentDay) { currentDay = todayKey(); renderAll(); return; }
+                updateClockAndTimeline();
+                const now = new Date();
+                const minute = now.getHours() * 60 + now.getMinutes();
+                if (minute !== lastMinute) refreshLive();
+            }, 15000);
+
+            setInterval(updateLiveClockText, 1000);
+            updateLiveClockText();
+
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(refreshLive, 120);
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape') return;
+                if (!$('confirm-modal').classList.contains('hidden')) resolveConfirm(false);
+                else { closeAddPatientModal(); closeSheetsModal(); }
+            });
+        });
+
+        function setupEventListeners() {
+            $('note-time').addEventListener('input', () => { noteTimeTouched = true; });
+
+            $('cat-name-input').addEventListener('input', (e) => {
+                const patient = getActivePatient();
+                if (!patient) return;
+                patient.name = e.target.value.trim() || "My Cat";
+                saveLocalState();
+                renderPatientTabs();
+                updateNextUpBanner();
+            });
+
+            $('add-schedule-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const patient = getActivePatient();
+                if (!patient) return;
+                const item = sanitizeRegimenItem({
+                    id: 'item-' + Date.now(),
+                    type: $('item-type').value,
+                    name: $('item-name').value,
+                    startTime: $('start-time').value,
+                    intervalHours: $('interval-hours').value,
+                    startDate: todayKey(),
+                    durationDays: $('duration-days').value,
+                    offsetMinutes: formOffsetMinutes
+                }, 0);
+                if (!item) { showToast("Please enter a name and a valid start time.", "warning"); return; }
+
+                patient.regimen.push(item);
+                $('item-name').value = '';
+                $('duration-days').value = '';
+                resetFormOffset();
+                renderAll();
+                showToast(`Added "${item.name}" to ${patient.name}'s timeline!`, "success");
+            });
+
+            $('add-patient-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const nameInput = $('new-patient-name');
+                const catName = nameInput.value.trim();
+                if (!catName) return;
+                const newId = 'patient-' + Date.now();
+                appState.patients.push({ id: newId, name: catName, regimen: [], completedDoses: {}, notes: [] });
+                appState.activePatientId = newId;
+                nameInput.value = '';
+                closeAddPatientModal();
+                renderAll();
+                showToast(`Added patient "${catName}"!`, "success");
+            });
+        }
+
+        // ==========================================
+        // CONFIRM DIALOG
+        // ==========================================
+        let confirmResolver = null;
+
+        function confirmDialog(title, message, okLabel = "Confirm") {
+            return new Promise(resolve => {
+                if (confirmResolver) confirmResolver(false);
+                confirmResolver = resolve;
+                $('confirm-title').textContent = title;
+                $('confirm-message').textContent = message;
+                $('confirm-ok').textContent = okLabel;
+                const m = $('confirm-modal');
+                m.classList.remove('hidden'); m.classList.add('flex');
+            });
+        }
+
+        function resolveConfirm(result) {
+            const m = $('confirm-modal');
+            m.classList.add('hidden'); m.classList.remove('flex');
+            if (confirmResolver) { const r = confirmResolver; confirmResolver = null; r(result); }
+        }
+
+        // ==========================================
+        // MULTI-PATIENT MANAGEMENT
+        // ==========================================
+        function switchPatient(patientId) {
+            if (appState.activePatientId === patientId) return;
+            appState.activePatientId = patientId;
+            renderAll();
+        }
+
+        function openAddPatientModal() {
+            const modal = $('add-patient-modal');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            setTimeout(() => $('new-patient-name').focus(), 50);
+        }
+
+        function closeAddPatientModal() {
+            const modal = $('add-patient-modal');
+            modal.classList.add('hidden'); modal.classList.remove('flex');
+        }
+
+        async function deleteCurrentPatient() {
+            if (appState.patients.length <= 1) {
+                showToast("You must have at least one patient.", "warning");
+                return;
+            }
+            const current = getActivePatient();
+            const removedName = current ? current.name : "Patient";
+            const ok = await confirmDialog(`Remove ${removedName}?`, "This deletes their schedule, checkmarks and notes. This can't be undone.", "Remove");
+            if (!ok) return;
+            appState.patients = appState.patients.filter(p => p.id !== appState.activePatientId);
+            appState.activePatientId = appState.patients[0].id;
+            renderAll();
+            showToast(`Removed ${removedName}.`, "info");
+        }
+
+        function renderPatientTabs() {
+            const container = $('patient-tabs-list');
+            const deleteBtn = $('delete-patient-btn');
+            const activePatient = getActivePatient();
+
+            deleteBtn.classList.toggle('hidden', appState.patients.length <= 1);
+
+            if (activePatient && document.activeElement !== $('cat-name-input')) {
+                $('cat-name-input').value = activePatient.name;
+            }
+
+            container.innerHTML = appState.patients.map(p => {
+                const isActive = p.id === appState.activePatientId;
+                return `
+                    <button type="button" onclick="switchPatient('${p.id}')"
+                        class="px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition shrink-0 cursor-pointer border
+                        ${isActive ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'}">
+                        <i class="fa-solid fa-cat ${isActive ? 'text-indigo-400' : 'text-slate-400'}"></i>
+                        <span>${escapeHtml(p.name)}</span>
+                        <span class="px-1.5 py-0.5 rounded-md text-[10px] ${isActive ? 'bg-white/15 text-white' : 'bg-slate-200/80 text-slate-600'}">${p.regimen.length}</span>
+                    </button>`;
+            }).join('');
+        }
+
+        // ==========================================
+        // FORM CONTROLS
+        // ==========================================
+        function setFormType(type) {
+            $('item-type').value = type;
+            const medBtn = $('type-btn-med'), foodBtn = $('type-btn-food');
+            const label = $('item-name-label'), input = $('item-name');
+            const on = "py-2 px-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 bg-white shadow-sm transition cursor-pointer";
+            const off = "py-2 px-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900 transition cursor-pointer";
+            if (type === 'medicine') {
+                medBtn.className = on + " text-indigo-600"; foodBtn.className = off;
+                label.textContent = "Medicine Name";
+                input.placeholder = "e.g., Gabapentin 50mg or Eye Drops";
+            } else {
+                foodBtn.className = on + " text-amber-600"; medBtn.className = off;
+                label.textContent = "Food / Meal Description";
+                input.placeholder = "e.g., Wet Food (1/2 Can) or Renal Kibble";
+            }
+        }
+
+        function adjustFormOffset(delta) {
+            formOffsetMinutes = clamp(formOffsetMinutes + delta, -720, 720);
+            updateFormOffsetDisplay();
+        }
+        function resetFormOffset() { formOffsetMinutes = 0; updateFormOffsetDisplay(); }
+        function updateFormOffsetDisplay() {
+            $('offset-display').textContent = `${formOffsetMinutes > 0 ? '+' : ''}${formOffsetMinutes} min`;
+        }
+
+        function adjustRegimenOffset(itemId, deltaMinutes) {
+            const patient = getActivePatient();
+            if (!patient) return;
+            const item = patient.regimen.find(r => r.id === itemId);
+            if (!item) return;
+            item.offsetMinutes = clamp((item.offsetMinutes || 0) + deltaMinutes, -720, 720);
+            renderAll();
+            showToast(`Shifted "${item.name}" by ${deltaMinutes > 0 ? '+' : ''}${deltaMinutes} mins`, "info");
+        }
+
+        function adjustDuration(itemId, delta) {
+            const patient = getActivePatient();
+            if (!patient) return;
+            const item = patient.regimen.find(r => r.id === itemId);
+            if (!item || !item.durationDays) return;
+            item.durationDays = clamp(item.durationDays + delta, 1, 365);
+            renderAll();
+            showToast(`"${item.name}" is now a ${item.durationDays}-day course.`, "info");
+        }
+
+        function deleteRegimenItem(itemId) {
+            const patient = getActivePatient();
+            if (!patient) return;
+            const idx = patient.regimen.findIndex(r => r.id === itemId);
+            if (idx < 0) return;
+            const [removed] = patient.regimen.splice(idx, 1);
+            renderAll();
+            showToast(`Removed "${removed.name}".`, "info", {
+                label: "Undo",
+                fn: () => { patient.regimen.splice(Math.min(idx, patient.regimen.length), 0, removed); renderAll(); }
+            });
+        }
+
+        // ==========================================
+        // 24-HOUR DOSE EXPANSION ENGINE
+        // ==========================================
+        // Which day of its course an item is on today (0 = first day)
+        function dayIndexFor(startDate) {
+            const [y, m, d] = startDate.split('-').map(Number);
+            const t = new Date();
+            return Math.round((Date.UTC(t.getFullYear(), t.getMonth(), t.getDate()) - Date.UTC(y, m - 1, d)) / 86400000);
+        }
+
+        function courseInfo(item) {
+            const idx = dayIndexFor(item.startDate || todayKey());
+            const total = item.durationDays || null;
+            if (idx < 0) return { status: 'upcoming', idx, total };
+            if (total && idx >= total) return { status: 'ended', idx, total };
+            return { status: total ? 'active' : 'ongoing', idx, day: idx + 1, total };
+        }
+
+        function isItemActiveToday(item) {
+            const s = courseInfo(item).status;
+            return s === 'active' || s === 'ongoing';
+        }
+
+        function courseEndLabel(item) {
+            const [y, m, d] = item.startDate.split('-').map(Number);
+            return new Date(y, m - 1, d + item.durationDays - 1).toLocaleDateString([], { month: 'short', day: 'numeric' });
+        }
+
+        function getAllDailyOccurrences() {
+            const patient = getActivePatient();
+            if (!patient) return [];
+            const occurrences = [];
+
+            patient.regimen.forEach(item => {
+                if (!isItemActiveToday(item)) return;
+                const [baseH, baseM] = item.startTime.split(':').map(Number);
+                const baseTotalMins = (baseH * 60) + baseM + (item.offsetMinutes || 0);
+                const stepMins = Math.max(1, item.intervalHours) * 60;
+                const count = Math.max(1, Math.floor(24 / Math.max(1, item.intervalHours)));
+
+                for (let i = 0; i < count; i++) {
+                    let minsInDay = (baseTotalMins + (i * stepMins)) % 1440;
+                    if (minsInDay < 0) minsInDay += 1440;
+                    const occId = `${item.id}_dose_${i}`;
+                    occurrences.push({
+                        occId,
+                        regimenId: item.id,
+                        type: item.type,
+                        name: item.name,
+                        minutesFromMidnight: minsInDay,
+                        timeFormatted: `${pad(Math.floor(minsInDay / 60))}:${pad(minsInDay % 60)}`,
+                        doseIndex: i + 1,
+                        totalDoses: count,
+                        completed: !!patient.completedDoses[doneKey(occId)]
+                    });
+                }
+            });
+            return occurrences.sort((a, b) => a.minutesFromMidnight - b.minutesFromMidnight);
+        }
+
+        // ==========================================
+        // RENDERING PIPELINE
+        // ==========================================
+        function renderAll() {
+            saveLocalState();
+            renderPatientTabs();
+            renderRegimenList();
+            renderNotesList();
+            refreshLive();
+        }
+
+        // Everything that depends on the current time
+        function refreshLive() {
+            const now = new Date();
+            lastMinute = now.getHours() * 60 + now.getMinutes();
+            const occurrences = getAllDailyOccurrences();
+            renderTimelineMarkers(occurrences);
+            renderNoteMarkers();
+            syncNoteTimeDefault();
+            renderChronologicalList(occurrences);
+            renderMatrix();
+            updateClockAndTimeline();
+            updateNextUpBanner(occurrences);
+        }
+
+        function buildHourLabels() {
+            const el = $('hour-labels');
+            el.innerHTML = '';
+            for (let i = 0; i <= 8; i++) {
+                const s = document.createElement('span');
+                s.textContent = `${pad(i * 3)}:00`;
+                s.className = 'absolute';
+                s.style.left = `${i * 12.5}%`;
+                s.style.transform = i === 0 ? 'none' : (i === 8 ? 'translateX(-100%)' : 'translateX(-50%)');
+                el.appendChild(s);
+            }
+        }
+
+        function renderTimelineMarkers(occurrences) {
+            const layer = $('timeline-markers-layer');
+            layer.innerHTML = '';
+            const W = layer.clientWidth || 900;
+            const now = new Date();
+            const nowMins = now.getHours() * 60 + now.getMinutes();
+
+            const PIN = 24, STEM = 8, LABEL_H = 22, LANE_GAP = 4, GAP_X = 4;
+            const laneRight = [];
+            const items = occurrences.map(occ => {
+                const x = (occ.minutesFromMidnight / 1440) * W;
+                const text = `${occ.timeFormatted} · ${truncate(occ.name, 14)}`;
+                const w = Math.min(160, Math.ceil(text.length * 6.2) + 18);
+                const left = clamp(x - w / 2, 0, Math.max(0, W - w));
+                let lane = laneRight.findIndex(r => left >= r + GAP_X);
+                if (lane < 0) { lane = laneRight.length; laneRight.push(0); }
+                laneRight[lane] = left + w;
+                return { occ, x, text, w, left, lane };
+            });
+
+            const laneStep = LABEL_H + LANE_GAP;
+            const baseBottom = PIN + STEM + 4;
+            layer.style.height = `${baseBottom + Math.max(1, laneRight.length) * laneStep}px`;
+
+            items.forEach(({ occ, x, text, w, left, lane }) => {
+                const isMed = occ.type === 'medicine';
+                const overdue = !occ.completed && occ.minutesFromMidnight < nowMins;
+                const tone = occ.completed ? 'emerald' : (overdue ? 'red' : (isMed ? 'indigo' : 'amber'));
+                const pinCls = { emerald: 'bg-emerald-500 border-emerald-200', red: 'bg-red-500 border-red-200', indigo: 'bg-indigo-600 border-indigo-200', amber: 'bg-amber-500 border-amber-200' }[tone];
+                const stemCls = { emerald: 'bg-emerald-400', red: 'bg-red-400', indigo: 'bg-indigo-400', amber: 'bg-amber-400' }[tone];
+                const labelCls = { emerald: 'bg-emerald-50 text-emerald-900 border-emerald-200', red: 'bg-red-50 text-red-900 border-red-200', indigo: 'bg-indigo-50 text-indigo-900 border-indigo-200', amber: 'bg-amber-50 text-amber-900 border-amber-200' }[tone];
+                const icon = occ.completed ? 'fa-check' : (isMed ? 'fa-pills' : 'fa-bowl-food');
+
+                // Pin + stem at the true time position (tap to toggle)
+                const pin = document.createElement('button');
+                pin.type = 'button';
+                pin.title = `${occ.timeFormatted} ${occ.name} — click to mark ${occ.completed ? 'not done' : 'done'}`;
+                pin.className = 'absolute -translate-x-1/2 flex flex-col items-center cursor-pointer';
+                pin.style.left = `${x}px`;
+                pin.style.bottom = '0';
+                pin.setAttribute('onclick', `toggleDoseComplete('${occ.occId}')`);
+                pin.innerHTML = `
+                    <div class="w-6 h-6 rounded-full ${pinCls} text-white border-2 shadow-sm flex items-center justify-center text-[10px]"><i class="fa-solid ${icon}"></i></div>
+                    <div class="w-0.5 h-2 ${stemCls}"></div>`;
+                pin.style.flexDirection = 'column-reverse';
+                layer.appendChild(pin);
+
+                // Connector line from pin up to its label lane
+                if (lane > 0) {
+                    const line = document.createElement('div');
+                    line.className = `absolute w-px ${stemCls} opacity-60 pointer-events-none`;
+                    line.style.left = `${x}px`;
+                    line.style.bottom = `${baseBottom - 2}px`;
+                    line.style.height = `${lane * laneStep + 2}px`;
+                    layer.appendChild(line);
+                }
+
+                const label = document.createElement('div');
+                label.className = `absolute px-2 rounded-md text-[10px] font-bold shadow-sm border whitespace-nowrap overflow-hidden text-center pointer-events-none ${labelCls}`;
+                label.style.left = `${left}px`;
+                label.style.width = `${w}px`;
+                label.style.height = `${LABEL_H}px`;
+                label.style.lineHeight = `${LABEL_H - 2}px`;
+                label.style.bottom = `${baseBottom + lane * laneStep}px`;
+                label.title = occ.name;
+                label.textContent = text;
+                layer.appendChild(label);
+            });
+        }
+
+        function renderNoteMarkers() {
+            const layer = $('note-markers-layer');
+            const track = $('timeline-track');
+            track.querySelectorAll('.note-tick').forEach(el => el.remove());
+            layer.innerHTML = '';
+
+            const patient = getActivePatient();
+            const today = todayKey();
+            const notes = patient ? patient.notes.filter(n => n.ts && todayKey(new Date(n.ts)) === today) : [];
+            if (!notes.length) { layer.style.height = '0px'; return; }
+
+            const W = layer.clientWidth || 900;
+            const STEP = 28, HALF = 12, GAP_X = 4;
+            const laneRight = [];
+
+            notes.map(n => {
+                const d = new Date(n.ts);
+                const mins = d.getHours() * 60 + d.getMinutes();
+                return { n, mins, time: `${pad(d.getHours())}:${pad(d.getMinutes())}`, x: (mins / 1440) * W };
+            }).sort((a, b) => a.mins - b.mins).forEach(({ n, mins, time, x }) => {
+                let lane = laneRight.findIndex(r => x - HALF >= r + GAP_X);
+                if (lane < 0) { lane = laneRight.length; laneRight.push(0); }
+                laneRight[lane] = x + HALF;
+
+                // Tick on the track at the note's time
+                const tick = document.createElement('div');
+                tick.className = 'note-tick absolute w-0.5 bg-teal-500 rounded-full z-10 pointer-events-none';
+                tick.style.left = `${(mins / 1440) * 100}%`;
+                tick.style.top = '-4px';
+                tick.style.height = '24px';
+                track.appendChild(tick);
+
+                // Pin underneath the timeline
+                const pin = document.createElement('button');
+                pin.type = 'button';
+                pin.className = 'absolute -translate-x-1/2 w-6 h-6 rounded-full bg-teal-600 hover:bg-teal-700 text-white border-2 border-teal-200 shadow-sm flex items-center justify-center text-[10px] cursor-pointer transition';
+                pin.style.left = `${x}px`;
+                pin.style.top = `${lane * STEP}px`;
+                pin.title = `${time} — ${truncate(n.text, 120)}`;
+                pin.innerHTML = '<i class="fa-solid fa-note-sticky"></i>';
+                pin.addEventListener('click', () => highlightNote(n.id));
+                layer.appendChild(pin);
+            });
+
+            layer.style.height = `${laneRight.length * STEP}px`;
+        }
+
+        function highlightNote(noteId) {
+            const el = document.getElementById('note-el-' + noteId);
+            if (!el) return;
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            el.classList.add('ring-2', 'ring-teal-400', 'bg-teal-50');
+            setTimeout(() => el.classList.remove('ring-2', 'ring-teal-400', 'bg-teal-50'), 1800);
+        }
+
+        // ---------- Course matrix ----------
+        let matrixScrolledFor = null;
+
+        function parseKey(k) { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); }
+        function addDaysKey(k, n) { const d = parseKey(k); d.setDate(d.getDate() + n); return todayKey(d); }
+        function dayDiff(a, b) {
+            const x = parseKey(a), y = parseKey(b);
+            return Math.round((Date.UTC(y.getFullYear(), y.getMonth(), y.getDate()) - Date.UTC(x.getFullYear(), x.getMonth(), x.getDate())) / 86400000);
+        }
+        function itemEndKey(item) { return item.durationDays ? addDaysKey(item.startDate, item.durationDays - 1) : null; }
+        function itemActiveOn(item, key) {
+            if (key < item.startDate) return false;
+            const e = itemEndKey(item);
+            return !e || key <= e;
+        }
+
+        function renderMatrix() {
+            const holder = $('matrix-holder');
+            const patient = getActivePatient();
+            if (!patient || patient.regimen.length === 0) {
+                holder.innerHTML = `<p class="text-sm text-slate-400 py-10 text-center">Add a medication or meal to see its course here.</p>`;
+                return;
+            }
+
+            const today = todayKey();
+            const now = new Date();
+            const nowMins = now.getHours() * 60 + now.getMinutes();
+
+            // One column per dose slot, ordered by time of day
+            const cols = [];
+            patient.regimen.forEach(item => {
+                const [h, m] = item.startTime.split(':').map(Number);
+                const base = h * 60 + m + (item.offsetMinutes || 0);
+                const step = item.intervalHours * 60;
+                const count = Math.max(1, Math.floor(24 / item.intervalHours));
+                for (let i = 0; i < count; i++) {
+                    let mins = (base + i * step) % 1440;
+                    if (mins < 0) mins += 1440;
+                    cols.push({ item, occId: `${item.id}_dose_${i}`, mins, time: `${pad(Math.floor(mins / 60))}:${pad(mins % 60)}` });
+                }
+            });
+            cols.sort((a, b) => a.mins - b.mins);
+
+            // Date range covering every course (always includes today)
+            let start = today, end = today;
+            patient.regimen.forEach(it => {
+                if (it.startDate < start) start = it.startDate;
+                const e = itemEndKey(it) || it.startDate;
+                if (e > end) end = e;
+            });
+            if (dayDiff(start, end) + 1 > 90) {
+                const minStart = addDaysKey(today, -30);
+                if (start < minStart) start = minStart;
+                const maxEnd = addDaysKey(start, 89);
+                if (end > maxEnd) end = maxEnd;
+            }
+
+            const head = cols.map(c => `
+                <th class="sticky top-0 z-10 bg-white border-b border-slate-200 px-1.5 py-2 text-center align-bottom min-w-[68px]" title="${escapeHtml(c.item.name)}">
+                    <div class="text-[11px] font-bold tabular-nums ${c.item.type === 'medicine' ? 'text-indigo-700' : 'text-amber-700'}">${c.time}</div>
+                    <div class="text-[10px] font-medium text-slate-500 leading-tight">${escapeHtml(truncate(c.item.name, 14))}</div>
+                </th>`).join('');
+
+            let rows = '';
+            const total = dayDiff(start, end) + 1;
+            for (let n = 0; n < total; n++) {
+                const key = addDaysKey(start, n);
+                const d = parseKey(key);
+                const isToday = key === today;
+                const isFuture = key > today;
+                let active = 0, done = 0;
+
+                const cells = cols.map(c => {
+                    if (!itemActiveOn(c.item, key)) return `<td class="px-1.5 py-1.5"><span class="block w-6 h-6 mx-auto"></span></td>`;
+                    active++;
+                    const isDone = !!patient.completedDoses[`${key}|${c.occId}`];
+                    if (isDone) done++;
+                    const label = `${d.getMonth() + 1}/${d.getDate()} ${c.time} ${c.item.name}`;
+                    if (isFuture) return `<td class="px-1.5 py-1.5"><span class="block w-6 h-6 rounded-md border-2 border-slate-200 bg-slate-50 mx-auto" title="${escapeHtml(label)}"></span></td>`;
+                    const missed = !isDone && (key < today || c.mins < nowMins);
+                    const cls = isDone ? 'bg-emerald-500 border-emerald-500 text-white'
+                        : (missed ? 'bg-red-50 border-red-300 hover:bg-red-100' : 'bg-white border-slate-300 hover:bg-indigo-50');
+                    return `<td class="px-1.5 py-1.5"><button type="button" onclick="toggleDoseForDate('${key}','${c.occId}')" title="${escapeHtml(label)}"
+                        class="w-6 h-6 rounded-md border-2 ${cls} text-[10px] flex items-center justify-center mx-auto cursor-pointer transition">${isDone ? '<i class="fa-solid fa-check"></i>' : ''}</button></td>`;
+                }).join('');
+
+                const weekday = d.toLocaleDateString([], { weekday: 'short' });
+                const summary = active === 0 ? '<span class="text-slate-300">—</span>'
+                    : `<span class="${done === active ? 'text-emerald-600' : (isFuture ? 'text-slate-400' : 'text-slate-600')} font-semibold">${done}/${active}</span>`;
+
+                rows += `
+                <tr ${isToday ? 'id="matrix-today-row"' : ''} class="${isToday ? 'bg-indigo-50/50' : ''} border-b border-slate-100">
+                    <td class="sticky left-0 z-[5] px-3 py-1.5 whitespace-nowrap border-r border-slate-100 ${isToday ? 'bg-indigo-50 text-indigo-700' : 'bg-white text-slate-600'}">
+                        <span class="text-xs font-bold tabular-nums">${d.getMonth() + 1}/${d.getDate()}</span>
+                        <span class="text-[10px] font-medium text-slate-400 ml-1">${escapeHtml(weekday)}</span>
+                        ${isToday ? '<span class="ml-1 text-[9px] font-bold uppercase tracking-wider bg-indigo-600 text-white px-1.5 py-0.5 rounded">Today</span>' : ''}
+                    </td>
+                    ${cells}
+                    <td class="px-3 py-1.5 text-center text-[11px] tabular-nums whitespace-nowrap">${summary}</td>
+                </tr>`;
+            }
+
+            holder.innerHTML = `
+                <table class="border-collapse w-max min-w-full">
+                    <thead>
+                        <tr>
+                            <th class="sticky top-0 left-0 z-20 bg-white border-b border-r border-slate-200 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">Date</th>
+                            ${head}
+                            <th class="sticky top-0 z-10 bg-white border-b border-slate-200 px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">Done</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+
+            // First time (per cat) bring today's row into view
+            if (matrixScrolledFor !== patient.id) {
+                matrixScrolledFor = patient.id;
+                const row = $('matrix-today-row');
+                if (row) $('matrix-scroll').scrollTop = Math.max(0, row.offsetTop - 70);
+            }
+        }
+
+        function renderRegimenList() {
+            const patient = getActivePatient();
+            const container = $('regimen-list');
+
+            if (!patient || patient.regimen.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 px-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-sm">
+                        No medications or meals scheduled for ${escapeHtml(patient ? patient.name : 'this cat')} yet. Add one using the form below the matrix.
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = patient.regimen.map(item => {
+                const isMed = item.type === 'medicine';
+                const offset = item.offsetMinutes || 0;
+                const c = courseInfo(item);
+                let courseBadge;
+                if (c.status === 'ongoing') courseBadge = `<span class="text-slate-400">Ongoing</span>`;
+                else if (c.status === 'active') courseBadge = `<span class="font-semibold text-teal-700">Day ${c.day} of ${c.total} · ends ${escapeHtml(courseEndLabel(item))}</span>`;
+                else if (c.status === 'ended') courseBadge = `<span class="font-semibold text-slate-500">Course complete</span>`;
+                else courseBadge = `<span class="font-semibold text-slate-500">Starts in ${-c.idx}d</span>`;
+                const offsetBadge = offset === 0
+                    ? `<span class="text-slate-400">No offset</span>`
+                    : `<span class="font-bold ${offset > 0 ? 'text-indigo-600' : 'text-amber-600'}">${offset > 0 ? '+' : ''}${offset} min shift</span>`;
+
+                return `
+                <div class="${c.status === 'ended' ? 'opacity-60 ' : ''}p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white transition flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-start gap-3">
+                        <div class="w-9 h-9 rounded-xl ${isMed ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-600'} flex items-center justify-center shrink-0 mt-0.5">
+                            <i class="fa-solid ${isMed ? 'fa-pills' : 'fa-bowl-food'}"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm text-slate-900">${escapeHtml(item.name)}</div>
+                            <div class="text-xs text-slate-500 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <span>Starts <strong>${escapeHtml(item.startTime)}</strong></span><span>•</span>
+                                <span>Every <strong>${Number(item.intervalHours)}h</strong></span><span>•</span>
+                                ${offsetBadge}<span>•</span>${courseBadge}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 self-end sm:self-center">
+                        <div class="flex items-center bg-white border border-slate-200 rounded-xl p-0.5 shadow-sm">
+                            <button onclick="adjustRegimenOffset('${item.id}', -10)" title="Shift 10 mins earlier"
+                                class="px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer">-10m</button>
+                            <span class="w-px h-4 bg-slate-200 mx-0.5"></span>
+                            <button onclick="adjustRegimenOffset('${item.id}', 10)" title="Shift 10 mins later"
+                                class="px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer">+10m</button>
+                        </div>
+                        ${item.durationDays ? `
+                        <div class="flex items-center bg-white border border-slate-200 rounded-xl p-0.5 shadow-sm">
+                            <button onclick="adjustDuration('${item.id}', -1)" title="Shorten course by a day"
+                                class="px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer">-1d</button>
+                            <span class="w-px h-4 bg-slate-200 mx-0.5"></span>
+                            <button onclick="adjustDuration('${item.id}', 1)" title="Extend course by a day"
+                                class="px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer">+1d</button>
+                        </div>` : ''}
+                        <button onclick="deleteRegimenItem('${item.id}')" title="Delete item"
+                            class="w-8 h-8 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition cursor-pointer">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderChronologicalList(occurrences) {
+            const container = $('chronological-list');
+            const now = new Date();
+            const nowMins = now.getHours() * 60 + now.getMinutes();
+
+            if (occurrences.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-400 py-4 text-center">No doses scheduled today.</p>`;
+                return;
+            }
+
+            container.innerHTML = occurrences.map(occ => {
+                const isMed = occ.type === 'medicine';
+                const isPast = occ.minutesFromMidnight < nowMins;
+                const overdue = isPast && !occ.completed;
+                return `
+                <div class="py-3 flex items-center justify-between gap-3 group">
+                    <label class="flex items-center gap-3.5 cursor-pointer flex-1 min-w-0">
+                        <input type="checkbox" ${occ.completed ? 'checked' : ''} onchange="toggleDoseComplete('${occ.occId}')"
+                            class="w-5 h-5 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0">
+                        <div class="px-2.5 py-1 rounded-lg font-mono text-xs font-bold tabular-nums shrink-0
+                            ${occ.completed ? 'bg-emerald-50 text-emerald-700' : (overdue ? 'bg-red-50 text-red-700' : 'bg-indigo-50 text-indigo-700')}">${occ.timeFormatted}</div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-sm font-semibold truncate ${occ.completed ? 'line-through text-slate-400' : 'text-slate-800'}">${escapeHtml(occ.name)}</div>
+                            <div class="text-[11px] text-slate-400">${isMed ? 'Medicine' : 'Meal'} • Dose ${occ.doseIndex} of ${occ.totalDoses}</div>
+                        </div>
+                    </label>
+                    <span class="text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0
+                        ${occ.completed ? 'bg-emerald-100 text-emerald-700' : (overdue ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500')}">
+                        ${occ.completed ? 'Done' : (overdue ? `Overdue ${fmtDur(nowMins - occ.minutesFromMidnight)}` : 'Upcoming')}
+                    </span>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleDoseForDate(dateKey, occId) {
+            const patient = getActivePatient();
+            if (!patient || dateKey > todayKey()) return;
+            const key = `${dateKey}|${occId}`;
+            if (patient.completedDoses[key]) delete patient.completedDoses[key];
+            else patient.completedDoses[key] = true;
+            renderAll();
+        }
+
+        function toggleDoseComplete(occId) {
+            const patient = getActivePatient();
+            if (!patient) return;
+            const key = doneKey(occId);
+            if (patient.completedDoses[key]) delete patient.completedDoses[key];
+            else patient.completedDoses[key] = true;
+            renderAll();
+        }
+
+        async function resetAllCompleted() {
+            const patient = getActivePatient();
+            if (!patient) return;
+            const ok = await confirmDialog("Reset today's checkmarks?", `All of today's doses for ${patient.name} will be marked as not done.`, "Reset");
+            if (!ok) return;
+            const prefix = todayKey() + '|';
+            Object.keys(patient.completedDoses).forEach(k => { if (k.startsWith(prefix)) delete patient.completedDoses[k]; });
+            renderAll();
+            showToast(`Reset checkmarks for ${patient.name}.`, "info");
+        }
+
+        // ==========================================
+        // LIVE PLAYHEAD & "NEXT UP" / OVERDUE
+        // ==========================================
+        function updateLiveClockText() {
+            $('live-clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        function updateClockAndTimeline() {
+            const now = new Date();
+            const mins = (now.getHours() * 60) + now.getMinutes() + (now.getSeconds() / 60);
+            const percent = clamp((mins / 1440) * 100, 0, 100);
+
+            $('timeline-progress-fill').style.width = `${percent}%`;
+            $('timeline-now-head').style.left = `${percent}%`;
+
+            const badge = $('now-time-badge');
+            badge.textContent = `NOW ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+            // Keep the badge inside the track at the extremes
+            badge.style.left = percent > 94 ? 'auto' : (percent < 6 ? '0' : '50%');
+            badge.style.right = percent > 94 ? '-6px' : 'auto';
+            badge.style.transform = (percent > 94 || percent < 6) ? 'none' : 'translateX(-50%)';
+        }
+
+        function scrollTimelineToNow() {
+            const area = $('timeline-scroll-area');
+            const now = new Date();
+            const frac = (now.getHours() * 60 + now.getMinutes()) / 1440;
+            area.scrollLeft = Math.max(0, frac * area.scrollWidth - area.clientWidth / 2);
+        }
+
+        function setBannerStyle(overdue) {
+            $('next-event-banner').className = `flex items-center gap-3 border px-4 py-2.5 rounded-xl ${overdue ? 'bg-red-50 border-red-200' : 'bg-indigo-50 border-indigo-100'}`;
+            $('next-event-iconbox').className = `w-8 h-8 rounded-lg text-white flex items-center justify-center shrink-0 ${overdue ? 'bg-red-600' : 'bg-indigo-600'}`;
+            $('next-event-label').className = `text-[11px] font-semibold uppercase tracking-wider ${overdue ? 'text-red-600' : 'text-indigo-600'}`;
+            $('next-event-label').textContent = overdue ? 'Overdue' : 'Next Up';
+        }
+
+        function updateNextUpBanner(cachedOccurrences) {
+            const patient = getActivePatient();
+            const catName = patient ? patient.name : "Cat";
+            const occurrences = cachedOccurrences || getAllDailyOccurrences();
+            const textEl = $('next-event-text');
+            const iconEl = $('next-event-icon');
+
+            if (occurrences.length === 0) {
+                setBannerStyle(false);
+                textEl.textContent = `No doses scheduled yet for ${catName}`;
+                return;
+            }
+
+            const now = new Date();
+            const nowMins = now.getHours() * 60 + now.getMinutes();
+            const overdue = occurrences.filter(o => !o.completed && o.minutesFromMidnight < nowMins);
+            const upcoming = occurrences.find(o => !o.completed && o.minutesFromMidnight >= nowMins);
+
+            const countdown = (o, tomorrow) => {
+                const diff = tomorrow ? (1440 - nowMins) + o.minutesFromMidnight : o.minutesFromMidnight - nowMins;
+                return diff === 0 ? 'Right now!' : `in ${fmtDur(diff)}`;
+            };
+
+            if (overdue.length > 0) {
+                const first = overdue[0];
+                setBannerStyle(true);
+                iconEl.className = `fa-solid ${first.type === 'medicine' ? 'fa-pills' : 'fa-bowl-food'} text-sm`;
+                const more = overdue.length > 1 ? ` +${overdue.length - 1} more overdue` : '';
+                const next = upcoming ? `<div class="text-[11px] font-normal text-slate-500 mt-0.5">Next: ${escapeHtml(upcoming.name)} at ${upcoming.timeFormatted} (${countdown(upcoming, false)})</div>` : '';
+                textEl.innerHTML = `${escapeHtml(first.name)} <span class="font-normal text-red-700">was due ${first.timeFormatted} (${fmtDur(nowMins - first.minutesFromMidnight)} ago)${more}</span>${next}`;
+                return;
+            }
+
+            setBannerStyle(false);
+            const tomorrow = !upcoming;
+            const nextOcc = upcoming || occurrences[0];
+            iconEl.className = `fa-solid ${nextOcc.type === 'medicine' ? 'fa-pills' : 'fa-bowl-food'} text-sm`;
+            textEl.innerHTML = `${escapeHtml(nextOcc.name)} <span class="font-normal text-slate-600">${tomorrow ? 'tomorrow ' : ''}at ${nextOcc.timeFormatted} (${countdown(nextOcc, tomorrow)})</span>`;
+        }
+
+        // ==========================================
+        // NOTES & OBSERVATIONS
+        // ==========================================
+        let noteTimeTouched = false;
+
+        // Keep the time box on "now" until the user picks a time themselves
+        function syncNoteTimeDefault() {
+            const el = $('note-time');
+            if (!el || noteTimeTouched) return;
+            const n = new Date();
+            el.value = `${pad(n.getHours())}:${pad(n.getMinutes())}`;
+        }
+
+        function resetNoteTime() { noteTimeTouched = false; syncNoteTimeDefault(); }
+
+        // A time later than now can't have happened yet today, so it's treated as yesterday
+        function noteDateFromInput() {
+            const now = new Date();
+            const m = /^(\d{2}):(\d{2})$/.exec($('note-time').value || '');
+            if (!m) return { date: now, yesterday: false, time: `${pad(now.getHours())}:${pad(now.getMinutes())}` };
+            const d = new Date(now);
+            d.setHours(+m[1], +m[2], 0, 0);
+            let yesterday = false;
+            if (d.getTime() > now.getTime() + 60000) { d.setDate(d.getDate() - 1); yesterday = true; }
+            return { date: d, yesterday, time: `${m[1]}:${m[2]}` };
+        }
+
+        function appendQuickTag(tagText) {
+            const textarea = $('note-input');
+            const current = textarea.value.trim();
+            textarea.value = current ? `${current} • ${tagText}` : tagText;
+            textarea.focus();
+        }
+
+        function formatNoteTime(note) {
+            if (!note.ts) return note.timestamp || '';
+            const d = new Date(note.ts);
+            const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            const key = todayKey(d);
+            if (key === todayKey()) return `Today, ${time}`;
+            if (key === todayKey(new Date(Date.now() - 86400000))) return `Yesterday, ${time}`;
+            return `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${time}`;
+        }
+
+        function addObservation() {
+            const patient = getActivePatient();
+            if (!patient) return;
+            const textarea = $('note-input');
+            const text = textarea.value.trim();
+            if (!text) return;
+            const chosen = noteDateFromInput();
+            patient.notes.push({ id: 'note-' + Date.now(), ts: chosen.date.toISOString(), text });
+            patient.notes.sort((a, b) => (Date.parse(b.ts) || 0) - (Date.parse(a.ts) || 0));
+            textarea.value = '';
+            renderAll();
+            resetNoteTime();
+            showToast(`Observation logged for ${patient.name}${chosen.yesterday ? ` (yesterday, ${chosen.time})` : ` at ${chosen.time}`}.`, "success");
+        }
+
+        function deleteNote(noteId) {
+            const patient = getActivePatient();
+            if (!patient) return;
+            const idx = patient.notes.findIndex(n => n.id === noteId);
+            if (idx < 0) return;
+            const [removed] = patient.notes.splice(idx, 1);
+            renderAll();
+            showToast("Note deleted.", "info", {
+                label: "Undo",
+                fn: () => { patient.notes.splice(Math.min(idx, patient.notes.length), 0, removed); renderAll(); }
+            });
+        }
+
+        function renderNotesList() {
+            const patient = getActivePatient();
+            const container = $('notes-list');
+            if (!patient || patient.notes.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic">No observations logged yet for ${escapeHtml(patient ? patient.name : 'this cat')}.</p>`;
+                return;
+            }
+            container.innerHTML = patient.notes.map(note => `
+                <div id="note-el-${note.id}" class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs group relative transition">
+                    <div class="flex items-center justify-between text-[11px] font-semibold text-emerald-700 mb-1">
+                        <span><i class="fa-regular fa-clock mr-1"></i>${escapeHtml(formatNoteTime(note))}</span>
+                        <button onclick="deleteNote('${note.id}')" title="Delete note" class="text-slate-400 hover:text-red-500 opacity-100 sm:opacity-0 group-hover:opacity-100 transition cursor-pointer">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <p class="text-slate-700 leading-relaxed whitespace-pre-wrap">${escapeHtml(note.text)}</p>
+                </div>`).join('');
+        }
+
+        // ==========================================
+        // GOOGLE SHEETS SYNC
+        // ==========================================
+        function openSheetsModal() {
+            const modal = $('sheets-modal');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+        }
+
+        function closeSheetsModal() {
+            const modal = $('sheets-modal');
+            modal.classList.add('hidden'); modal.classList.remove('flex');
+        }
+
+        function saveSheetsUrl() {
+            const url = $('sheets-webhook-url').value.trim();
+            if (url && !/^https:\/\//.test(url)) {
+                showToast("The URL must start with https://", "error");
+                return;
+            }
+            appState.sheetsUrl = url;
+            if (!url) { appState.autoSync = false; $('auto-sync-toggle').checked = false; }
+            saveLocalState();
+            updateSheetsBadge(!!url);
+            showToast(url ? "Google Sheets URL saved!" : "Google Sheets URL cleared.", "success");
+        }
+
+        function updateSheetsBadge(connected) {
+            if (!connected) {
+                $('sync-dot').className = "w-2 h-2 rounded-full bg-amber-400";
+                $('sheets-btn-text').textContent = "Google Sheets";
+                return;
+            }
+            setSyncStatus(syncStatus);
+        }
+
+        function updateLastSyncText() {
+            const el = $('last-sync-text');
+            if (!el) return;
+            el.textContent = appState.lastSynced ? `Last confirmed sync: ${new Date(appState.lastSynced).toLocaleString()}` : '';
+        }
+
+        // ==========================================
+        // AUTO-SYNC
+        // ==========================================
+        let syncTimer = null, syncBusy = false, syncBlocked = false, syncStatus = 'idle';
+
+        function fpOf(patients) {
+            const str = JSON.stringify(patients);
+            let h = 5381;
+            for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+            return `${h}:${str.length}`;
+        }
+        const currentFp = () => fpOf(appState.patients);
+        const hasUnsyncedChanges = () => currentFp() !== appState.syncedFp;
+
+        function setSyncStatus(st) {
+            syncStatus = st;
+            if (!appState.sheetsUrl) return;
+            const map = {
+                idle: ['bg-emerald-500', appState.autoSync ? 'Auto-synced' : 'Sheet Linked'],
+                pending: ['bg-amber-400', 'Saving soon…'],
+                syncing: ['bg-amber-400 animate-pulse', 'Syncing…'],
+                error: ['bg-red-500', 'Sync failed, retrying'],
+                conflict: ['bg-red-500', 'Pull needed']
+            };
+            const [dotCls, label] = map[st] || map.idle;
+            $('sync-dot').className = `w-2 h-2 rounded-full ${dotCls}`;
+            $('sheets-btn-text').textContent = label;
+        }
+
+        async function fetchRemote() {
+            const res = await fetch(appState.sheetsUrl);
+            return await res.json();
+        }
+
+        function applyRemote(clean, stamp) {
+            appState.patients = clean.patients;
+            if (!clean.patients.some(p => p.id === appState.activePatientId)) appState.activePatientId = clean.activePatientId;
+            appState.sheetStamp = stamp;
+            appState.syncedFp = currentFp();
+            syncBlocked = false;
+            renderAll();
+            setSyncStatus('idle');
+        }
+
+        function flagConflict() {
+            if (!syncBlocked) {
+                syncBlocked = true;
+                showToast("The sheet has newer data from another device. Auto-sync is paused: open Google Sheets and Pull (or Push to overwrite).", "warning");
+            }
+            setSyncStatus('conflict');
+        }
+
+        function scheduleAutoSync() {
+            if (!appState.autoSync || !appState.sheetsUrl) return;
+            if (!hasUnsyncedChanges()) return;
+            if (syncBlocked) { setSyncStatus('conflict'); return; }
+            setSyncStatus('pending');
+            clearTimeout(syncTimer);
+            syncTimer = setTimeout(runAutoSync, 3000);
+        }
+
+        async function runAutoSync() {
+            clearTimeout(syncTimer); syncTimer = null;
+            if (!appState.autoSync || !appState.sheetsUrl || syncBlocked || !hasUnsyncedChanges()) return;
+            if (syncBusy) { syncTimer = setTimeout(runAutoSync, 1500); return; }
+            syncBusy = true;
+            setSyncStatus('syncing');
+            // Snapshot now, so edits made while the request is in flight are sent next round
+            const stamp = new Date().toISOString();
+            const fp = currentFp();
+            const body = JSON.stringify({ updatedAt: stamp, activePatientId: appState.activePatientId, patients: appState.patients });
+            let failed = false;
+            try {
+                const remote = await fetchRemote();
+                const hasData = remote && Array.isArray(remote.patients) && remote.patients.length > 0;
+                const remoteStamp = remote && remote.updatedAt ? String(remote.updatedAt) : '';
+                if (hasData && remoteStamp !== (appState.sheetStamp || '')) { flagConflict(); return; }
+
+                const res = await fetch(appState.sheetsUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body });
+                const out = await res.json();
+                if (!out || out.status !== 'success') throw new Error((out && out.message) || 'Sheet error');
+                appState.sheetStamp = stamp;
+                appState.syncedFp = fp;
+                appState.lastSynced = stamp;
+                persistRaw();
+                updateLastSyncText();
+                setSyncStatus('idle');
+            } catch (err) {
+                console.error("Auto-sync failed:", err);
+                failed = true;
+                setSyncStatus('error');
+                syncTimer = setTimeout(runAutoSync, 30000);
+            } finally {
+                syncBusy = false;
+                if (!failed && !syncBlocked && hasUnsyncedChanges()) scheduleAutoSync();
+            }
+        }
+
+        // Load newer data from the sheet when there is nothing unsent locally
+        async function checkRemote() {
+            if (!appState.autoSync || !appState.sheetsUrl || syncBusy) return;
+            syncBusy = true;
+            try {
+                const remote = await fetchRemote();
+                const clean = sanitizeState(remote);
+                const stamp = remote && remote.updatedAt ? String(remote.updatedAt) : '';
+                if (clean && stamp !== (appState.sheetStamp || '')) {
+                    if (!hasUnsyncedChanges()) {
+                        applyRemote(clean, stamp);
+                        showToast("Loaded newer data from your sheet.", "info");
+                    } else {
+                        flagConflict();
+                    }
+                }
+            } catch (err) {
+                console.error("Sheet check failed:", err);
+                setSyncStatus('error');
+            } finally {
+                syncBusy = false;
+                scheduleAutoSync();
+            }
+        }
+
+        function toggleAutoSync(on) {
+            if (on && !appState.sheetsUrl) {
+                $('auto-sync-toggle').checked = false;
+                showToast("Save your Web App URL first (Save & Connect).", "warning");
+                return;
+            }
+            appState.autoSync = on;
+            syncBlocked = false;
+            persistRaw();
+            if (on) {
+                showToast("Auto-sync on.", "success");
+                checkRemote();
+            } else {
+                clearTimeout(syncTimer);
+                setSyncStatus('idle');
+                showToast("Auto-sync off. Use Push / Pull manually.", "info");
+            }
+        }
+
+        function initAutoSync() {
+            $('auto-sync-toggle').checked = !!appState.autoSync;
+            if (appState.sheetsUrl) setSyncStatus('idle');
+            if (appState.autoSync && appState.sheetsUrl) checkRemote();
+            document.addEventListener('visibilitychange', () => {
+                if (!appState.autoSync || !appState.sheetsUrl) return;
+                if (document.hidden) { if (hasUnsyncedChanges() && !syncBlocked) runAutoSync(); }
+                else checkRemote();
+            });
+        }
+
+        async function syncToGoogleSheets() {
+            if (!appState.sheetsUrl) {
+                openSheetsModal();
+                showToast("Paste your Google Apps Script URL first to sync.", "info");
+                return;
+            }
+            showToast("Syncing all patients to Google Sheets...", "info");
+            const stamp = new Date().toISOString();
+            const fp = currentFp();
+            const payload = JSON.stringify({ updatedAt: stamp, activePatientId: appState.activePatientId, patients: appState.patients });
+            try {
+                // text/plain avoids the CORS preflight; Apps Script replies with readable JSON
+                const res = await fetch(appState.sheetsUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: payload
+                });
+                const out = await res.json();
+                if (out && out.status === 'success') {
+                    appState.lastSynced = stamp;
+                    appState.sheetStamp = stamp;
+                    appState.syncedFp = fp;
+                    syncBlocked = false;
+                    setSyncStatus('idle');
+                    saveLocalState(); updateLastSyncText();
+                    showToast("Synced all patients to Google Sheet!", "success");
+                } else {
+                    showToast(`Sheet reported an error: ${(out && out.message) || 'unknown'}`, "error");
+                }
+            } catch (err) {
+                console.warn("Verified sync failed, retrying in no-cors mode:", err);
+                try {
+                    await fetch(appState.sheetsUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: payload });
+                    showToast("Sent, but the browser can't confirm it arrived. Use Pull to verify.", "warning");
+                } catch (err2) {
+                    console.error(err2);
+                    showToast("Sync failed. Check your connection and Web App URL.", "error");
+                }
+            }
+        }
+
+        async function loadFromGoogleSheets() {
+            if (!appState.sheetsUrl) {
+                showToast("Enter your Google Apps Script URL first.", "error");
+                return;
+            }
+            showToast("Fetching schedule from Google Sheet...", "info");
+            try {
+                const res = await fetch(appState.sheetsUrl);
+                const data = await res.json();
+                const clean = sanitizeState(data);
+                if (!clean) {
+                    showToast("No saved data found in Sheet yet.", "info");
+                    return;
+                }
+                const ok = await confirmDialog("Replace local data?", `The sheet has ${clean.patients.length} patient(s). Pulling will overwrite everything stored in this browser.`, "Replace");
+                if (!ok) return;
+                applyRemote(clean, String(data.updatedAt || ''));
+                closeSheetsModal();
+                showToast(`Loaded ${clean.patients.length} patient(s) from Google Sheet!`, "success");
+            } catch (err) {
+                console.error(err);
+                showToast("Could not pull from Sheet. Ensure 'Anyone' has access.", "error");
+            }
+        }
+
+        function copyAppsScript() {
+            const codeText = $('apps-script-code').innerText;
+            const done = () => showToast("Apps Script code copied to clipboard!", "success");
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(codeText).then(done).catch(() => legacyCopy(codeText, done));
+            } else {
+                legacyCopy(codeText, done);
+            }
+        }
+
+        function legacyCopy(text, cb) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); cb(); } catch (e) { showToast("Copy failed — select the code manually.", "error"); }
+            document.body.removeChild(ta);
+        }
+
+        // ==========================================
+        // TOASTS (optional action button, e.g. Undo)
+        // ==========================================
+        function showToast(message, type = "info", action) {
+            const container = $('toast-container');
+            const toast = document.createElement('div');
+            const colors = {
+                success: "bg-emerald-600 text-white",
+                error: "bg-red-600 text-white",
+                warning: "bg-amber-500 text-white",
+                info: "bg-slate-800 text-white"
+            };
+            toast.className = `${colors[type] || colors.info} px-4 py-3 rounded-xl shadow-lg text-xs font-semibold flex items-center justify-between gap-3 pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0`;
+            const span = document.createElement('span');
+            span.textContent = message;
+            toast.appendChild(span);
+
+            const dismiss = () => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            };
+
+            if (action) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = action.label;
+                btn.className = 'underline font-bold cursor-pointer shrink-0';
+                btn.onclick = () => { action.fn(); dismiss(); };
+                toast.appendChild(btn);
+            }
+
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.remove('translate-y-2', 'opacity-0'));
+            setTimeout(dismiss, action ? 6500 : 3200);
+        }
+    </script>
+</body>
+</html>
