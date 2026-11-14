@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -73,9 +75,13 @@
                         <input type="text" id="cat-name-input" value="Mochi" maxlength="60" placeholder="Enter cat's name..."
                             class="pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition w-48 sm:w-56">
                     </div>
-                    <button type="button" id="delete-patient-btn" onclick="deleteCurrentPatient()" title="Remove this patient"
-                        class="hidden px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition cursor-pointer">
-                        <i class="fa-solid fa-trash-can mr-1"></i> Remove
+                    <button type="button" id="delete-patient-btn" onclick="deleteCurrentPatient()" title="Delete this cat and all of their data"
+                        class="px-3 py-1.5 rounded-xl text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 transition flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-trash-can"></i> Delete Cat
+                    </button>
+                    <button type="button" onclick="generateReport()" title="Download a PDF care report for this cat"
+                        class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-file-pdf"></i> PDF Report
                     </button>
                 </div>
 
@@ -485,6 +491,8 @@ function doGet(e) {
         };
 
         let formOffsetMinutes = 0;
+        // Sample items need a course start date too (first launch skips the load-time cleanup)
+        appState.patients.forEach(p => p.regimen.forEach(it => { it.startDate = todayKey(); it.durationDays = null; }));
         let currentDay = todayKey();
         let lastMinute = -1;
 
@@ -753,26 +761,29 @@ function doGet(e) {
         }
 
         async function deleteCurrentPatient() {
-            if (appState.patients.length <= 1) {
-                showToast("You must have at least one patient.", "warning");
-                return;
-            }
             const current = getActivePatient();
-            const removedName = current ? current.name : "Patient";
-            const ok = await confirmDialog(`Remove ${removedName}?`, "This deletes their schedule, checkmarks and notes. This can't be undone.", "Remove");
+            if (!current) return;
+            const only = appState.patients.length <= 1;
+            const ok = await confirmDialog(`Delete ${current.name}?`,
+                only ? "This is your only cat. Their schedule, checkmarks and notes will be deleted and replaced with an empty profile. This can't be undone."
+                     : "This deletes their schedule, checkmarks and notes. This can't be undone.", "Delete");
             if (!ok) return;
-            appState.patients = appState.patients.filter(p => p.id !== appState.activePatientId);
+            appState.patients = appState.patients.filter(p => p.id !== current.id);
+            if (!appState.patients.length) {
+                appState.patients.push({ id: 'patient-' + Date.now(), name: 'My Cat', regimen: [], completedDoses: {}, notes: [] });
+            }
             appState.activePatientId = appState.patients[0].id;
             renderAll();
-            showToast(`Removed ${removedName}.`, "info");
+            showToast(only ? `Deleted ${current.name}. Rename the new profile above.` : `Deleted ${current.name}.`, "info");
+            if (only) { $('cat-name-input').focus(); $('cat-name-input').select(); }
         }
 
         function renderPatientTabs() {
             const container = $('patient-tabs-list');
-            const deleteBtn = $('delete-patient-btn');
+            
             const activePatient = getActivePatient();
 
-            deleteBtn.classList.toggle('hidden', appState.patients.length <= 1);
+            
 
             if (activePatient && document.activeElement !== $('cat-name-input')) {
                 $('cat-name-input').value = activePatient.name;
@@ -1752,6 +1763,230 @@ function doGet(e) {
                 console.error(err);
                 showToast("Could not pull from Sheet. Ensure 'Anyone' has access.", "error");
             }
+        }
+
+        // ==========================================
+        // PDF CARE REPORT
+        // ==========================================
+        // jsPDF's built-in fonts can't draw emoji or most symbols, so keep printable Latin-1 only
+        function pdfText(v) {
+            return String(v == null ? '' : v)
+                .replace(/[\u00A0\u202F\u2009\u2007]/g, ' ')
+                .replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"')
+                .replace(/[\u2013\u2014]/g, '-').replace(/\u2026/g, '...').replace(/\u2022/g, '-')
+                .replace(/[^\n\x20-\x7E\u00A1-\u00FF]/g, '')
+                .replace(/[ \t]{2,}/g, ' ').trim();
+        }
+
+        function buildDoseColumns(patient) {
+            const cols = [];
+            patient.regimen.forEach(item => {
+                const [h, m] = item.startTime.split(':').map(Number);
+                const base = h * 60 + m + (item.offsetMinutes || 0);
+                const step = item.intervalHours * 60;
+                const count = Math.max(1, Math.floor(24 / item.intervalHours));
+                for (let i = 0; i < count; i++) {
+                    let mins = (base + i * step) % 1440;
+                    if (mins < 0) mins += 1440;
+                    cols.push({ item, occId: `${item.id}_dose_${i}`, mins, time: `${pad(Math.floor(mins / 60))}:${pad(mins % 60)}` });
+                }
+            });
+            return cols.sort((a, b) => a.mins - b.mins);
+        }
+
+        function generateReport() {
+            const patient = getActivePatient();
+            if (!patient) return;
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                showToast("The PDF library didn't load. Check your connection and reload the page.", "error");
+                return;
+            }
+            const T = pdfText;
+            const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'letter' });
+            const PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight(), M = 40;
+            const INDIGO = [79, 70, 229], INK = [15, 23, 42], MUTED = [100, 116, 139];
+            const now = new Date();
+            const today = todayKey();
+            const nowMins = now.getHours() * 60 + now.getMinutes();
+            const cols = buildDoseColumns(patient);
+            const mdLabel = (key) => { const d = parseKey(key); return `${d.getMonth() + 1}/${d.getDate()} ${d.toLocaleDateString([], { weekday: 'short' })}`; };
+
+            // ---- Data ----
+            const infos = patient.regimen.map(it => ({ it, c: courseInfo(it) }));
+            const activeInfos = infos.filter(x => x.c.status === 'active' || x.c.status === 'ongoing');
+            const meds = activeInfos.filter(x => x.it.type === 'medicine').length;
+            const meals = activeInfos.length - meds;
+
+            let start = today;
+            patient.regimen.forEach(it => { if (it.startDate < start) start = it.startDate; });
+            const daily = [];
+            let sched = 0, given = 0;
+            const totalDays = dayDiff(start, today) + 1;
+            for (let n = 0; n < totalDays; n++) {
+                const key = addDaysKey(start, n);
+                let sc = 0, g = 0;
+                const missed = [];
+                cols.forEach(c => {
+                    if (!itemActiveOn(c.item, key)) return;
+                    const done = !!patient.completedDoses[`${key}|${c.occId}`];
+                    if (!(key < today || c.mins < nowMins || done)) return;   // not due yet
+                    sc++;
+                    if (done) g++; else missed.push(`${c.time} ${c.item.name}`);
+                });
+                daily.push({ key, sc, g, missed });
+                sched += sc; given += g;
+            }
+
+            const todayOcc = getAllDailyOccurrences();
+            const todayDone = todayOcc.filter(o => o.completed).length;
+            const endingSoon = activeInfos.filter(x => x.c.status === 'active' && x.c.total - x.c.day <= 2)
+                .map(x => `${x.it.name} (ends ${courseEndLabel(x.it)})`);
+
+            // ---- Header band ----
+            doc.setFillColor(...INDIGO);
+            doc.rect(0, 0, PW, 74, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
+            doc.text('Catty Meddy', M, 36);
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+            doc.text('Care report', M, 56);
+            doc.text(T(now.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })), PW - M, 56, { align: 'right' });
+
+            doc.setTextColor(...INK);
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(22);
+            doc.text(T(patient.name) || 'Cat', M, 108);
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...MUTED);
+            doc.text(patient.regimen.length ? `Tracking since ${mdLabel(start)}` : 'No schedule entered yet', M, 122);
+
+            let y = 150;
+            if (endingSoon.length) {
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(180, 83, 9);
+                const lines = doc.splitTextToSize(T(`Courses ending soon: ${endingSoon.join('; ')}`), PW - 2 * M);
+                doc.text(lines, M, y);
+                y += lines.length * 12 + 6;
+            }
+
+            const ensure = (need) => { if (y + need > PH - 60) { doc.addPage(); y = 56; } };
+            const section = (title) => {
+                ensure(70);
+                doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(...INK);
+                doc.text(T(title), M, y);
+                doc.setDrawColor(226, 232, 240); doc.line(M, y + 5, PW - M, y + 5);
+                y += 14;
+            };
+            const note = (text) => {
+                doc.setFont('helvetica', 'italic'); doc.setFontSize(9); doc.setTextColor(...MUTED);
+                doc.text(T(text), M, y + 8);
+                y += 28;
+            };
+            const table = (opts) => {
+                doc.autoTable({
+                    startY: y, margin: { left: M, right: M, bottom: 60 }, theme: 'striped',
+                    headStyles: { fillColor: INDIGO, textColor: 255, fontSize: 9 },
+                    styles: { fontSize: 9, cellPadding: 4, textColor: INK, overflow: 'linebreak' },
+                    alternateRowStyles: { fillColor: [248, 250, 252] },
+                    ...opts
+                });
+                y = doc.lastAutoTable.finalY + 22;
+            };
+
+            // ---- Active regimen ----
+            section('Active regimen');
+            if (!infos.length) {
+                note('No medications or meals on file.');
+            } else {
+                const order = { active: 0, ongoing: 0, upcoming: 1, ended: 2 };
+                const sorted = infos.slice().sort((a, b) => order[a.c.status] - order[b.c.status]);
+                const body = sorted.map(({ it, c }) => {
+                    const times = cols.filter(x => x.item === it).map(x => x.time).sort().join(', ');
+                    const freq = it.intervalHours === 24 ? 'Once daily' : `Every ${it.intervalHours} h (${Math.floor(24 / it.intervalHours)}x/day)`;
+                    let course;
+                    if (c.status === 'ongoing') course = `Ongoing (since ${mdLabel(it.startDate)})`;
+                    else if (c.status === 'active') course = `Day ${c.day} of ${c.total}, ends ${courseEndLabel(it)}`;
+                    else if (c.status === 'ended') course = `Complete (ended ${courseEndLabel(it)})`;
+                    else course = `Starts in ${-c.idx} d`;
+                    const offset = it.offsetMinutes ? `${it.offsetMinutes > 0 ? '+' : ''}${it.offsetMinutes} min` : '-';
+                    return [it.name, it.type === 'medicine' ? 'Medicine' : 'Meal', times, freq, course, offset].map(T);
+                });
+                table({
+                    head: [['Item', 'Type', 'Times', 'Frequency', 'Course', 'Offset']],
+                    body,
+                    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 120 } },
+                    didParseCell: (d) => {
+                        if (d.section === 'body' && sorted[d.row.index].c.status === 'ended') d.cell.styles.textColor = MUTED;
+                    }
+                });
+            }
+
+            // ---- Today's schedule ----
+            section("Today's schedule");
+            if (!todayOcc.length) {
+                note('No doses scheduled today.');
+            } else {
+                table({
+                    head: [['Time', 'Item', 'Type', 'Status']],
+                    body: todayOcc.map(o => {
+                        const overdue = !o.completed && o.minutesFromMidnight < nowMins;
+                        const status = o.completed ? 'Done' : (overdue ? `Overdue ${fmtDur(nowMins - o.minutesFromMidnight)}` : 'Upcoming');
+                        return [o.timeFormatted, o.name, o.type === 'medicine' ? 'Medicine' : 'Meal', status].map(T);
+                    }),
+                    columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold' }, 2: { cellWidth: 70 }, 3: { cellWidth: 90 } },
+                    didParseCell: (d) => {
+                        if (d.section === 'body' && d.column.index === 3) {
+                            if (d.cell.raw.startsWith('Done')) d.cell.styles.textColor = [5, 150, 105];
+                            else if (d.cell.raw.startsWith('Overdue')) d.cell.styles.textColor = [220, 38, 38];
+                        }
+                    }
+                });
+            }
+
+            // ---- Dose history ----
+            section('Dose history (last 14 days with doses due)');
+            const recent = daily.filter(d => d.sc > 0).slice(-14);
+            if (!recent.length) {
+                note('No doses have come due yet.');
+            } else {
+                table({
+                    head: [['Date', 'Given', 'Missed doses']],
+                    body: recent.map(d => {
+                        const missedTxt = d.missed.length ? (d.missed.length > 6 ? d.missed.slice(0, 6).join('; ') + `; +${d.missed.length - 6} more` : d.missed.join('; ')) : 'None';
+                        return [mdLabel(d.key) + (d.key === today ? ' (today)' : ''), `${d.g}/${d.sc}`, missedTxt].map(T);
+                    }),
+                    columnStyles: { 0: { cellWidth: 95 }, 1: { cellWidth: 50, halign: 'center' } },
+                    didParseCell: (d) => {
+                        if (d.section === 'body' && d.column.index === 2 && d.cell.raw !== 'None') d.cell.styles.textColor = [185, 28, 28];
+                    }
+                });
+            }
+
+            // ---- Notes ----
+            section(`Notes & observations (${patient.notes.length})`);
+            if (!patient.notes.length) {
+                note('No observations logged.');
+            } else {
+                table({
+                    head: [['When', 'Observation']],
+                    body: patient.notes.map(n => [formatNoteTime(n), n.text].map(T)),
+                    columnStyles: { 0: { cellWidth: 100, fontStyle: 'bold' } }
+                });
+            }
+
+            ensure(30);
+            doc.setFont('helvetica', 'italic'); doc.setFontSize(8); doc.setTextColor(...MUTED);
+            doc.text("Prepared from the owner's own records. Bring this to your veterinarian visit; it is not medical advice.", M, y);
+
+            // ---- Footer on every page ----
+            const pages = doc.getNumberOfPages();
+            for (let i = 1; i <= pages; i++) {
+                doc.setPage(i);
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...MUTED);
+                doc.text(T(`Catty Meddy - ${patient.name} - ${now.toLocaleDateString([], { dateStyle: 'medium' })}`), M, PH - 24);
+                doc.text(`Page ${i} of ${pages}`, PW - M, PH - 24, { align: 'right' });
+            }
+
+            const safe = (T(patient.name) || 'cat').replace(/[^\w-]+/g, '_');
+            doc.save(`CattyMeddy_${safe}_${today}.pdf`);
+            showToast(`Report for ${patient.name} downloaded.`, "success");
         }
 
         function copyAppsScript() {
