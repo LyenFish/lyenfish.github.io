@@ -3,6 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        try {
+            var savedTheme = localStorage.getItem('cattyMeddyTheme');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        } catch (e) {}
+    </script>
     <title>Catty Meddy — Cat Medication & Feeding Timeline</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🐱%3C/text%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
@@ -25,30 +33,125 @@
             content: ''; position: absolute; inset: -4px; border-radius: 50%;
             background-color: #ef4444; animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
+
+        /* ===== Dark theme (toggle in the header) ===== */
+        html.dark { color-scheme: dark; }
+        html.dark body { background-color: #0b1220; color: #e2e8f0; }
+        html.dark ::-webkit-scrollbar-track { background: #131c2e; }
+        html.dark ::-webkit-scrollbar-thumb { background: #3a4864; }
+        html.dark input, html.dark textarea, html.dark select { color: #e2e8f0; }
+        html.dark input::placeholder, html.dark textarea::placeholder { color: #64748b; }
+        html.dark .bg-slate-900 { box-shadow: inset 0 0 0 1px #334155; }
+        html.dark .active\:bg-slate-200:active{background-color:rgba(42,54,80,1)}
+        html.dark .bg-amber-100{background-color:rgba(245,158,11,0.24)}
+        html.dark .bg-amber-50{background-color:rgba(245,158,11,0.14)}
+        html.dark .bg-emerald-100{background-color:rgba(16,185,129,0.24)}
+        html.dark .bg-emerald-50{background-color:rgba(16,185,129,0.14)}
+        html.dark .bg-indigo-100{background-color:rgba(99,102,241,0.24)}
+        html.dark .bg-indigo-50{background-color:rgba(99,102,241,0.14)}
+        html.dark .bg-indigo-50\/50{background-color:rgba(99,102,241,0.07)}
+        html.dark .bg-red-100{background-color:rgba(239,68,68,0.24)}
+        html.dark .bg-red-50{background-color:rgba(239,68,68,0.14)}
+        html.dark .bg-slate-100{background-color:rgba(31,42,64,1)}
+        html.dark .bg-slate-200{background-color:rgba(42,54,80,1)}
+        html.dark .bg-slate-200\/80{background-color:rgba(42,54,80,0.8)}
+        html.dark .bg-slate-50{background-color:rgba(26,36,56,1)}
+        html.dark .bg-slate-50\/70{background-color:rgba(26,36,56,0.7)}
+        html.dark .bg-slate-800{background-color:rgba(38,51,73,1)}
+        html.dark .bg-slate-900{background-color:rgba(10,15,28,1)}
+        html.dark .bg-slate-900\/50{background-color:rgba(10,15,28,0.5)}
+        html.dark .bg-teal-50{background-color:rgba(20,184,166,0.16)}
+        html.dark .bg-white{background-color:rgba(19,28,46,1)}
+        html.dark .border-amber-200{border-color:rgba(245,158,11,0.35)}
+        html.dark .border-emerald-200{border-color:rgba(16,185,129,0.35)}
+        html.dark .border-indigo-100{border-color:rgba(99,102,241,0.3)}
+        html.dark .border-indigo-200{border-color:rgba(99,102,241,0.3)}
+        html.dark .border-indigo-200\/70{border-color:rgba(99,102,241,0.21)}
+        html.dark .border-red-100{border-color:rgba(239,68,68,0.25)}
+        html.dark .border-red-200{border-color:rgba(239,68,68,0.35)}
+        html.dark .border-red-300{border-color:rgba(239,68,68,0.45)}
+        html.dark .border-slate-100{border-color:rgba(31,42,64,1)}
+        html.dark .border-slate-200{border-color:rgba(42,54,80,1)}
+        html.dark .border-slate-200\/80{border-color:rgba(42,54,80,0.8)}
+        html.dark .border-slate-300{border-color:rgba(58,72,100,1)}
+        html.dark .border-slate-900{border-color:rgba(51,65,85,1)}
+        html.dark .border-teal-200{border-color:rgba(20,184,166,0.4)}
+        html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]){border-color:rgba(31,42,64,1)}
+        html.dark .focus\:bg-white:focus{background-color:rgba(19,28,46,1)}
+        html.dark .hover\:bg-emerald-100:hover{background-color:rgba(16,185,129,0.24)}
+        html.dark .hover\:bg-indigo-100:hover{background-color:rgba(99,102,241,0.24)}
+        html.dark .hover\:bg-indigo-200:hover{background-color:rgba(99,102,241,0.34)}
+        html.dark .hover\:bg-indigo-50:hover{background-color:rgba(99,102,241,0.14)}
+        html.dark .hover\:bg-red-100:hover{background-color:rgba(239,68,68,0.24)}
+        html.dark .hover\:bg-red-50:hover{background-color:rgba(239,68,68,0.14)}
+        html.dark .hover\:bg-slate-100:hover{background-color:rgba(31,42,64,1)}
+        html.dark .hover\:bg-slate-200:hover{background-color:rgba(42,54,80,1)}
+        html.dark .hover\:bg-slate-200\/60:hover{background-color:rgba(42,54,80,0.6)}
+        html.dark .hover\:bg-slate-800:hover{background-color:rgba(38,51,73,1)}
+        html.dark .hover\:bg-white:hover{background-color:rgba(19,28,46,1)}
+        html.dark .hover\:text-indigo-600:hover{color:#a5b4fc}
+        html.dark .hover\:text-indigo-800:hover{color:#c7d2fe}
+        html.dark .hover\:text-red-500:hover{color:#f87171}
+        html.dark .hover\:text-red-600:hover{color:#fca5a5}
+        html.dark .hover\:text-slate-600:hover{color:#aab6c8}
+        html.dark .hover\:text-slate-900:hover{color:#f1f5f9}
+        html.dark .text-amber-600{color:#fbbf24}
+        html.dark .text-amber-700{color:#fbbf24}
+        html.dark .text-amber-900{color:#fde68a}
+        html.dark .text-emerald-600{color:#34d399}
+        html.dark .text-emerald-700{color:#6ee7b7}
+        html.dark .text-emerald-900{color:#a7f3d0}
+        html.dark .text-indigo-600{color:#a5b4fc}
+        html.dark .text-indigo-700{color:#a5b4fc}
+        html.dark .text-indigo-800{color:#c7d2fe}
+        html.dark .text-indigo-900{color:#c7d2fe}
+        html.dark .text-red-600{color:#fca5a5}
+        html.dark .text-red-700{color:#fca5a5}
+        html.dark .text-red-900{color:#fecaca}
+        html.dark .text-slate-300{color:#566178}
+        html.dark .text-slate-400{color:#7c8aa0}
+        html.dark .text-slate-500{color:#94a3b8}
+        html.dark .text-slate-600{color:#aab6c8}
+        html.dark .text-slate-700{color:#cbd5e1}
+        html.dark .text-slate-800{color:#e2e8f0}
+        html.dark .text-slate-900{color:#f1f5f9}
+        html.dark .text-teal-700{color:#5eead4}
     </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-indigo-100 selection:text-indigo-900">
 
     <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 min-h-[4rem] py-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
                     <i class="fa-solid fa-cat text-lg"></i>
                 </div>
                 <div>
                     <h1 class="font-bold text-lg leading-tight text-slate-900">Catty Meddy</h1>
-                    <p class="text-xs text-slate-500 hidden sm:block">24-Hour Feline Meds & Feeding Timeline</p>
+                    
                 </div>
             </div>
-            <div class="flex items-center gap-2 sm:gap-3">
+            <div class="flex items-center gap-1.5 sm:gap-2 ml-auto">
                 <div class="hidden md:flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
                     <i class="fa-regular fa-clock text-indigo-600 text-sm"></i>
                     <span id="live-clock" class="text-sm font-semibold tabular-nums text-slate-700">--:--:--</span>
                 </div>
-                <button onclick="openSheetsModal()" id="sheets-status-btn" class="flex items-center gap-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition cursor-pointer">
+                <button type="button" onclick="loadFromGoogleSheets()" title="Pull from Google Sheet (replaces the data here with the sheet's copy)" aria-label="Pull from Google Sheet"
+                    class="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition cursor-pointer">
+                    <i class="fa-solid fa-cloud-arrow-down"></i><span>Load</span>
+                </button>
+                <button type="button" onclick="syncToGoogleSheets()" title="Push to Google Sheet (replaces the sheet's copy with the data here)" aria-label="Push to Google Sheet"
+                    class="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition cursor-pointer">
+                    <i class="fa-solid fa-cloud-arrow-up"></i><span>Save</span>
+                </button>
+                <button onclick="openSheetsModal()" id="sheets-status-btn" title="Google Sheets settings" class="flex items-center gap-2 px-2.5 sm:px-3 py-2 rounded-xl text-xs sm:text-sm font-medium border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition cursor-pointer">
                     <i class="fa-solid fa-table"></i>
-                    <span id="sheets-btn-text">Google Sheets</span>
+                    <span id="sheets-btn-text" class="hidden sm:inline">Google Sheets</span>
                     <span id="sync-dot" class="w-2 h-2 rounded-full bg-amber-400" title="Not connected yet"></span>
+                </button>
+                <button type="button" onclick="toggleTheme()" id="theme-btn" title="Switch between light and dark theme" aria-label="Switch theme"
+                    class="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition cursor-pointer">
+                    <i id="theme-icon" class="fa-solid fa-moon"></i><span id="theme-label" class="hidden sm:inline">Dark</span>
                 </button>
             </div>
         </div>
@@ -684,6 +787,7 @@ function doGet(e) {
         // INITIALIZATION
         // ==========================================
         window.addEventListener('DOMContentLoaded', () => {
+            syncThemeIcon();
             buildHourLabels();
             loadLocalState();
             setupEventListeners();
@@ -1818,6 +1922,7 @@ function doGet(e) {
 
         async function loadFromGoogleSheets() {
             if (!appState.sheetsUrl) {
+                openSheetsModal();
                 showToast("Enter your Google Apps Script URL first.", "error");
                 return;
             }
@@ -2055,6 +2160,23 @@ function doGet(e) {
             const safe = (T(patient.name) || 'cat').replace(/[^\w-]+/g, '_');
             doc.save(`CattyMeddy_${safe}_${today}.pdf`);
             showToast(`Report for ${patient.name} downloaded.`, "success");
+        }
+
+        // ==========================================
+        // THEME
+        // ==========================================
+        function syncThemeIcon() {
+            const dark = document.documentElement.classList.contains('dark');
+            const icon = $('theme-icon');
+            if (icon) icon.className = `fa-solid ${dark ? 'fa-sun' : 'fa-moon'}`;
+            const label = $('theme-label');
+            if (label) label.textContent = dark ? 'Light' : 'Dark';
+        }
+
+        function toggleTheme() {
+            const dark = document.documentElement.classList.toggle('dark');
+            try { localStorage.setItem('cattyMeddyTheme', dark ? 'dark' : 'light'); } catch (e) {}
+            syncThemeIcon();
         }
 
         function copyAppsScript() {
