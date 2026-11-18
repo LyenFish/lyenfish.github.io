@@ -238,7 +238,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-            <div class="lg:col-span-5 space-y-6">
+            <div class="lg:col-span-12 space-y-6">
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -270,18 +270,6 @@
                     <div id="notes-list" class="mt-4 space-y-2 max-h-56 overflow-y-auto pr-1"></div>
                 </div>
             </div>
-
-            <div class="lg:col-span-7 space-y-6">
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                            <i class="fa-solid fa-list-check text-indigo-600"></i> Today's Chronological Dose Log
-                        </h2>
-                        <button onclick="resetAllCompleted()" class="text-xs text-slate-500 hover:text-indigo-600 font-medium cursor-pointer">Reset Checkmarks</button>
-                    </div>
-                    <div id="chronological-list" class="divide-y divide-slate-100"></div>
-                </div>
-            </div>
         </div>
 
         <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
@@ -301,6 +289,29 @@
             <div id="matrix-scroll" class="relative overflow-auto max-h-[28rem] border border-slate-200 rounded-xl">
                 <div id="matrix-holder"></div>
             </div>
+        </section>
+
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-regular fa-calendar-days text-indigo-600"></i> Calendar
+                    </h2>
+                    <p class="text-xs text-slate-500">See which days each medicine is due, including upcoming ones. Always shows every cat. Tap a day to see and check off its doses.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl text-[11px] font-semibold" id="cal-filter-toggle">
+                        <button type="button" id="cal-filter-all" onclick="calSetFilter('all')" class="px-2.5 py-1.5 rounded-lg transition cursor-pointer">All items</button>
+                        <button type="button" id="cal-filter-sparse" onclick="calSetFilter('sparse')" class="px-2.5 py-1.5 rounded-lg transition cursor-pointer">Not daily</button>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="calShift(-1)" title="Previous month" class="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 flex items-center justify-center transition cursor-pointer"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                        <button type="button" onclick="calGoToday()" class="px-3 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 transition cursor-pointer">Today</button>
+                        <button type="button" onclick="calShift(1)" title="Next month" class="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 flex items-center justify-center transition cursor-pointer"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div id="calendar-holder"></div>
         </section>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -331,12 +342,12 @@
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label for="start-time" class="block text-xs font-semibold text-slate-600 mb-1">First Time Today</label>
+                                <label for="start-time" class="block text-xs font-semibold text-slate-600 mb-1">First Dose Time</label>
                                 <input type="time" id="start-time" value="08:00" required
                                     class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
                             </div>
                             <div>
-                                <label for="interval-hours" class="block text-xs font-semibold text-slate-600 mb-1">Every (Hours)</label>
+                                <label for="interval-hours" class="block text-xs font-semibold text-slate-600 mb-1">Doses per day</label>
                                 <select id="interval-hours" onchange="onIntervalChange()"
                                     class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
                                     <option value="24">Once a day (24h)</option>
@@ -363,8 +374,33 @@
                             <div id="custom-times-chips" class="flex flex-wrap gap-1.5"></div>
                         </div>
 
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label for="repeat-days" class="block text-xs font-semibold text-slate-600 mb-1">Repeats</label>
+                                    <select id="repeat-days" onchange="onRepeatChange()"
+                                        class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                                        <option value="1" selected>Every day</option>
+                                        <option value="2">Every other day</option>
+                                        <option value="3">Every 3 days</option>
+                                        <option value="7">Weekly</option>
+                                        <option value="14">Every 2 weeks</option>
+                                        <option value="custom">Every N days...</option>
+                                    </select>
+                                    <input type="number" id="repeat-custom" min="2" max="365" step="1" inputmode="numeric" placeholder="Number of days"
+                                        class="hidden mt-2 w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                                </div>
+                                <div>
+                                    <label for="first-dose-date" class="block text-xs font-semibold text-slate-600 mb-1">First dose on</label>
+                                    <input type="date" id="first-dose-date" required
+                                        class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                                </div>
+                            </div>
+                            <p class="text-[11px] text-slate-500">The repeat pattern counts from this date. For a medicine given recently, pick the date of its <strong>next</strong> dose.</p>
+                        </div>
+
                         <div>
-                            <label for="duration-days" class="block text-xs font-semibold text-slate-600 mb-1">For how many days? <span class="font-normal text-slate-400">(leave blank = ongoing)</span></label>
+                            <label for="duration-days" class="block text-xs font-semibold text-slate-600 mb-1">Course length in days <span class="font-normal text-slate-400">(leave blank = ongoing)</span></label>
                             <input type="number" id="duration-days" min="1" max="365" step="1" inputmode="numeric" placeholder="e.g., 10"
                                 class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
                         </div>
@@ -613,6 +649,16 @@ function doGet(e) {
             return Array.from({ length: count }, (_, i) => wrap(base + i * step));
         }
 
+        // Human label for a "repeat every N days" setting
+        function repeatLabel(n) {
+            n = n || 1;
+            if (n === 1) return 'Every day';
+            if (n === 2) return 'Every other day';
+            if (n === 7) return 'Weekly';
+            if (n === 14) return 'Every 2 weeks';
+            return `Every ${n} days`;
+        }
+
         // ==========================================
         // STATE + VALIDATION
         // ==========================================
@@ -635,7 +681,7 @@ function doGet(e) {
 
         let formOffsetMinutes = 0;
         // Sample items need a course start date too (first launch skips the load-time cleanup)
-        appState.patients.forEach(p => p.regimen.forEach(it => { it.startDate = todayKey(); it.durationDays = null; }));
+        appState.patients.forEach(p => p.regimen.forEach(it => { it.startDate = todayKey(); it.durationDays = null; it.repeatDays = 1; }));
         let currentDay = todayKey();
         let lastMinute = -1;
 
@@ -667,6 +713,12 @@ function doGet(e) {
             return (v !== '' && v != null && Number.isFinite(n) && n >= 1) ? Math.min(n, 365) : null;
         }
 
+        // Repeat every N days (1 = daily); older saved data without it counts as daily
+        function cleanRepeat(v) {
+            const n = Math.round(Number(v));
+            return (v !== '' && v != null && Number.isFinite(n) && n >= 1) ? Math.min(n, 365) : 1;
+        }
+
         function sanitizeRegimenItem(it, idx) {
             if (!it || typeof it !== 'object') return null;
             const name = String(it.name || '').trim().slice(0, 80);
@@ -687,6 +739,7 @@ function doGet(e) {
                 offsetMinutes: clamp(offset, -720, 720),
                 startDate: cleanDate(it.startDate),
                 durationDays: cleanDuration(it.durationDays),
+                repeatDays: cleanRepeat(it.repeatDays),
                 times: cleanTimes(it.times)
             };
         }
@@ -829,6 +882,18 @@ function doGet(e) {
             $('interval-hours').parentElement.classList.toggle('col-span-2', custom);
         }
 
+        function onRepeatChange() {
+            $('repeat-custom').classList.toggle('hidden', $('repeat-days').value !== 'custom');
+        }
+
+        function resetRepeatForm() {
+            $('repeat-days').value = '1';
+            $('repeat-custom').value = '';
+            onRepeatChange();
+            $('first-dose-date').value = todayKey();
+            $('first-dose-date').min = todayKey();
+        }
+
         function addCustomTime() {
             const v = $('custom-time-input').value;
             if (!/^\d{2}:\d{2}$/.test(v)) return;
@@ -851,6 +916,7 @@ function doGet(e) {
 
         function setupEventListeners() {
             renderCustomTimeChips();
+            resetRepeatForm();
             $('custom-time-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomTime(); } });
             $('note-time').addEventListener('input', () => { noteTimeTouched = true; });
 
@@ -869,6 +935,11 @@ function doGet(e) {
                 if (!patient) return;
                 const custom = $('interval-hours').value === 'custom';
                 if (custom && !formCustomTimes.length) { showToast("Add at least one time first (press Add time).", "warning"); return; }
+                const repSel = $('repeat-days').value;
+                if (repSel === 'custom' && cleanRepeat($('repeat-custom').value) < 2 && $('repeat-custom').value !== '1') {
+                    showToast("Enter how many days between doses (2 or more).", "warning"); return;
+                }
+                const repeatDays = repSel === 'custom' ? $('repeat-custom').value : repSel;
                 const item = sanitizeRegimenItem({
                     id: 'item-' + Date.now(),
                     type: $('item-type').value,
@@ -876,8 +947,9 @@ function doGet(e) {
                     startTime: custom ? formCustomTimes[0] : $('start-time').value,
                     intervalHours: custom ? 24 : $('interval-hours').value,
                     times: custom ? formCustomTimes : null,
-                    startDate: todayKey(),
+                    startDate: $('first-dose-date').value || todayKey(),
                     durationDays: $('duration-days').value,
+                    repeatDays,
                     offsetMinutes: formOffsetMinutes
                 }, 0);
                 if (!item) { showToast("Please enter a name and a valid start time.", "warning"); return; }
@@ -888,6 +960,7 @@ function doGet(e) {
                 formCustomTimes = [];
                 renderCustomTimeChips();
                 resetFormOffset();
+                resetRepeatForm();
                 renderAll();
                 showToast(`Added "${item.name}" to ${patient.name}'s timeline!`, "success");
             });
@@ -1041,6 +1114,32 @@ function doGet(e) {
             showToast(`"${item.name}" is now a ${item.durationDays}-day course.`, "info");
         }
 
+        // Restart a repeating medicine's cycle so that today is a dose day
+        function restartCycle(itemId) {
+            const patient = getActivePatient();
+            if (!patient) return;
+            const item = patient.regimen.find(r => r.id === itemId);
+            if (!item) return;
+            const old = item.startDate;
+            item.startDate = todayKey();
+            renderAll();
+            showToast(`"${item.name}" cycle restarted: today is now a dose day.`, "info", {
+                label: "Undo",
+                fn: () => { item.startDate = old; renderAll(); }
+            });
+        }
+
+        // Pick any date as the cycle anchor (a day a dose is due)
+        function setAnchor(itemId, value) {
+            const patient = getActivePatient();
+            if (!patient) return;
+            const item = patient.regimen.find(r => r.id === itemId);
+            if (!item || !/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return;
+            item.startDate = cleanDate(value);
+            renderAll();
+            showToast(`"${item.name}" cycle now counts from ${fmtDateShort(item.startDate)}.`, "info");
+        }
+
         function deleteRegimenItem(itemId) {
             const patient = getActivePatient();
             if (!patient) return;
@@ -1067,19 +1166,42 @@ function doGet(e) {
         function courseInfo(item) {
             const idx = dayIndexFor(item.startDate || todayKey());
             const total = item.durationDays || null;
-            if (idx < 0) return { status: 'upcoming', idx, total };
-            if (total && idx >= total) return { status: 'ended', idx, total };
-            return { status: total ? 'active' : 'ongoing', idx, day: idx + 1, total };
+            const rep = item.repeatDays || 1;
+            if (idx < 0) return { status: 'upcoming', idx, total, rep, due: false };
+            if (total && idx >= total) return { status: 'ended', idx, total, rep, due: false };
+            return { status: total ? 'active' : 'ongoing', idx, day: idx + 1, total, rep, due: idx % rep === 0 };
         }
 
+        // Is a dose due today? (inside the course AND on a repeat day)
         function isItemActiveToday(item) {
-            const s = courseInfo(item).status;
-            return s === 'active' || s === 'ongoing';
+            const c = courseInfo(item);
+            return (c.status === 'active' || c.status === 'ongoing') && c.due;
         }
 
         function courseEndLabel(item) {
             const [y, m, d] = item.startDate.split('-').map(Number);
             return new Date(y, m - 1, d + item.durationDays - 1).toLocaleDateString([], { month: 'short', day: 'numeric' });
+        }
+
+        // The single rule every view uses: is this item due on that calendar day?
+        function isDueOn(item, key) {
+            if (key < item.startDate) return false;
+            const e = itemEndKey(item);
+            if (e && key > e) return false;
+            return dayDiff(item.startDate, key) % (item.repeatDays || 1) === 0;
+        }
+
+        // Next day (today or later) a dose is due, or null when the course is over
+        function nextDueKey(item) {
+            const rep = item.repeatDays || 1;
+            const idx = dayIndexFor(item.startDate);
+            const key = idx < 0 ? item.startDate : addDaysKey(todayKey(), (rep - (idx % rep)) % rep);
+            const e = itemEndKey(item);
+            return (e && key > e) ? null : key;
+        }
+
+        function fmtDateShort(key) {
+            return parseKey(key).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
         }
 
         function getAllDailyOccurrences() {
@@ -1130,8 +1252,8 @@ function doGet(e) {
             renderTimelineMarkers(occurrences);
             renderNoteMarkers();
             syncNoteTimeDefault();
-            renderChronologicalList(occurrences);
             renderMatrix();
+            renderCalendar();
             updateClockAndTimeline();
             updateNextUpBanner(occurrences);
         }
@@ -1284,11 +1406,7 @@ function doGet(e) {
             return Math.round((Date.UTC(y.getFullYear(), y.getMonth(), y.getDate()) - Date.UTC(x.getFullYear(), x.getMonth(), x.getDate())) / 86400000);
         }
         function itemEndKey(item) { return item.durationDays ? addDaysKey(item.startDate, item.durationDays - 1) : null; }
-        function itemActiveOn(item, key) {
-            if (key < item.startDate) return false;
-            const e = itemEndKey(item);
-            return !e || key <= e;
-        }
+        function itemActiveOn(item, key) { return isDueOn(item, key); }
 
         function renderMatrix() {
             const holder = $('matrix-holder');
@@ -1388,6 +1506,150 @@ function doGet(e) {
             }
         }
 
+        // ---------- Calendar ----------
+        let calMonth = null, calSelected = null, calFilter = null;
+
+        function calInit() {
+            if (!calMonth) calMonth = todayKey().slice(0, 8) + '01';
+            if (!calSelected) calSelected = todayKey();
+        }
+        function calShift(n) {
+            calInit();
+            const d = parseKey(calMonth);
+            d.setMonth(d.getMonth() + n, 1);
+            calMonth = todayKey(d);
+            renderCalendar();
+        }
+        function calGoToday() {
+            calMonth = todayKey().slice(0, 8) + '01';
+            calSelected = todayKey();
+            renderCalendar();
+        }
+        function calSelect(key) { calSelected = key; renderCalendar(); }
+        function calSetFilter(f) { calFilter = f; renderCalendar(); }
+
+        // Status of one item on one day, across all of its doses that day
+        function itemDayStatus(patient, item, key, today, nowMins) {
+            const mins = doseMinutes(item);
+            const isDone = (i) => !!patient.completedDoses[`${key}|${item.id}_dose_${i}`];
+            const doneN = mins.filter((_, i) => isDone(i)).length;
+            let status;
+            if (doneN === mins.length) status = 'done';
+            else if (key < today) status = 'missed';
+            else if (key === today) status = mins.some((m, i) => !isDone(i) && m < nowMins) ? 'missed' : 'upcoming';
+            else status = 'upcoming';
+            return { status, doneN, n: mins.length };
+        }
+
+        function renderCalendar() {
+            const holder = $('calendar-holder');
+            if (!holder) return;
+            calInit();
+            // The calendar always shows every cat, whichever cat is selected above
+            const entries = [];
+            appState.patients.forEach(p => p.regimen.forEach(it => entries.push({ p, it })));
+            const multi = appState.patients.length > 1;
+
+            if (entries.length === 0) {
+                $('cal-filter-toggle').classList.add('opacity-50', 'pointer-events-none');
+                holder.innerHTML = `<p class="text-sm text-slate-400 py-10 text-center">Add a medication or meal to see it on the calendar.</p>`;
+                return;
+            }
+            $('cal-filter-toggle').classList.remove('opacity-50', 'pointer-events-none');
+
+            const today = todayKey();
+            const now = new Date();
+            const nowMins = now.getHours() * 60 + now.getMinutes();
+            const hasSparse = entries.some(e => (e.it.repeatDays || 1) > 1);
+            const filter = calFilter || (hasSparse ? 'sparse' : 'all');
+            const items = entries.filter(e => filter === 'all' || (e.it.repeatDays || 1) > 1);
+
+            const on = 'bg-white text-indigo-600 shadow-sm', off = 'text-slate-600 hover:text-slate-900';
+            $('cal-filter-all').className = `px-2.5 py-1.5 rounded-lg transition cursor-pointer ${filter === 'all' ? on : off}`;
+            $('cal-filter-sparse').className = `px-2.5 py-1.5 rounded-lg transition cursor-pointer ${filter === 'sparse' ? on : off}`;
+
+            const first = parseKey(calMonth);
+            const y = first.getFullYear(), m = first.getMonth();
+            const dim = new Date(y, m + 1, 0).getDate();
+            const offset = first.getDay();
+            const cells = Math.ceil((offset + dim) / 7) * 7;
+            const title = first.toLocaleDateString([], { month: 'long', year: 'numeric' });
+
+            const dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+                .map(d => `<div class="text-center text-[10px] font-semibold uppercase tracking-wider text-slate-400 py-1">${d}</div>`).join('');
+
+            let grid = '';
+            for (let i = 0; i < cells; i++) {
+                const dayNum = i - offset + 1;
+                if (dayNum < 1 || dayNum > dim) { grid += `<div class="bg-slate-50/70 min-h-[84px]"></div>`; continue; }
+                const key = todayKey(new Date(y, m, dayNum));
+                const due = items.filter(e => isDueOn(e.it, key));
+                const chips = due.slice(0, 3).map(({ p, it }) => {
+                    const st = itemDayStatus(p, it, key, today, nowMins);
+                    const cls = st.status === 'done' ? 'bg-emerald-100 text-emerald-700'
+                        : st.status === 'missed' ? 'bg-red-100 text-red-700'
+                        : (it.type === 'medicine' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700');
+                    const icon = st.status === 'done' ? 'fa-check' : (it.type === 'medicine' ? 'fa-pills' : 'fa-bowl-food');
+                    return `<span class="flex items-center gap-1 w-full min-w-0 px-1.5 py-0.5 rounded-md text-[10px] font-semibold leading-tight ${cls}" title="${escapeHtml((multi ? p.name + ': ' : '') + it.name)}"><i class="fa-solid ${icon} text-[9px] shrink-0"></i><span class="truncate">${multi ? `<b>${escapeHtml(truncate(p.name, 6))}</b> ` : ''}${escapeHtml(truncate(it.name, multi ? 9 : 12))}${st.n > 1 ? ` ${st.doneN}/${st.n}` : ''}</span></span>`;
+                }).join('');
+                const more = due.length > 3 ? `<span class="text-[10px] text-slate-400 font-semibold px-1">+${due.length - 3} more</span>` : '';
+                const isToday = key === today, isSel = key === calSelected;
+                grid += `
+                <button type="button" onclick="calSelect('${key}')"
+                    class="min-h-[84px] p-1.5 text-left align-top bg-white hover:bg-indigo-50 transition cursor-pointer flex flex-col items-stretch gap-1 min-w-0 ${isSel ? 'ring-2 ring-inset ring-indigo-500' : ''}">
+                    <span class="self-start text-[11px] font-bold tabular-nums ${isToday ? 'bg-indigo-600 text-white px-1.5 py-0.5 rounded-md' : 'text-slate-600'}">${dayNum}</span>
+                    ${chips}${more}
+                </button>`;
+            }
+
+            // Selected day detail
+            const slots = [];
+            appState.patients.forEach(p => p.regimen.forEach(it => {
+                if (!isDueOn(it, calSelected)) return;
+                doseMinutes(it).forEach((mins, i) => slots.push({ p, it, mins, occId: `${it.id}_dose_${i}` }));
+            }));
+            slots.sort((a, b) => a.mins - b.mins);
+            const future = calSelected > today;
+            const sd = parseKey(calSelected);
+            const selTitle = sd.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }) + (calSelected === today ? ' (today)' : '');
+
+            const detailRows = slots.length ? slots.map(s => {
+                const isDone = !!s.p.completedDoses[`${calSelected}|${s.occId}`];
+                const missed = !isDone && (calSelected < today || (calSelected === today && s.mins < nowMins));
+                const badge = isDone ? ['bg-emerald-100 text-emerald-700', 'Done']
+                    : missed ? ['bg-red-100 text-red-700', 'Missed']
+                    : ['bg-slate-100 text-slate-500', 'Upcoming'];
+                const isMed = s.it.type === 'medicine';
+                return `
+                <label class="py-2.5 flex items-center justify-between gap-3 ${future ? 'opacity-70' : 'cursor-pointer'}">
+                    <span class="flex items-center gap-3 min-w-0">
+                        <input type="checkbox" ${isDone ? 'checked' : ''} ${future ? 'disabled' : ''} onchange="toggleDoseForCat('${s.p.id}','${calSelected}','${s.occId}')"
+                            class="w-5 h-5 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 shrink-0 ${future ? '' : 'cursor-pointer'}">
+                        <span class="px-2 py-0.5 rounded-lg font-mono text-xs font-bold tabular-nums shrink-0 bg-indigo-50 text-indigo-700">${fmtMins(s.mins)}</span>
+                        <span class="min-w-0">
+                            <span class="block text-sm font-semibold truncate ${isDone ? 'line-through text-slate-400' : 'text-slate-800'}">${escapeHtml(s.it.name)}</span>
+                            <span class="block text-[11px] text-slate-400">${multi ? '<strong>' + escapeHtml(s.p.name) + '</strong> • ' : ''}${isMed ? 'Medicine' : 'Meal'}${(s.it.repeatDays || 1) > 1 ? ' • ' + escapeHtml(repeatLabel(s.it.repeatDays)) : ''}</span>
+                        </span>
+                    </span>
+                    <span class="text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 ${badge[0]}">${badge[1]}</span>
+                </label>`;
+            }).join('') : `<p class="text-sm text-slate-400 py-3">Nothing scheduled on this day.</p>`;
+
+            holder.innerHTML = `
+                <div class="text-sm font-bold text-slate-800 mb-2">${escapeHtml(title)}</div>
+                <div class="overflow-x-auto">
+                    <div class="min-w-[560px]">
+                        <div class="grid grid-cols-7 gap-px">${dow}</div>
+                        <div class="grid grid-cols-7 gap-px bg-slate-200 border border-slate-200 rounded-xl overflow-hidden">${grid}</div>
+                    </div>
+                </div>
+                <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div class="text-sm font-bold text-slate-800 mb-1">${escapeHtml(selTitle)}</div>
+                    <div class="divide-y divide-slate-100">${detailRows}</div>
+                    ${future ? '<p class="text-[11px] text-slate-400 mt-2">Future doses can be checked off once the day arrives.</p>' : ''}
+                </div>`;
+        }
+
         function renderRegimenList() {
             const patient = getActivePatient();
             const container = $('regimen-list');
@@ -1403,15 +1665,29 @@ function doGet(e) {
             container.innerHTML = patient.regimen.map(item => {
                 const isMed = item.type === 'medicine';
                 const offset = item.offsetMinutes || 0;
+                const rep = item.repeatDays || 1;
                 const c = courseInfo(item);
-                let courseBadge;
-                if (c.status === 'ongoing') courseBadge = `<span class="text-slate-400">Ongoing</span>`;
-                else if (c.status === 'active') courseBadge = `<span class="font-semibold text-teal-700">Day ${c.day} of ${c.total} · ends ${escapeHtml(courseEndLabel(item))}</span>`;
-                else if (c.status === 'ended') courseBadge = `<span class="font-semibold text-slate-500">Course complete</span>`;
-                else courseBadge = `<span class="font-semibold text-slate-500">Starts in ${-c.idx}d</span>`;
+                const parts = [];
+                if (c.status === 'ended') {
+                    parts.push(`<span class="font-semibold text-slate-500">Course complete</span>`);
+                } else if (c.status === 'upcoming') {
+                    parts.push(`<span class="font-semibold text-slate-500">Starts ${escapeHtml(fmtDateShort(item.startDate))}</span>`);
+                } else {
+                    if (rep > 1) {
+                        const nk = nextDueKey(item);
+                        parts.push(c.due
+                            ? `<span class="font-bold text-indigo-700">Due today</span>`
+                            : `<span class="font-bold text-indigo-700">Next dose: ${escapeHtml(nk ? fmtDateShort(nk) : '—')}</span>`);
+                    }
+                    parts.push(c.status === 'ongoing'
+                        ? `<span class="text-slate-400">Ongoing</span>`
+                        : `<span class="font-semibold text-teal-700">Day ${c.day} of ${c.total} · ends ${escapeHtml(courseEndLabel(item))}</span>`);
+                }
+                const courseBadge = parts.join('<span>•</span>');
                 const offsetBadge = offset === 0
                     ? `<span class="text-slate-400">No offset</span>`
                     : `<span class="font-bold ${offset > 0 ? 'text-indigo-600' : 'text-amber-600'}">${offset > 0 ? '+' : ''}${offset} min shift</span>`;
+                const repeatBadge = rep > 1 ? `<span class="font-bold text-slate-700">${escapeHtml(repeatLabel(rep))}</span><span>•</span>` : '';
 
                 return `
                 <div class="${c.status === 'ended' ? 'opacity-60 ' : ''}p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white transition flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1422,6 +1698,7 @@ function doGet(e) {
                         <div>
                             <div class="font-bold text-sm text-slate-900">${escapeHtml(item.name)}</div>
                             <div class="text-xs text-slate-500 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                ${repeatBadge}
                                 ${item.times && item.times.length
                                     ? `<span>At <strong>${item.times.map(t => escapeHtml(fmtHM(t))).join(', ')}</strong></span><span>•</span>`
                                     : `<span>Starts <strong>${escapeHtml(fmtHM(item.startTime))}</strong></span><span>•</span><span>Every <strong>${Number(item.intervalHours)}h</strong></span><span>•</span>`}
@@ -1429,7 +1706,15 @@ function doGet(e) {
                             </div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-1.5 self-end sm:self-center">
+                    <div class="flex flex-wrap items-center justify-end gap-1.5 self-end sm:self-center">
+                        ${rep > 1 ? `
+                        <input type="date" value="${escapeHtml(item.startDate)}" onchange="setAnchor('${item.id}', this.value)"
+                            title="Cycle anchor: a date when a dose is due. The pattern counts from here."
+                            class="px-2 py-1.5 bg-white border border-slate-200 rounded-xl text-[11px] font-medium text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button onclick="restartCycle('${item.id}')" title="Make today a dose day and count the cycle from today"
+                            class="px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700 shadow-sm hover:bg-slate-100 transition cursor-pointer">
+                            <i class="fa-solid fa-rotate-left mr-1"></i>From today
+                        </button>` : ''}
                         <div class="flex items-center bg-white border border-slate-200 rounded-xl p-0.5 shadow-sm">
                             <button onclick="adjustRegimenOffset('${item.id}', -10)" title="Shift 10 mins earlier"
                                 class="px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer">-10m</button>
@@ -1454,42 +1739,13 @@ function doGet(e) {
             }).join('');
         }
 
-        function renderChronologicalList(occurrences) {
-            const container = $('chronological-list');
-            const now = new Date();
-            const nowMins = now.getHours() * 60 + now.getMinutes();
-
-            if (occurrences.length === 0) {
-                container.innerHTML = `<p class="text-sm text-slate-400 py-4 text-center">No doses scheduled today.</p>`;
-                return;
-            }
-
-            container.innerHTML = occurrences.map(occ => {
-                const isMed = occ.type === 'medicine';
-                const isPast = occ.minutesFromMidnight < nowMins;
-                const overdue = isPast && !occ.completed;
-                return `
-                <div class="py-3 flex items-center justify-between gap-3 group">
-                    <label class="flex items-center gap-3.5 cursor-pointer flex-1 min-w-0">
-                        <input type="checkbox" ${occ.completed ? 'checked' : ''} onchange="toggleDoseComplete('${occ.occId}')"
-                            class="w-5 h-5 rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0">
-                        <div class="px-2.5 py-1 rounded-lg font-mono text-xs font-bold tabular-nums shrink-0
-                            ${occ.completed ? 'bg-emerald-50 text-emerald-700' : (overdue ? 'bg-red-50 text-red-700' : 'bg-indigo-50 text-indigo-700')}">${occ.timeFormatted}</div>
-                        <div class="min-w-0 flex-1">
-                            <div class="text-sm font-semibold truncate ${occ.completed ? 'line-through text-slate-400' : 'text-slate-800'}">${escapeHtml(occ.name)}</div>
-                            <div class="text-[11px] text-slate-400">${isMed ? 'Medicine' : 'Meal'} • Dose ${occ.doseIndex} of ${occ.totalDoses}</div>
-                        </div>
-                    </label>
-                    <span class="text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0
-                        ${occ.completed ? 'bg-emerald-100 text-emerald-700' : (overdue ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500')}">
-                        ${occ.completed ? 'Done' : (overdue ? `Overdue ${fmtDur(nowMins - occ.minutesFromMidnight)}` : 'Upcoming')}
-                    </span>
-                </div>`;
-            }).join('');
-        }
-
         function toggleDoseForDate(dateKey, occId) {
             const patient = getActivePatient();
+            if (patient) toggleDoseForCat(patient.id, dateKey, occId);
+        }
+
+        function toggleDoseForCat(patientId, dateKey, occId) {
+            const patient = appState.patients.find(p => p.id === patientId);
             if (!patient || dateKey > todayKey()) return;
             const key = `${dateKey}|${occId}`;
             if (patient.completedDoses[key]) delete patient.completedDoses[key];
@@ -1504,17 +1760,6 @@ function doGet(e) {
             if (patient.completedDoses[key]) delete patient.completedDoses[key];
             else patient.completedDoses[key] = true;
             renderAll();
-        }
-
-        async function resetAllCompleted() {
-            const patient = getActivePatient();
-            if (!patient) return;
-            const ok = await confirmDialog("Reset today's checkmarks?", `All of today's doses for ${patient.name} will be marked as not done.`, "Reset");
-            if (!ok) return;
-            const prefix = todayKey() + '|';
-            Object.keys(patient.completedDoses).forEach(k => { if (k.startsWith(prefix)) delete patient.completedDoses[k]; });
-            renderAll();
-            showToast(`Reset checkmarks for ${patient.name}.`, "info");
         }
 
         // ==========================================
@@ -1563,7 +1808,20 @@ function doGet(e) {
 
             if (occurrences.length === 0) {
                 setBannerStyle(false);
-                textEl.textContent = `No doses scheduled yet for ${catName}`;
+                // Nothing due today: point at the next day anything is due (e.g. a every-other-day or biweekly med)
+                let soonest = null;
+                if (patient) patient.regimen.forEach(it => {
+                    const c = courseInfo(it);
+                    if (c.status === 'ended') return;
+                    const nk = nextDueKey(it);
+                    if (nk && nk > todayKey() && (!soonest || nk < soonest.key)) soonest = { key: nk, it };
+                });
+                if (soonest) {
+                    iconEl.className = `fa-solid ${soonest.it.type === 'medicine' ? 'fa-pills' : 'fa-bowl-food'} text-sm`;
+                    textEl.innerHTML = `${escapeHtml(soonest.it.name)} <span class="font-normal text-slate-600">on ${escapeHtml(fmtDateShort(soonest.key))}</span>`;
+                } else {
+                    textEl.textContent = `No doses scheduled yet for ${catName}`;
+                }
                 return;
             }
 
@@ -1591,7 +1849,19 @@ function doGet(e) {
             const tomorrow = !upcoming;
             const nextOcc = upcoming || occurrences[0];
             iconEl.className = `fa-solid ${nextOcc.type === 'medicine' ? 'fa-pills' : 'fa-bowl-food'} text-sm`;
-            textEl.innerHTML = `${escapeHtml(nextOcc.name)} <span class="font-normal text-slate-600">${tomorrow ? 'tomorrow ' : ''}at ${nextOcc.timeFormatted} (${countdown(nextOcc, tomorrow)})</span>`;
+            // "Tomorrow" is only true if that dose is actually due tomorrow (not for every-other-day meds)
+            let whenTxt = '';
+            if (tomorrow) {
+                const it = patient && patient.regimen.find(r => r.id === nextOcc.regimenId);
+                const tmr = addDaysKey(todayKey(), 1);
+                whenTxt = (it && isDueOn(it, tmr)) ? 'tomorrow ' : '';
+                if (it && !whenTxt) {
+                    const nk = nextDueKey(it);
+                    const nk2 = (nk && nk > todayKey()) ? nk : addDaysKey(todayKey(), ((it.repeatDays || 1)));
+                    whenTxt = `${fmtDateShort(nk2)} `;
+                }
+            }
+            textEl.innerHTML = `${escapeHtml(nextOcc.name)} <span class="font-normal text-slate-600">${whenTxt}at ${nextOcc.timeFormatted}${whenTxt === 'tomorrow ' || !tomorrow ? ` (${countdown(nextOcc, tomorrow)})` : ''}</span>`;
         }
 
         // ==========================================
@@ -2072,12 +2342,17 @@ function doGet(e) {
                 const sorted = infos.slice().sort((a, b) => order[a.c.status] - order[b.c.status]);
                 const body = sorted.map(({ it, c }) => {
                     const times = cols.filter(x => x.item === it).map(x => x.time).join(', ');
-                    const freq = (it.times && it.times.length) ? `Set times (${it.times.length}x/day)` : it.intervalHours === 24 ? 'Once daily' : `Every ${it.intervalHours} h (${Math.floor(24 / it.intervalHours)}x/day)`;
+                    const baseFreq = (it.times && it.times.length) ? `Set times (${it.times.length}x/day)` : it.intervalHours === 24 ? 'Once daily' : `Every ${it.intervalHours} h (${Math.floor(24 / it.intervalHours)}x/day)`;
+                    const freq = (it.repeatDays || 1) > 1 ? `${repeatLabel(it.repeatDays)}; ${baseFreq}` : baseFreq;
                     let course;
                     if (c.status === 'ongoing') course = `Ongoing (since ${mdLabel(it.startDate)})`;
                     else if (c.status === 'active') course = `Day ${c.day} of ${c.total}, ends ${courseEndLabel(it)}`;
                     else if (c.status === 'ended') course = `Complete (ended ${courseEndLabel(it)})`;
-                    else course = `Starts in ${-c.idx} d`;
+                    else course = `Starts ${mdLabel(it.startDate)}`;
+                    if ((it.repeatDays || 1) > 1 && (c.status === 'active' || c.status === 'ongoing')) {
+                        const nk = nextDueKey(it);
+                        if (nk) course += `; ${nk === today ? 'due today' : 'next dose ' + mdLabel(nk)}`;
+                    }
                     const offset = it.offsetMinutes ? `${it.offsetMinutes > 0 ? '+' : ''}${it.offsetMinutes} min` : '-';
                     return [it.name, it.type === 'medicine' ? 'Medicine' : 'Meal', times, freq, course, offset].map(T);
                 });
